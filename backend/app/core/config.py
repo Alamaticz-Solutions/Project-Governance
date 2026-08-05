@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     # ── OpenAI ─────────────────────────────────────────────────────────────────
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o"
+    OPENAI_TRANSCRIBE_MODEL: str = "gpt-4o-transcribe"
 
     # ── AWS S3 ─────────────────────────────────────────────────────────────────
     AWS_ACCESS_KEY_ID: str = ""

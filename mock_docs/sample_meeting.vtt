@@ -1,0 +1,37 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:08.000
+<v Alicia Kwan>Good morning everyone, let's start the Architecture Alignment Council. Today we're covering the Azure Data Lake Migration status.
+
+00:00:08.000 --> 00:00:18.000
+<v Jordan Reyes>Thanks Alicia. Infrastructure has finished the initial VPC setup, but we're still blocked on the SOC2 vendor exception for the Azure storage module.
+
+00:00:18.000 --> 00:00:30.000
+<v Alicia Kwan>Understood. Let's approve the cloud migration budget of 480,000 dollars for this quarter so the team isn't blocked on funding while Security finishes the review.
+
+00:00:30.000 --> 00:00:38.000
+<v Priya Shah>I'll take the SOC2 vendor exception review. Security will have a decision back to the group by next Friday.
+
+00:00:38.000 --> 00:00:52.000
+<v Jordan Reyes>On process — once a new vendor request comes in, here's how it flows today. First, the requesting team submits the vendor intake form. Then Procurement does an initial screen for completeness.
+
+00:00:52.000 --> 00:01:08.000
+<v Jordan Reyes>If it passes screening, Security runs the SOC2 and HIPAA review in parallel with Legal's contract review. If either one rejects it, the request goes back to the requesting team with comments.
+
+00:01:08.000 --> 00:01:20.000
+<v Jordan Reyes>If both Security and Legal approve, Procurement finalizes the vendor record and notifies the requesting team that the vendor is cleared to use.
+
+00:01:20.000 --> 00:01:30.000
+<v Alicia Kwan>Good overview, thanks Jordan. Finance, can you confirm the budget breakdown by next week's session?
+
+00:01:30.000 --> 00:01:36.000
+<v Marcus Lee>Finance will confirm the budget breakdown by our next session.
+
+00:01:36.000 --> 00:01:46.000
+<v Alicia Kwan>Great. Let's circulate the previous minutes of meeting to the full group before we close. EPMO, can you own that?
+
+00:01:46.000 --> 00:01:52.000
+<v Priya Shah>EPMO already circulated the previous MoM yesterday, that one's done.
+
+00:01:52.000 --> 00:02:00.000
+<v Alicia Kwan>Perfect, thanks everyone. That wraps up today's council. See you all next week.

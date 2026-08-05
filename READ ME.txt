@@ -1,0 +1,21 @@
+The skills in this folder are for the IT Governance Future State processes that includes the EPMO intake and events such as TRC, CAB, and Security Risk Assessment (e.g., a Security review). 
+
+## Skills overview
+
+### IT Governance Future State
+itgov-requirements-map | Discusses the 5 gates Nemi envisions for the future of IT Governance
+
+### Project Tracking
+project-tracker | Tracks RAID log and other items for projects
+bpm-project-memory | Another tracker that contains the project-tracker, Session Capture, Quote Capture, and Master State document.
+cost-completion-estimator | Allows project person to supply tasks to be completed & estimates of time worked to receive a 1-pager that shows how much has been spent per task and how much of the task is left to be completed.
+
+###Documentation
+bpm-bpmn-export	| Creates a BPMN document from a transcript, demo, SOP, or other written or spoken descriptions. 
+value-stream-analysis | Creates a value stream analysis and html diagram; also creates business capabilities. Still in DRAFT. 
+itgov-security-reference | Security Risk Assessment html diagram and analysis
+
+### Other
+pds-health-style-guide | Our company's style guide
+
+

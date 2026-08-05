@@ -635,3 +635,57 @@ class ProjectApproval(Base):
     project = relationship("Project", back_populates="approvals")
     assigned_user = relationship("User", foreign_keys=[assigned_user_id])
     approver = relationship("User", foreign_keys=[approved_by])
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MEETING CENTER
+# ══════════════════════════════════════════════════════════════════════════════
+
+class Meeting(Base):
+    """Governance council meeting, with AI-extracted summary/actions/agenda from an uploaded artifact."""
+    __tablename__ = "meetings"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String(300), nullable=False)
+    meeting_type = Column(String(50))          # EAC, BTA, PIC, etc.
+    meeting_date = Column(String(50))
+    meeting_time = Column(String(100))
+    status = Column(String(50), default="Scheduled")  # Scheduled, Processing, Completed, Failed
+
+    summary = Column(Text, nullable=True)
+    decisions = Column(JSON, default=list)          # list[str]
+    action_items = Column(JSON, default=list)       # list[{text, assignee}]
+    agenda_items = Column(JSON, default=list)        # list[{project, department}]
+
+    contains_process_flow = Column(Boolean, default=False)
+    process_name = Column(String(300), nullable=True)
+    bpmn_xml = Column(Text, nullable=True)
+    bpmn_s3_key = Column(String(1000), nullable=True)
+    bpmn_status = Column(String(50), nullable=True)  # generated, failed
+
+    created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    artifacts = relationship("MeetingArtifact", back_populates="meeting", cascade="all, delete-orphan")
+    created_by = relationship("User")
+
+
+class MeetingArtifact(Base):
+    """A single uploaded file (video/vtt/txt) tied to a meeting, plus its transcript."""
+    __tablename__ = "meeting_artifacts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    meeting_id = Column(UUID(as_uuid=True), ForeignKey("meetings.id", ondelete="CASCADE"), nullable=False)
+    file_name = Column(String(500), nullable=False)
+    file_type = Column(String(50))              # video, vtt, txt
+    s3_key = Column(String(1000))
+    s3_url = Column(String(1000))
+    transcript = Column(Text, nullable=True)
+    processing_status = Column(String(50), default="pending")  # pending, processing, done, failed
+    error_message = Column(Text, nullable=True)
+    uploaded_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    uploaded_at = Column(DateTime(timezone=True), default=utcnow)
+
+    meeting = relationship("Meeting", back_populates="artifacts")
+    uploaded_by = relationship("User")

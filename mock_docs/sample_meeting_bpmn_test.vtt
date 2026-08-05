@@ -1,0 +1,43 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:10.000
+<v Alicia Kwan>Good morning everyone. Today's session is a walkthrough of the new Project Governance application flow end to end, since Engineering wants a clear picture before we build the next module. Jordan, can you kick us off with how a request enters the system?
+
+00:00:10.000 --> 00:00:26.000
+<v Jordan Reyes>Sure. It starts when a business user opens the Intake form in the app and submits a new project request. The moment they click Submit, the application automatically creates a project record and fires it straight to the EPMO queue for an initial check-in. There's no manual routing involved, the system does it automatically.
+
+00:00:26.000 --> 00:00:40.000
+<v Priya Shah>Right, and from EPMO the request moves to BTA Review next. The BTA team opens the request in the app, reads the business case, and makes a decision. If they reject it, the application sends the request straight back to the original requester with the BTA's comments attached.
+
+00:00:40.000 --> 00:00:58.000
+<v Priya Shah>But if BTA approves it, the app automatically advances the request to the Prepare for EAC stage, where the requester has to fill in additional technical and budget details before it can go to committee.
+
+00:00:58.000 --> 00:01:16.000
+<v Marcus Lee>Once the Prepare for EAC step is completed and submitted, the application splits the review into two parallel tracks that happen at the same time. One track goes to the Finance team to review the budget, and the other track goes to the Security team to run a risk assessment. Both of those happen simultaneously, not one after the other.
+
+00:01:16.000 --> 00:01:34.000
+<v Marcus Lee>Finance either approves the budget or sends it back for revision. Security either clears the risk assessment or flags it as high risk. The application waits until both Finance and Security have completed their reviews before it lets the request move forward, so it's a real join point, not just two separate paths.
+
+00:01:34.000 --> 00:01:52.000
+<v Devika Rao>After both Finance and Security sign off, the system brings the request to the EAC Committee Review stage. This is where the full committee looks at it together in the Meeting Center, and here's where it gets interesting: the committee can approve it outright, reject it outright, or send it back requesting more information.
+
+00:01:52.000 --> 00:02:08.000
+<v Devika Rao>If they request more information, the application routes it back to the requester, the requester updates the details in the app, and it goes right back into the EAC Committee Review queue again. That can loop a few times before it's finalized.
+
+00:02:08.000 --> 00:02:24.000
+<v Alicia Kwan>And once the EAC Committee approves it, what happens automatically on the system side, Jordan?
+
+00:02:24.000 --> 00:02:44.000
+<v Jordan Reyes>Once approved, the application automatically updates the project status to Approved, generates the project number, and sends notifications to the requester, the project manager, and all the stakeholders that were tagged during intake. It also writes an entry to the audit history log automatically, so there's a full record of every stage transition with a timestamp.
+
+00:02:44.000 --> 00:03:00.000
+<v Priya Shah>One more thing worth calling out, if the EAC Committee rejects the request outright instead of approving it, the application marks the project as Rejected, notifies the requester with the rejection reason, and closes the workflow. It doesn't loop back at that point, that's a true end state.
+
+00:03:00.000 --> 00:03:14.000
+<v Marcus Lee>Good summary. So to recap the whole path: Intake submission triggers EPMO check-in, then BTA Review with a reject-or-continue branch, then Prepare for EAC, then the parallel Finance and Security reviews that both have to complete, then EAC Committee Review with its three-way approve, reject, or request-more-info outcome, and finally either an Approved end state with notifications and an audit log entry, or a Rejected end state that closes things out.
+
+00:03:14.000 --> 00:03:26.000
+<v Devika Rao>That matches what I have documented too. Should we also note that Admin can intervene at any stage to manually override the status if there's an escalation?
+
+00:03:26.000 --> 00:03:36.000
+<v Alicia Kwan>Good catch, yes, let's include that as a side path, not part of the main flow. Thanks everyone, this gives Engineering exactly what they need to model the process. Let's wrap up here.
