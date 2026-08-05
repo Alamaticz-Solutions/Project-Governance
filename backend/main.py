@@ -66,6 +66,12 @@ def create_application() -> FastAPI:
     # ── API Router ─────────────────────────────────────────────────────────────
     app.include_router(api_router, prefix="/api/v1")
 
+    # ── Static Files (Local Uploads Fallback) ──────────────────────────────────
+    from pathlib import Path
+    uploads_dir = Path(__file__).resolve().parent / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
+
     # ── Health Check ───────────────────────────────────────────────────────────
     @app.get("/health", tags=["health"])
     async def health_check():
