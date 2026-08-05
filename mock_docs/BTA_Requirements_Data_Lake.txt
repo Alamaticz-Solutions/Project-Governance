@@ -1,0 +1,27 @@
+BUSINESS TECHNOLOGY ASSESSMENT (BTA) - REQUIREMENTS DOCUMENT
+=============================================================
+Project Name: Enterprise Cloud Data Lake Migration
+Requesting Department: Clinical Data Architecture
+Date: August 3, 2026
+
+PROBLEM STATEMENT:
+Currently, the on-premise infrastructure for diagnostic records is severely bottlenecks. 
+It poses a massive scalability limitation and HIPAA compliance risks around redundant data backup strategies.
+
+DESIRED OUTCOME:
+Migrate all critical diagnostic data lakes to Microsoft Azure Cloud. 
+Target latency reduction: -40%
+Target uptime: 99.99%
+
+ESTIMATED BUDGET:
+Base Migration Cost: $1,250,000
+Ongoing Licensing (Yr 1): $750,000
+Buffer: $500,000
+Total Value: $2,500,000
+
+VENDOR INVOLVED: Yes - Microsoft Azure / Cloud Consulting Partners
+TECH INVOLVED: Yes - Azure Data Lake, PowerBI, EHR Integration APIs
+
+KNOWN RISKS:
+- Temporarily stalling diagnostic reporting operations during DNS cutover.
+- Strict HIPAA compliance overlap during data transfer.

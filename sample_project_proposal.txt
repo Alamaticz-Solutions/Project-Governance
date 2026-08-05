@@ -1,0 +1,28 @@
+PROJECT PROPOSAL DOCUMENT
+
+Project Name: 
+Cloud Migration and Infrastructure Modernization
+
+Requestor: 
+Gurrammaneesh User
+
+Department: 
+Infrastructure
+
+Request Type: 
+System Enhancement / Upgrade
+
+Problem Statement:
+Our current on-premise servers are reaching their end-of-life and are becoming increasingly expensive to maintain. We are experiencing frequent downtimes during peak hours, and the hardware limitations prevent us from scaling our applications effectively to meet growing customer demands. Additionally, our disaster recovery capabilities are limited, putting critical business data at risk.
+
+Desired Outcome:
+We aim to successfully migrate our core infrastructure to the cloud (AWS/Azure) within the next 6 months. This will result in 99.99% uptime, dynamic scalability during peak traffic, a 30% reduction in long-term infrastructure maintenance costs, and a robust, automated disaster recovery plan. 
+
+What Do You Do Today?
+Currently, our IT Operations team manually monitors server health and provisions new hardware when necessary, which takes weeks to procure and set up. When servers go down, we rely on manual failovers that take up to 4 hours to resolve.
+
+What Transpires If We Do Nothing?
+If we do not migrate, we risk major system failures during the upcoming holiday season. The hardware maintenance costs will continue to rise by an estimated 15% annually, and our inability to scale will lead to poor customer experiences, potentially costing us significant revenue and brand reputation.
+
+Notes / Comments:
+We have already received initial quotes from two cloud vendors and would like to proceed with the technical evaluation phase as soon as possible. Budget has been tentatively reserved for Q3.

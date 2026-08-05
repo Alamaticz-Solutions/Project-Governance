@@ -1,0 +1,17 @@
+STATEMENT OF WORK (SOW) - VENDOR PROPOSAL
+=============================================================
+Vendor Name: Acme Cloud Integration Partners
+Project: Healthcare CRM Standardization
+Target: Salesforce Shield Health Cloud
+
+OBJECTIVE:
+Standardize all distributed patient outreach call-center systems into a single centralized Salesforce CRM.
+
+FINANCIAL ESTIMATES:
+- Implementation Services: $400,000
+- Integration Middleware: $150,000
+- Total Initial SOW: $550,000
+
+DEPENDENCIES:
+- Approval from internal cyber-security board for Salesforce Shield encryption policies.
+- Dedicated availability of three internal network engineers for VPC peering.
