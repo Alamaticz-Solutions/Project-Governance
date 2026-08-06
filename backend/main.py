@@ -56,7 +56,11 @@ def create_application() -> FastAPI:
     # ── Middleware ─────────────────────────────────────────────────────────────
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.ALLOWED_ORIGINS,
+        allow_origins=[
+            "http://localhost:4200",
+            "http://localhost:3000",
+            "https://governancepro.netlify.app"
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
