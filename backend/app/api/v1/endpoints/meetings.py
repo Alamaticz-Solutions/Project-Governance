@@ -1,13 +1,14 @@
 """Meeting Center endpoints: create meetings, upload artifacts, run the extraction agent."""
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
+import asyncio
 import logging
 import re
 import uuid
 
-from app.db.database import get_db
+from app.db.database import get_db, AsyncSessionLocal
 from app.models.models import Meeting, MeetingArtifact, User
 from app.schemas.meetings import MeetingCreateRequest, MeetingResponse, MeetingListResponse
 from app.api.v1.endpoints.auth import get_current_user
@@ -73,10 +74,15 @@ async def create_meeting(
 @router.post("/{meeting_id}/upload", response_model=MeetingResponse)
 async def upload_meeting_artifact(
     meeting_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Validates and records the upload, then hands off S3 storage + transcription/extraction
+    to a background task so the request returns immediately instead of blocking on the full
+    pipeline. See process_artifact_in_background() for how S3 upload and extraction are run
+    concurrently rather than one after the other."""
     result = await db.execute(
         select(Meeting).options(selectinload(Meeting.artifacts)).where(Meeting.id == meeting_id)
     )
@@ -105,77 +111,116 @@ async def upload_meeting_artifact(
 
     safe_filename = re.sub(r"[^A-Za-z0-9._-]", "_", filename)[:200]
     s3_key = f"meetings/{meeting_id}/{uuid.uuid4()}_{safe_filename}"
-    try:
-        s3_url = s3_service.upload_file(file_bytes, s3_key)
-    except Exception as e:
-        logger.error(f"S3 upload failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to store the uploaded file")
 
     artifact = MeetingArtifact(
         meeting_id=meeting.id,
         file_name=filename,
         file_type=file_type,
         s3_key=s3_key,
-        s3_url=s3_url,
         processing_status="processing",
         uploaded_by_id=current_user.id,
     )
     db.add(artifact)
     meeting.status = "Processing"
-    await db.commit()  # persist "Processing" now — get_db only commits on a clean return,
-                        # so without this an error below would roll this back along with everything else
-
-    try:
-        transcript = await meeting_agent.ingest_to_transcript(file_bytes, filename, file_type)
-    except Exception as e:
-        logger.error(f"Ingestion (transcribe/parse) failed: {e}")
-        artifact.processing_status = "failed"
-        artifact.error_message = str(e)
-        meeting.status = "Failed"
-        await db.commit()
-        raise HTTPException(status_code=500, detail=f"Failed to transcribe/parse the file: {e}")
-
-    # Persist the transcript as soon as we have it, independent of whether extraction below
-    # succeeds — otherwise a downstream LLM failure would silently lose text that was already
-    # successfully extracted, and a retry would have to redo transcription/parsing from scratch.
-    artifact.transcript = transcript
     await db.commit()
+    await db.refresh(meeting, attribute_names=["artifacts"])
 
-    try:
-        extraction = await meeting_agent.extract_meeting_insights(transcript)
-    except Exception as e:
-        logger.error(f"Meeting extraction failed: {e}")
-        artifact.processing_status = "failed"
-        artifact.error_message = str(e)
-        meeting.status = "Failed"
+    background_tasks.add_task(
+        process_artifact_in_background,
+        meeting_id, artifact.id, file_bytes, filename, file_type, s3_key,
+    )
+
+    return MeetingResponse.model_validate(meeting)
+
+
+async def process_artifact_in_background(
+    meeting_id: uuid.UUID,
+    artifact_id: uuid.UUID,
+    file_bytes: bytes,
+    filename: str,
+    file_type: str,
+    s3_key: str,
+) -> None:
+    """Runs the S3 upload and the transcribe/extract/BPMN pipeline concurrently — they don't
+    depend on each other, since extraction works off the in-memory file_bytes rather than the
+    S3 copy. Uses its own DB session because the request-scoped session from the endpoint is
+    already closed by the time this runs (BackgroundTasks fire after the response is sent)."""
+    async with AsyncSessionLocal() as db:
+        artifact = (await db.execute(
+            select(MeetingArtifact).where(MeetingArtifact.id == artifact_id)
+        )).scalar_one_or_none()
+        meeting = (await db.execute(
+            select(Meeting).where(Meeting.id == meeting_id)
+        )).scalar_one_or_none()
+        if not artifact or not meeting:
+            logger.error(f"Meeting/artifact vanished before background processing ran: {meeting_id}/{artifact_id}")
+            return
+
+        async def _ingest_and_extract():
+            transcript = await meeting_agent.ingest_to_transcript(file_bytes, filename, file_type)
+            extraction = await meeting_agent.extract_meeting_insights(transcript)
+            return transcript, extraction
+
+        s3_result, ingest_result = await asyncio.gather(
+            asyncio.to_thread(s3_service.upload_file, file_bytes, s3_key),
+            _ingest_and_extract(),
+            return_exceptions=True,
+        )
+
+        if isinstance(s3_result, Exception):
+            logger.error(f"Background S3 upload failed for artifact {artifact_id}: {s3_result}")
+        else:
+            artifact.s3_url = s3_result
+
+        if isinstance(ingest_result, Exception):
+            logger.error(f"Background extraction failed for artifact {artifact_id}: {ingest_result}")
+            artifact.processing_status = "failed"
+            artifact.error_message = str(ingest_result)
+            meeting.status = "Failed"
+            await db.commit()
+            return
+
+        transcript, extraction = ingest_result
+
+        # Mark done and commit now — BPMN generation (a second, slower LLM call) runs after
+        # this, but the user's summary/decisions/action items are ready and shouldn't wait on it.
+        artifact.transcript = transcript
+        artifact.processing_status = "done"
+
+        meeting.status = "Completed"
+        meeting.summary = extraction.summary
+        meeting.decisions = extraction.decisions
+        meeting.action_items = [item.model_dump() for item in extraction.action_items]
+        meeting.agenda_items = [item.model_dump() for item in extraction.agenda_items]
+        meeting.contains_process_flow = extraction.contains_process_flow
+        meeting.process_name = extraction.process_name
+
+        if extraction.contains_process_flow:
+            meeting.bpmn_status = "generating"
+
         await db.commit()
-        raise HTTPException(status_code=500, detail=f"Failed to extract meeting insights: {e}")
 
-    bpmn = {"xml": None, "status": None, "error": None}
-    if extraction.contains_process_flow:
-        bpmn = await meeting_agent.generate_bpmn(transcript, extraction.process_name)
+        if not extraction.contains_process_flow:
+            return
 
-    artifact.processing_status = "done"
+        try:
+            bpmn = await meeting_agent.generate_bpmn(transcript, extraction.process_name)
+        except Exception as e:
+            logger.error(f"Background BPMN generation failed for artifact {artifact_id}: {e}")
+            meeting.bpmn_status = "failed"
+            await db.commit()
+            return
 
-    meeting.status = "Completed"
-    meeting.summary = extraction.summary
-    meeting.decisions = extraction.decisions
-    meeting.action_items = [item.model_dump() for item in extraction.action_items]
-    meeting.agenda_items = [item.model_dump() for item in extraction.agenda_items]
-    meeting.contains_process_flow = extraction.contains_process_flow
-    meeting.process_name = extraction.process_name
-
-    if extraction.contains_process_flow:
         meeting.bpmn_status = bpmn["status"]
         if bpmn["status"] == "generated":
             meeting.bpmn_xml = bpmn["xml"]
             bpmn_key = f"meetings/{meeting_id}/generated_{uuid.uuid4()}.bpmn"
             try:
-                s3_service.upload_file(bpmn["xml"].encode("utf-8"), bpmn_key, content_type="application/xml")
+                await asyncio.to_thread(
+                    s3_service.upload_file, bpmn["xml"].encode("utf-8"), bpmn_key, "application/xml"
+                )
                 meeting.bpmn_s3_key = bpmn_key
             except Exception as e:
                 logger.error(f"BPMN S3 upload failed: {e}")
 
-    await db.flush()
-    await db.refresh(meeting, attribute_names=["artifacts"])
-    return MeetingResponse.model_validate(meeting)
+        await db.commit()

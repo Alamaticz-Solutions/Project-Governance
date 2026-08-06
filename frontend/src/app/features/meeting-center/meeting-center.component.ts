@@ -292,13 +292,22 @@ export class MeetingCenterComponent implements AfterViewChecked, OnDestroy {
   isProcessing = signal(false);
   uploadedFileName = signal<string | null>(null);
   uploadError = signal<string | null>(null);
+  private pollTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private meetingService: MeetingService) {}
 
   selectMeeting(meeting: MeetingCard) {
+    this.clearPoll();
     this.activeMeeting.set(meeting);
     this.uploadedFileName.set(null);
     this.uploadError.set(null);
+  }
+
+  private clearPoll(): void {
+    if (this.pollTimeoutId !== null) {
+      clearTimeout(this.pollTimeoutId);
+      this.pollTimeoutId = null;
+    }
   }
 
   onFileSelected(event: any): void {
@@ -317,24 +326,10 @@ export class MeetingCenterComponent implements AfterViewChecked, OnDestroy {
 
     this.ensureBackendMeeting(meeting).subscribe({
       next: (backendId) => {
+        // The upload call now returns as soon as the file is recorded — the backend
+        // processes S3 storage and extraction in the background. Poll until it's done.
         this.meetingService.uploadArtifact(backendId, file).subscribe({
-          next: (result) => {
-            meeting.summary = result.summary || undefined;
-            meeting.decisions = result.decisions;
-            meeting.actions = (result.action_items || []).map((a: ActionItem, i: number) => ({
-              id: i + 1, text: a.text, assignee: a.assignee, done: false
-            }));
-            meeting.agenda = (result.agenda_items || []).map((a: AgendaItem, i: number) => ({
-              id: String(i + 1), project: a.project, department: a.department || 'Unspecified'
-            }));
-            meeting.containsProcessFlow = result.contains_process_flow;
-            meeting.processName = result.process_name;
-            meeting.bpmnXml = result.bpmn_xml;
-            meeting.bpmnStatus = result.bpmn_status;
-
-            this.activeMeeting.set({ ...meeting });
-            this.isProcessing.set(false);
-          },
+          next: () => this.pollForProcessingResult(backendId, meeting),
           error: (err) => {
             console.error('Failed to process meeting artifact:', err);
             this.uploadError.set(err?.error?.detail || 'Failed to process the uploaded file.');
@@ -345,6 +340,55 @@ export class MeetingCenterComponent implements AfterViewChecked, OnDestroy {
       error: (err) => {
         console.error('Failed to create/find backend meeting:', err);
         this.uploadError.set('Failed to create meeting record on the server.');
+        this.isProcessing.set(false);
+      }
+    });
+  }
+
+  private static readonly POLL_INTERVAL_MS = 3000;
+
+  private pollForProcessingResult(backendId: string, meeting: MeetingCard): void {
+    this.meetingService.getMeeting(backendId).subscribe({
+      next: (result) => {
+        const coreStillProcessing = result.status === 'Processing';
+        // BPMN generation is a second, slower LLM call that runs after the core extraction
+        // is done — don't make the user wait on it to see their summary/decisions/actions.
+        const bpmnStillGenerating = result.bpmn_status === 'generating';
+
+        if (!coreStillProcessing) {
+          meeting.summary = result.summary || undefined;
+          meeting.decisions = result.decisions;
+          meeting.actions = (result.action_items || []).map((a: ActionItem, i: number) => ({
+            id: i + 1, text: a.text, assignee: a.assignee, done: false
+          }));
+          meeting.agenda = (result.agenda_items || []).map((a: AgendaItem, i: number) => ({
+            id: String(i + 1), project: a.project, department: a.department || 'Unspecified'
+          }));
+          meeting.containsProcessFlow = result.contains_process_flow;
+          meeting.processName = result.process_name;
+          meeting.bpmnXml = result.bpmn_xml;
+          meeting.bpmnStatus = result.bpmn_status;
+
+          this.activeMeeting.set({ ...meeting });
+          this.isProcessing.set(false);
+
+          if (result.status === 'Failed') {
+            const failedArtifact = result.artifacts?.find(a => a.processing_status === 'failed');
+            this.uploadError.set(failedArtifact?.error_message || 'Failed to process the uploaded file.');
+          }
+        }
+
+        if (coreStillProcessing || bpmnStillGenerating) {
+          this.clearPoll();
+          this.pollTimeoutId = setTimeout(
+            () => this.pollForProcessingResult(backendId, meeting),
+            MeetingCenterComponent.POLL_INTERVAL_MS
+          );
+        }
+      },
+      error: (err) => {
+        console.error('Failed to check processing status:', err);
+        this.uploadError.set('Failed to check processing status.');
         this.isProcessing.set(false);
       }
     });
@@ -394,6 +438,7 @@ export class MeetingCenterComponent implements AfterViewChecked, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.clearPoll();
     this.bpmnViewer?.destroy();
   }
 }
