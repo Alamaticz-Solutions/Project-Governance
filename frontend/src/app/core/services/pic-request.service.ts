@@ -7,7 +7,8 @@ export interface PicRequest {
   projectNumber: string;
   projectName: string;
   projectData: any;
-  type: string; // 'Prepare for PIC' or 'PIC Meeting'
+  type: string;
+  forwardTo?: string; // 'Prepare for PIC' or 'PIC Meeting'
   priority: string;
   submittedBy: string;
   submittedDate: string;

@@ -8,6 +8,7 @@ export interface EpmoRequest {
   projectName: string;
   projectData: any;
   type: string;
+  forwardTo?: string;
   priority: string;
   submittedBy: string;
   submittedDate: string;

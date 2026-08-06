@@ -1,8 +1,13 @@
 """Application configuration using Pydantic Settings."""
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
-from typing import List
+from typing import List, Optional
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+load_dotenv(dotenv_path=env_path, override=True)
 
 
 class Settings(BaseSettings):
@@ -13,17 +18,17 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
 
     # ── Database ───────────────────────────────────────────────────────────────
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/governance_db"
-    SYNC_DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/governance_db"
+    DATABASE_URL: str
+    SYNC_DATABASE_URL: str
 
     # ── JWT ────────────────────────────────────────────────────────────────────
-    SECRET_KEY: str = "super-secret-key-change-in-production-must-be-32-chars-min"
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # ── CORS ───────────────────────────────────────────────────────────────────
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:4200", "http://localhost:3000"]
+    ALLOWED_ORIGINS: List[str] = ["*"]
 
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
@@ -40,32 +45,32 @@ class Settings(BaseSettings):
         return v
 
     # ── Email ──────────────────────────────────────────────────────────────────
-    SMTP_HOST: str = "smtp.office365.com"
-    SMTP_PORT: int = 587
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
-    EMAIL_FROM: str = "noreply@abchealth.com"
-    EMAIL_FROM_NAME: str = "ABC Governance Portal"
+    SMTP_HOST: str
+    SMTP_PORT: int
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    EMAIL_FROM: str
+    EMAIL_FROM_NAME: str
 
     # ── Redis ──────────────────────────────────────────────────────────────────
-    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: Optional[str] = None
 
     # ── Smartsheet ─────────────────────────────────────────────────────────────
-    SMARTSHEET_ACCESS_TOKEN: str = ""
-    SMARTSHEET_SHEET_ID: str = ""
+    SMARTSHEET_ACCESS_TOKEN: Optional[str] = None
+    SMARTSHEET_SHEET_ID: Optional[str] = None
 
     # ── OpenAI ─────────────────────────────────────────────────────────────────
-    OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = "gpt-4o"
-    OPENAI_TRANSCRIBE_MODEL: str = "gpt-4o-transcribe"
+    OPENAI_API_KEY: str
+    OPENAI_MODEL: str
+    OPENAI_TRANSCRIBE_MODEL: str
 
     # ── AWS S3 ─────────────────────────────────────────────────────────────────
-    AWS_ACCESS_KEY_ID: str = ""
-    AWS_SECRET_ACCESS_KEY: str = ""
-    AWS_REGION: str = "us-east-1"
-    S3_BUCKET_NAME: str = "governance-portal-docs"
+    AWS_ACCESS_KEY_ID: str
+    AWS_SECRET_ACCESS_KEY: str
+    AWS_REGION: Optional[str] = None
+    S3_BUCKET_NAME: str
 
-    model_config = {"env_file": ".env", "case_sensitive": True, "extra": "ignore"}
+    model_config = SettingsConfigDict(env_file=str(env_path), env_file_encoding='utf-8', extra='ignore')
 
 
 settings = Settings()

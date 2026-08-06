@@ -99,17 +99,7 @@ import { AuthService } from '../../../core/services/auth.service';
             </button>
           </form>
 
-          <div class="demo-accounts">
-            <p class="demo-label">Quick Demo Access</p>
-            <div class="demo-grid">
-              @for (demo of demoAccounts; track demo.role) {
-                <button class="demo-btn" (click)="fillDemo(demo.email, demo.password)">
-                  <span class="material-icons">{{ demo.icon }}</span>
-                  <span>{{ demo.role }}</span>
-                </button>
-              }
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
@@ -290,51 +280,6 @@ import { AuthService } from '../../../core/services/auth.service';
       .material-icons { font-size: 18px; }
     }
 
-    .demo-accounts {
-      margin-top: 24px;
-      padding-top: 24px;
-      border-top: 1px solid #DFE3ED;
-    }
-
-    .demo-label {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: #97A0AF;
-      margin-bottom: 12px;
-      text-align: center;
-    }
-
-    .demo-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    .demo-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 12px;
-      background: #F7F8FC;
-      border: 1.5px solid #DFE3ED;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      color: #344563;
-      cursor: pointer;
-      transition: all 200ms;
-      font-family: 'Inter', sans-serif;
-
-      .material-icons { font-size: 16px; color: #0052CC; }
-
-      &:hover {
-        background: #E3F0FF;
-        border-color: #0052CC;
-        color: #0052CC;
-      }
-    }
 
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinning { animation: spin 1s linear infinite; }
@@ -358,12 +303,6 @@ export class LoginComponent {
     { icon: 'dashboard',    label: 'Real-time executive dashboards' },
   ];
 
-  demoAccounts = [
-    { role: 'Project Manager', email: 'pm@abchealth.com',    password: 'Demo1234!', icon: 'person' },
-    { role: 'EPMO',            email: 'epmo@abchealth.com',  password: 'Demo1234!', icon: 'admin_panel_settings' },
-    { role: 'EAC Reviewer',    email: 'eac@abchealth.com',   password: 'Demo1234!', icon: 'architecture' },
-    { role: 'Administrator',   email: 'admin@abchealth.com', password: 'Demo1234!', icon: 'manage_accounts' },
-  ];
 
   constructor() {
     this.loginForm = this.fb.group({
@@ -375,10 +314,6 @@ export class LoginComponent {
   showError(field: string): boolean {
     const ctrl = this.loginForm.get(field);
     return !!(ctrl?.invalid && ctrl?.touched);
-  }
-
-  fillDemo(email: string, password: string): void {
-    this.loginForm.patchValue({ email, password });
   }
 
   onSubmit(): void {

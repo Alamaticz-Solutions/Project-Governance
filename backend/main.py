@@ -56,7 +56,11 @@ def create_application() -> FastAPI:
     # ── Middleware ─────────────────────────────────────────────────────────────
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.ALLOWED_ORIGINS,
+        allow_origins=[
+            "http://localhost:4200",
+            "http://localhost:3000",
+            "https://governancepro.netlify.app"
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -80,6 +84,8 @@ def create_application() -> FastAPI:
             "app": settings.APP_NAME,
             "version": settings.APP_VERSION,
             "environment": settings.ENVIRONMENT,
+            "openai_key_len": len(settings.OPENAI_API_KEY),
+            "aws_key_len": len(settings.AWS_ACCESS_KEY_ID),
         }
 
     return app

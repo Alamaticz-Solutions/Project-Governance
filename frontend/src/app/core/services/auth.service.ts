@@ -5,7 +5,9 @@ import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { User, AuthTokens } from '../models/models';
 
-const API_URL = 'http://localhost:8000/api/v1';
+import { environment } from '../../../environments/environment';
+
+const API_URL = environment.apiUrl;
 const TOKEN_KEY = 'gov_access_token';
 const REFRESH_KEY = 'gov_refresh_token';
 const USER_KEY = 'gov_user';

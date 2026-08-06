@@ -16,66 +16,60 @@ const SELECT_SVG = `data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%2
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="flex flex-col gap-4 animate-fade-in w-full font-sans" [class.p-0]="embeddedMode">
+    <div class="animate-fade-in w-full font-sans" [class.p-0]="embeddedMode">
 
-      <!-- ══ PREMIUM HORIZONTAL STEPPER ══ -->
-      @if(!forceReviewScreen) {
-        <div class="rounded-2xl relative overflow-hidden"
-             style="background: white; border: 1px solid rgba(226,232,240,0.8); box-shadow: 0 4px 20px rgba(79,70,229,0.06); padding: 24px 24px 20px;">
+      <div class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start" [class.block]="forceReviewScreen">
+        
+        <!-- ══ VERTICAL STEPPER SIDEBAR ══ -->
+        @if(!forceReviewScreen) {
+          <div class="bg-white rounded-xl border border-[#DFE1E6] shadow-sm p-5 sticky top-6 hidden lg:block">
+            <h3 class="text-xs font-extrabold text-[#5E6C84] uppercase tracking-wider mb-5 px-2">BTA Review Steps</h3>
+            <div class="flex flex-col relative space-y-1">
+               <!-- Connecting Line -->
+               <div class="absolute left-[23px] top-4 bottom-6 w-[2px] bg-[#EBECF0] z-0"></div>
 
-          <!-- Gradient connecting line -->
-          <div class="absolute" style="top: 44px; left: 72px; right: 72px; height: 2px; background: linear-gradient(90deg, #4F46E5 0%, rgba(226,232,240,0.5) 60%); z-index: 0;"></div>
-
-          <div class="flex items-start justify-between relative z-10 overflow-x-auto gap-2">
-            @for(step of sections; track step.title; let i = $index) {
-              <div class="flex flex-col items-center cursor-pointer group shrink-0 w-[96px]" (click)="setSection(i)">
-                <!-- Step circle -->
-                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 relative"
-                     [style]="currentSectionIndex() === i
-                       ? 'background: linear-gradient(135deg, #4F46E5, #7C3AED); color: white; box-shadow: 0 4px 16px rgba(79,70,229,0.4);'
-                       : currentSectionIndex() > i
-                       ? 'background: linear-gradient(135deg, #EEF2FF, #F5F3FF); border: 2px solid #4F46E5; color: #4F46E5;'
-                       : 'background: white; border: 2px solid #E2E8F0; color: #94A3B8;'">
-                  <span *ngIf="currentSectionIndex() <= i">{{ i + 1 }}</span>
-                  <span *ngIf="currentSectionIndex() > i" class="material-icons" style="font-size: 16px;">check</span>
-                  <!-- Active glow ring -->
-                  @if(currentSectionIndex() === i) {
-                    <div class="absolute inset-0 rounded-full animate-pulse opacity-40" style="background: linear-gradient(135deg, #4F46E5, #7C3AED); transform: scale(1.5); filter: blur(4px);"></div>
-                  }
-                </div>
-                <!-- Step label -->
-                <div class="mt-3 text-center text-[10px] font-bold leading-snug px-1 transition-colors duration-200"
-                     [style]="currentSectionIndex() === i ? 'color: #4F46E5;' : currentSectionIndex() > i ? 'color: #64748B;' : 'color: #CBD5E1;'">
-                  {{ step.title }}
-                </div>
-              </div>
-            }
+               @for(step of sections; track step.title; let i = $index) {
+                 <div class="flex items-center gap-4 relative z-10 p-2 cursor-pointer rounded-lg hover:bg-[#FAFBFC] transition-colors" (click)="setSection(i)">
+                   <!-- Step Circle -->
+                   <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-all border-2"
+                        [ngClass]="currentSectionIndex() === i ? 'bg-[#0052CC] text-white border-[#0052CC] shadow-md scale-110' : (currentSectionIndex() > i ? 'bg-[#DEEBFF] text-[#0052CC] border-[#0052CC]' : 'bg-white text-[#94A3B8] border-[#DFE1E6]')">
+                     <span *ngIf="currentSectionIndex() <= i">{{ i + 1 }}</span>
+                     <span *ngIf="currentSectionIndex() > i" class="material-icons text-[16px]">check</span>
+                   </div>
+                   <!-- Step Label -->
+                   <div class="flex flex-col justify-center">
+                     <span class="text-[13px] font-bold leading-snug transition-colors"
+                           [ngClass]="currentSectionIndex() === i ? 'text-[#172B4D]' : 'text-[#5E6C84]'">
+                       {{ step.title }}
+                     </span>
+                   </div>
+                 </div>
+               }
+            </div>
           </div>
-        </div>
-      }
+        }
 
-      <!-- ══ FORM CONTENT CARD ══ -->
-      <div class="rounded-2xl relative overflow-hidden"
-           style="background: white; border: 1px solid rgba(226,232,240,0.8); box-shadow: 0 4px 24px rgba(79,70,229,0.07); padding: 32px;">
+        <!-- ══ FORM CONTENT CARD ══ -->
+        <div class="bg-white rounded-xl border border-[#DFE1E6] shadow-sm p-8 min-h-[600px] relative overflow-hidden transition-shadow hover:shadow-md"
+             [ngClass]="{'lg:col-span-1': !forceReviewScreen, 'col-span-1': forceReviewScreen}">
+          
+          <!-- Subtle background glow -->
+          <div class="absolute top-0 right-0 w-80 h-48 pointer-events-none opacity-50" style="background: radial-gradient(ellipse at 100% 0%, #DEEBFF 0%, transparent 70%);"></div>
 
-        <!-- Subtle background glow -->
-        <div class="absolute top-0 right-0 w-80 h-48 pointer-events-none" style="background: radial-gradient(ellipse at 100% 0%, rgba(79,70,229,0.04) 0%, transparent 70%);"></div>
-
-        <!-- Section Title & Icon -->
-        <div class="flex items-start gap-4 mb-8 pb-6 relative z-10" style="border-bottom: 1px solid rgba(226,232,240,0.6);">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 relative"
-               style="background: linear-gradient(135deg, #4F46E5, #7C3AED); box-shadow: 0 4px 16px rgba(79,70,229,0.35);">
-            <span class="material-icons text-white" style="font-size: 22px;">{{ sections[currentSectionIndex()].icon }}</span>
+          <!-- Section Title & Icon -->
+          <div class="flex items-start gap-4 mb-8 pb-6 border-b border-[#DFE1E6] relative z-10">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#0052CC] shadow-sm text-white">
+              <span class="material-icons text-[24px]">{{ sections[currentSectionIndex()].icon }}</span>
+            </div>
+            <div class="mt-1 flex-1">
+              <h2 class="text-2xl font-extrabold text-[#172B4D]">{{ sections[currentSectionIndex()].title }}</h2>
+              <p class="text-[14px] text-[#5E6C84] mt-1">{{ sections[currentSectionIndex()].description }}</p>
+            </div>
+            <!-- Step indicator pill -->
+            <div class="flex-shrink-0 px-3 py-1.5 rounded-full text-[12px] font-bold bg-[#EBECF0] text-[#5E6C84]">
+              Step {{ currentSectionIndex() + 1 }} / {{ sections.length }}
+            </div>
           </div>
-          <div class="mt-1">
-            <h2 class="text-xl font-extrabold" style="font-family: 'Outfit', sans-serif; color: #1E293B;">{{ sections[currentSectionIndex()].title }}</h2>
-            <p class="text-[13px] mt-1" style="color: #64748B;">{{ sections[currentSectionIndex()].description }}</p>
-          </div>
-          <!-- Step indicator pill -->
-          <div class="ml-auto flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold" style="background: linear-gradient(135deg, #EEF2FF, #F5F3FF); color: #4F46E5; border: 1px solid rgba(79,70,229,0.15);">
-            Step {{ currentSectionIndex() + 1 }} / {{ sections.length }}
-          </div>
-        </div>
 
         <form [formGroup]="btaForm" class="relative z-10">
 
@@ -596,7 +590,9 @@ const SELECT_SVG = `data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%2
           </div>
         </div>
 
-      </div>
+      </div> <!-- Closes FORM CONTENT CARD -->
+
+      </div> <!-- Closes Grid -->
 
     </div>
   `
