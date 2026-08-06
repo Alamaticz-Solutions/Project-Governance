@@ -2,7 +2,9 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-const API_URL = 'http://localhost:8000/api/v1';
+import { environment } from '../../environments/environment';
+
+const API_URL = environment.apiUrl;
 
 export interface ActionItem {
   text: string;

@@ -8,6 +8,7 @@ import { BtaRequestService } from '../../core/services/bta-request.service';
 import { EacRequestService } from '../../core/services/eac-request.service';
 import { PicRequestService } from '../../core/services/pic-request.service';
 import { ProjectService } from '../../core/services/project.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-intake',
@@ -536,7 +537,7 @@ export class IntakeComponent {
       const formData = new FormData();
       formData.append('file', file);
 
-      this.http.post<any>('http://localhost:8000/api/v1/projects/extract-intake', formData, {
+      this.http.post<any>(`${environment.apiUrl}/projects/extract-intake`, formData, {
         headers: {
           'Authorization': `Bearer ${this.authService.getToken()}`
         }
@@ -654,7 +655,7 @@ export class IntakeComponent {
         });
 
         if (formData1.sendCopyOfResponses && formData1.emailAddress) {
-          this.http.post('http://localhost:8000/api/v1/projects/send-intake-email', {
+          this.http.post(`${environment.apiUrl}/projects/send-intake-email`, {
             project_id: project.id,
             email: formData1.emailAddress,
             data: formData1
