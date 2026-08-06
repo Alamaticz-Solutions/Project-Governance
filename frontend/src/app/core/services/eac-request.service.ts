@@ -7,7 +7,8 @@ export interface EacRequest {
   projectNumber: string;
   projectName: string;
   projectData: any;
-  type: string; // 'Prepare for EAC' or 'EAC Meeting'
+  type: string;
+  forwardTo?: string; // 'Prepare for EAC' or 'EAC Meeting'
   priority: string;
   submittedBy: string;
   submittedDate: string;

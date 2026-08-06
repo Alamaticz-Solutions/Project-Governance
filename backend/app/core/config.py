@@ -1,8 +1,14 @@
 """Application configuration using Pydantic Settings."""
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
 from typing import List
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+load_dotenv(dotenv_path=env_path, override=True)
+
 
 
 class Settings(BaseSettings):
@@ -65,7 +71,7 @@ class Settings(BaseSettings):
     AWS_REGION: str = "us-east-1"
     S3_BUCKET_NAME: str = "governance-portal-docs"
 
-    model_config = {"env_file": ".env", "case_sensitive": True, "extra": "ignore"}
+    model_config = SettingsConfigDict(env_file=str(env_path), env_file_encoding='utf-8', extra='ignore')
 
 
 settings = Settings()

@@ -80,6 +80,8 @@ def create_application() -> FastAPI:
             "app": settings.APP_NAME,
             "version": settings.APP_VERSION,
             "environment": settings.ENVIRONMENT,
+            "openai_key_len": len(settings.OPENAI_API_KEY),
+            "aws_key_len": len(settings.AWS_ACCESS_KEY_ID),
         }
 
     return app

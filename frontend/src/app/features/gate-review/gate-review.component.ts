@@ -258,265 +258,170 @@ const CHECKLIST_DEFAULTS = [
     </div>
   `,
   styles: [`
+
+    /* Premium Gate Review Layout */
+    .page-header { margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid rgba(226,232,240,0.8); }
+    .page-title { margin: 0; font-size: 26px; font-weight: 800; color: #1E293B; font-family: 'Outfit', sans-serif; letter-spacing: -0.5px; }
+    .page-subtitle { margin: 6px 0 0; font-size: 14px; font-weight: 500; color: #64748B; }
+
     .gate-layout {
       display: grid;
       grid-template-columns: 360px 1fr;
-      gap: 20px;
+      gap: 28px;
       align-items: start;
+      font-family: 'Inter', sans-serif;
     }
 
     .gate-list-panel {
-      background: #fff;
-      border-radius: 12px;
-      border: 1px solid #DFE3ED;
+      background: white;
+      border-radius: 16px;
+      border: 1px solid rgba(226,232,240,0.8);
       overflow: hidden;
+      box-shadow: 0 4px 20px rgba(79,70,229,0.04);
     }
 
     .list-header {
-      display: flex;
-      gap: 10px;
-      padding: 14px;
-      border-bottom: 1px solid #DFE3ED;
-      background: #F7F8FC;
+      display: flex; gap: 12px; padding: 18px;
+      border-bottom: 1px solid rgba(226,232,240,0.8);
+      background: rgba(248,250,252,0.8);
     }
 
     .search-box {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #fff;
-      border: 1.5px solid #DFE3ED;
-      border-radius: 8px;
-      padding: 6px 10px;
+      display: flex; align-items: center; gap: 8px;
+      background: white; border: 1.5px solid #E2E8F0;
+      border-radius: 10px; padding: 8px 12px; transition: all 0.2s;
     }
+    .search-box:focus-within { border-color: rgba(79,70,229,0.5); box-shadow: 0 0 0 4px rgba(79,70,229,0.1); }
 
-    .search-icon { font-size: 16px !important; color: #97A0AF; }
+    .search-icon { font-size: 16px !important; color: #94A3B8; }
 
     .search-input {
-      border: none;
-      background: transparent;
-      outline: none;
-      font-size: 13px;
-      color: #172B4D;
-      width: 100%;
-      &::placeholder { color: #97A0AF; }
+      border: none; background: transparent; outline: none;
+      font-size: 13px; font-weight: 500; color: #1E293B; width: 100%;
     }
+    .search-input::placeholder { color: #94A3B8; }
 
     .gate-cards { max-height: calc(100vh - 240px); overflow-y: auto; }
+    .gate-cards::-webkit-scrollbar { width: 6px; }
+    .gate-cards::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
 
     .gate-card-item {
-      padding: 14px 16px;
-      border-bottom: 1px solid #F0F2F7;
-      cursor: pointer;
-      transition: background 200ms;
-
-      &:hover { background: #F7F8FC; }
-      &.selected { background: #E3F0FF; border-left: 3px solid #0052CC; }
-      &:last-child { border-bottom: none; }
+      padding: 18px; border-bottom: 1px solid rgba(226,232,240,0.5);
+      cursor: pointer; transition: all 0.2s; position: relative;
     }
-
-    .gate-card-top {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
+    .gate-card-item:hover { background: rgba(248,250,252,0.8); padding-left: 22px; }
+    .gate-card-item.selected { background: rgba(238,242,255,0.7); }
+    .gate-card-item.selected::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      background: linear-gradient(180deg, #4F46E5, #7C3AED);
     }
+    .gate-card-item:last-child { border-bottom: none; }
+
+    .gate-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 
     .gate-badge-lg {
-      width: 36px;
-      height: 36px;
-      background: #0052CC;
-      color: #fff;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 800;
-      font-family: 'Outfit', sans-serif;
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #4F46E5, #7C3AED); color: white;
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; font-family: 'Outfit', sans-serif;
+      box-shadow: 0 2px 8px rgba(79,70,229,0.2);
     }
 
-    .gate-card-project {
-      font-size: 13px;
-      font-weight: 600;
-      color: #172B4D;
-      margin-bottom: 6px;
-    }
+    .gate-card-project { font-size: 13px; font-weight: 700; color: #1E293B; margin-bottom: 8px; line-height: 1.4; }
 
     .gate-card-meta {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: #6B778C;
-      margin-bottom: 8px;
-      .material-icons { font-size: 14px !important; }
+      display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500;
+      color: #64748B; margin-bottom: 12px;
     }
+    .gate-card-meta .material-icons { font-size: 14px !important; }
 
-    .gate-card-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+    .gate-card-footer { display: flex; align-items: center; justify-content: space-between; }
 
     .days-badge {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 10px;
-      background: #FFF4D6;
-      color: #FF8B00;
-      &.overdue { background: #FFEBE6; color: #DE350B; }
+      font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 12px;
+      background: #FEF3C7; color: #D97706; text-transform: uppercase; letter-spacing: 0.5px;
     }
+    .days-badge.overdue { background: #FEE2E2; color: #DC2626; }
 
     .gate-hero-code {
-      width: 52px;
-      height: 52px;
-      background: #0089C9;
-      color: #fff;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      font-weight: 800;
-      font-family: 'Outfit', sans-serif;
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #0EA5E9, #3B82F6); color: white;
+      border-radius: 14px; display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800; font-family: 'Outfit', sans-serif;
+      box-shadow: 0 4px 12px rgba(14,165,233,0.3);
     }
 
     .badge-status {
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      &.badge-pending { background: #FEF3C7; color: #D97706; }
-      &.badge-needs-info { background: #E0E7FF; color: #4338CA; }
-      &.badge-approved { background: #D1FAE5; color: #059669; }
-      &.badge-rejected { background: #FEE2E2; color: #DC2626; }
-      
-      .bg-pending { background-color: #D97706; }
-      .bg-needs-info { background-color: #4338CA; }
-      .bg-approved { background-color: #059669; }
-      .bg-rejected { background-color: #DC2626; }
+      padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px;
     }
+    .badge-pending { background: #FEF3C7; color: #D97706; }
+    .badge-needs-info { background: #E0E7FF; color: #4338CA; }
+    .badge-approved { background: #D1FAE5; color: #059669; }
+    .badge-rejected { background: #FEE2E2; color: #DC2626; }
+    
+    .bg-pending { background-color: #D97706; }
+    .bg-needs-info { background-color: #4338CA; }
+    .bg-approved { background-color: #059669; }
+    .bg-rejected { background-color: #DC2626; }
 
     .meta-pill {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border: 1px solid #E5E7EB;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 500;
-      color: #4B5563;
-      .meta-icon { font-size: 15px !important; color: #9CA3AF; }
+      display: flex; align-items: center; gap: 8px; padding: 6px 14px;
+      border: 1.5px solid #E2E8F0; border-radius: 20px; font-size: 12px; font-weight: 600; color: #475569;
+      background: white;
     }
+    .meta-pill .meta-icon { font-size: 16px !important; color: #94A3B8; }
 
     .tab-button {
-      padding: 12px 20px;
-      font-size: 15px;
-      font-weight: 700;
-      color: #6B7280;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border: none;
-      background: transparent;
-      margin-bottom: -3px;
-      cursor: pointer;
-      border-bottom: 3px solid transparent;
-      transition: all 0.2s;
-      
-      &:hover {
-        color: #111827;
-      }
-      &.active {
-        color: #111827;
-        border-bottom-color: #111827;
-      }
-      .material-icons { font-size: 18px !important; }
+      padding: 14px 24px; font-size: 14px; font-weight: 700; color: #64748B;
+      display: flex; align-items: center; gap: 8px; border: none; background: transparent;
+      margin-bottom: -3px; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s;
     }
+    .tab-button:hover { color: #1E293B; background: rgba(248,250,252,0.8); border-radius: 8px 8px 0 0; }
+    .tab-button.active { color: #4F46E5; border-bottom-color: #4F46E5; }
+    .tab-button .material-icons { font-size: 18px !important; }
 
     .signoff-card {
-      background: #FFFFFF;
-      border: 1px solid #F3F4F6;
-      border-radius: 12px;
-      padding: 16px 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      background: white; border: 1.5px solid #E2E8F0; border-radius: 14px;
+      padding: 20px 24px; box-shadow: 0 2px 12px rgba(79,70,229,0.03); transition: all 0.2s;
     }
+    .signoff-card:hover { border-color: rgba(79,70,229,0.2); box-shadow: 0 4px 16px rgba(79,70,229,0.06); }
 
     .action-icon-btn {
-      width: 38px;
-      height: 38px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      border: none;
-      background: transparent;
-      color: #111827;
-      cursor: pointer;
-      transition: background 0.2s;
-      &:hover { background: #F3F4F6; }
-
-      &.active-reject { background: #F3F4F6; color: #111827; }
-      &.active-pending { background: #F3F4F6; color: #111827; }
-      &.active-approve { background: #F3F4F6; color: #111827; }
+      width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
+      border-radius: 10px; border: 1.5px solid transparent; background: rgba(248,250,252,0.8);
+      color: #64748B; cursor: pointer; transition: all 0.2s;
     }
+    .action-icon-btn:hover { background: #E2E8F0; color: #1E293B; }
+
+    .action-icon-btn.active-reject { background: #FEE2E2; color: #DC2626; border-color: #FCA5A5; }
+    .action-icon-btn.active-pending { background: #FEF3C7; color: #D97706; border-color: #FCD34D; }
+    .action-icon-btn.active-approve { background: #D1FAE5; color: #059669; border-color: #6EE7B7; }
 
     .btn-action {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px 0;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      border: none;
-      transition: transform 0.1s, filter 0.2s;
-      
-      &:hover { filter: brightness(0.95); }
-      &:active { transform: translateY(1px); }
-      &:disabled { opacity: 0.5; cursor: not-allowed; }
-      .material-icons { font-size: 18px !important; }
-    }
-
-    .btn-outline {
-      border: 1px solid #D1D5DB;
-      background: #FFFFFF;
-      color: #374151;
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 14px 0; border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer;
+      border: none; transition: all 0.2s; font-family: 'Inter', sans-serif;
     }
     
-    .btn-reject {
-      background: #EA580C;
-      color: #FFFFFF;
-    }
+    .btn-outline { border: 1.5px solid #E2E8F0; background: white; color: #475569; }
+    .btn-outline:hover { background: rgba(248,250,252,0.8); border-color: rgba(79,70,229,0.3); color: #4F46E5; }
     
-    .btn-approve {
-      background: #059669;
-      color: #FFFFFF;
-    }
+    .btn-reject { background: linear-gradient(135deg, #EF4444, #DC2626); color: white; box-shadow: 0 4px 12px rgba(220,38,38,0.2); }
+    .btn-reject:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(220,38,38,0.3); }
+    
+    .btn-approve { background: linear-gradient(135deg, #10B981, #059669); color: white; box-shadow: 0 4px 12px rgba(16,185,129,0.2); }
+    .btn-approve:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(16,185,129,0.3); }
+    .btn-approve:disabled { background: #E2E8F0; color: #94A3B8; box-shadow: none; cursor: not-allowed; transform: none; }
 
     .action-banner {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px 20px;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      margin-top: 8px;
-
-      .material-icons { font-size: 22px; }
-
-      &.banner-approved { background: #E3FCEF; color: #00875A; border: 1px solid #ABF5D1; }
-      &.banner-rejected { background: #FFEBE6; color: #BF2600; border: 1px solid #FFBDAD; }
-      &.banner-needs_info { background: #FFF4D6; color: #974F0C; border: 1px solid #FFE380; }
+      display: flex; align-items: center; gap: 14px; padding: 20px 24px;
+      border-radius: 12px; font-size: 15px; font-weight: 700; margin-top: 12px;
     }
+    .action-banner .material-icons { font-size: 24px; }
+    .banner-approved { background: #D1FAE5; color: #065F46; border: 1.5px solid #34D399; }
+    .banner-rejected { background: #FEE2E2; color: #991B1B; border: 1.5px solid #F87171; }
+    .banner-needs_info { background: #FEF3C7; color: #92400E; border: 1.5px solid #FCD34D; }
+
   `]
 })
 export class GateReviewComponent implements OnInit {

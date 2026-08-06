@@ -324,12 +324,21 @@ async def get_pending_approvals(
             "solutionsConsidered": project.ai_extracted_data.get("solutionsConsidered", []) if (project.ai_extracted_data and isinstance(project.ai_extracted_data, dict)) else []
         }
         
+        forward_mapping = {
+            "BTA Review": "EAC",
+            "EAC Review": "PIC",
+            "PIC Review": "Completed / Final Approval",
+            "Initial Review": "BTA",
+        }
+        forward_to = forward_mapping.get(app.approval_stage, "Next Stage")
+        
         results.append({
             "id": f"TSK-{app.sequence_order}{str(app.id)[:4].upper()}",
             "projectId": str(project.id),
             "projectNumber": project.project_number,
             "projectName": project.project_name,
             "type": app.approval_stage,
+            "forwardTo": forward_to,
             "priority": project.priority.value.capitalize(),
             "submittedBy": submitted_by,
             "submittedDate": app.created_at.strftime("%Y-%m-%d %I:%M %p"),
