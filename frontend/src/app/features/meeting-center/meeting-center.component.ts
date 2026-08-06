@@ -341,9 +341,16 @@ interface MeetingCard {
                     </div>
                   </div>
                   @if (meeting.bpmnXml) {
-                    <button (click)="downloadBpmn(meeting)" class="bg-slate-800 border border-slate-700 text-slate-300 hover:border-emerald-600 hover:text-emerald-400 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm flex items-center gap-1">
-                      <span class="material-icons text-[14px]">download</span> Download BPMN
-                    </button>
+                    <div class="flex items-center gap-2">
+                      @if (meeting.bpmnStatus === 'generated') {
+                        <button (click)="downloadBpmnPng(meeting)" class="bg-slate-800 border border-slate-700 text-slate-300 hover:border-emerald-600 hover:text-emerald-400 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm flex items-center gap-1">
+                          <span class="material-icons text-[14px]">image</span> Download PNG
+                        </button>
+                      }
+                      <button (click)="downloadBpmn(meeting)" class="bg-slate-800 border border-slate-700 text-slate-300 hover:border-emerald-600 hover:text-emerald-400 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm flex items-center gap-1">
+                        <span class="material-icons text-[14px]">download</span> Download XML
+                      </button>
+                    </div>
                   }
                 </div>
                 
@@ -388,10 +395,12 @@ interface MeetingCard {
       background: #1e1b4b;
       pointer-events: none;
     }
-    .bpmn-container { 
-      width: 100%; 
+    .bpmn-container {
+      width: 100%;
       height: 400px;
       cursor: grab;
+      position: relative;
+      overflow: hidden;
     }
     .bpmn-container:active {
       cursor: grabbing;
@@ -621,6 +630,49 @@ export class MeetingCenterComponent implements AfterViewChecked, OnDestroy {
     a.download = `${(meeting.processName || meeting.title).replace(/\s+/g, '_')}.bpmn`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async downloadBpmnPng(meeting: MeetingCard): Promise<void> {
+    if (!this.bpmnViewer) return;
+    try {
+      const { svg } = await this.bpmnViewer.saveSVG();
+      const svgUrl = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+
+      const img = new Image();
+      img.onload = () => {
+        // Render at 2x for a crisper export than the on-screen diagram size.
+        const scale = 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth * scale;
+        canvas.height = img.naturalHeight * scale;
+
+        const ctx = canvas.getContext('2d');
+        URL.revokeObjectURL(svgUrl);
+        if (!ctx) return;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0);
+
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+          const pngUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = pngUrl;
+          a.download = `${(meeting.processName || meeting.title).replace(/\s+/g, '_')}.png`;
+          a.click();
+          URL.revokeObjectURL(pngUrl);
+        }, 'image/png');
+      };
+      img.onerror = (err) => {
+        console.error('Failed to rasterize BPMN SVG for PNG export:', err);
+        URL.revokeObjectURL(svgUrl);
+      };
+      img.src = svgUrl;
+    } catch (err) {
+      console.error('Failed to export BPMN diagram as PNG:', err);
+    }
   }
 
   ngAfterViewChecked(): void {

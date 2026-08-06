@@ -42,10 +42,10 @@ import { ProjectService } from '../../core/services/project.service';
             <!-- Decorative Accent Line -->
             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 opacity-80"></div>
 
-            <div class="flex justify-between items-start mt-2">
-              <div>
+            <div class="flex flex-wrap justify-between items-start gap-4 mt-2">
+              <div class="flex-1 min-w-[260px]">
                 <!-- Stage breadcrumb -->
-                <div class="flex items-center gap-3 mb-4">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
                   <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 backdrop-blur-sm">
                     <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse shadow-[0_0_8px_rgba(129,140,248,0.8)]"></span>
                     {{ workspaceData().workflow.current_stage }}
@@ -55,7 +55,7 @@ import { ProjectService } from '../../core/services/project.service';
                 </div>
 
                 <!-- Project title -->
-                <h1 class="text-3xl font-extrabold text-white mb-5 tracking-tight drop-shadow-md">
+                <h1 class="text-3xl font-extrabold text-white mb-5 tracking-tight drop-shadow-md break-words">
                   {{ workspaceData().project_details.name }}
                 </h1>
 
@@ -77,9 +77,9 @@ import { ProjectService } from '../../core/services/project.service';
               </div>
 
               <!-- Action / Status Button (right) -->
-              <div class="flex flex-col items-end">
+              <div class="flex flex-col items-end shrink-0">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Current Stage</span>
-                <div class="px-4 py-2 bg-slate-800/60 border border-white/10 rounded-lg flex items-center gap-2 shadow-inner backdrop-blur-sm group-hover:border-indigo-500/30 transition-colors">
+                <div class="px-4 py-2 bg-slate-800/60 border border-white/10 rounded-lg flex items-center gap-2 shadow-inner backdrop-blur-sm group-hover:border-indigo-500/30 transition-colors whitespace-nowrap">
                   <span class="material-icons text-[18px] text-indigo-400">flag</span>
                   <span class="text-[14px] font-bold text-slate-200">{{ workspaceData().workflow.current_stage }}</span>
                 </div>
@@ -88,9 +88,9 @@ import { ProjectService } from '../../core/services/project.service';
           </div>
 
           <!-- ── Premium Tab Navigation ── -->
-          <div class="flex items-center gap-2 mb-2 border-b border-white/10 pb-0">
+          <div class="flex items-center gap-2 mb-2 border-b border-white/10 pb-0 overflow-x-auto">
             @for (tab of tabs; track tab.key) {
-              <button class="flex items-center gap-2 px-6 py-3.5 text-[14px] font-bold border-b-[3px] transition-all duration-300 -mb-[1px] rounded-t-lg"
+              <button class="flex items-center gap-2 px-6 py-3.5 text-[14px] font-bold border-b-[3px] transition-all duration-300 -mb-[1px] rounded-t-lg shrink-0"
                       [ngClass]="activeTab() === tab.key ? 'text-indigo-400 border-indigo-500 bg-indigo-500/10' : 'text-slate-400 border-transparent hover:text-slate-200 hover:bg-white/5'"
                       (click)="activeTab.set(tab.key)">
                 <span class="material-icons text-[18px]" [ngClass]="activeTab() === tab.key ? 'text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]' : ''">{{ tab.icon }}</span>
@@ -237,10 +237,9 @@ import { ProjectService } from '../../core/services/project.service';
             </div>
 
           </div>
-        </div>
 
-        <!-- ══ Right Sidebar (Action Widgets) ══ -->
-        <div class="w-[340px] flex flex-col gap-4 shrink-0 relative z-10">
+          <!-- ══ Action Widgets Row (AI Recommendation / Required Decision / Approval Timeline) ══ -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
 
           <!-- AI Recommendation Panel -->
           <div class="rounded-2xl p-6 relative overflow-hidden bg-white/5 backdrop-blur-md border border-indigo-500/30 shadow-[0_8px_32px_rgba(0,0,0,0.4)] group">
@@ -381,6 +380,7 @@ import { ProjectService } from '../../core/services/project.service';
             </div>
           </div>
 
+          </div>
         </div>
       }
     </div>

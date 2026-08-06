@@ -1,6 +1,5 @@
 """Project CRUD endpoints."""
 from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
-import os
 import io
 import json
 import pypdf
@@ -13,6 +12,7 @@ from typing import Optional
 import uuid, logging
 from datetime import datetime, timezone
 
+from app.core.config import settings
 from app.db.database import get_db
 from app.models.models import Project, WorkflowInstance, WorkflowDefinition, AuditHistory, UserRole, ProjectStatus, ProjectApproval, Notification, NotificationType, GateReview
 from app.schemas.projects import (
@@ -186,7 +186,7 @@ async def extract_intake_data(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user)
 ):
-    """Extracts project intake fields from an uploaded file using Groq AI."""
+    """Extracts project intake fields from an uploaded file using OpenAI."""
     try:
         content = await file.read()
         text = ""
@@ -208,10 +208,7 @@ async def extract_intake_data(
         if not text.strip():
             raise HTTPException(status_code=400, detail="Could not extract text from the file.")
 
-        client = AsyncOpenAI(
-            api_key=os.getenv("GROQ_API_KEY", ""),
-            base_url="https://api.groq.com/openai/v1"
-        )
+        client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         
         prompt = f"""
         Extract the following fields from the text below to populate a project intake form.
@@ -230,9 +227,10 @@ async def extract_intake_data(
         """
         
         response = await client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=settings.OPENAI_MODEL,
             messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
+            temperature=0,
         )
         
         extracted_data = json.loads(response.choices[0].message.content)

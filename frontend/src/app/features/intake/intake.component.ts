@@ -436,6 +436,20 @@ import { environment } from '../../../environments/environment';
       background-size: 1.5em 1.5em;
       padding-right: 2.5rem;
     }
+    /* Native <option> popups render in their own compositing layer against the browser's
+       default (light) backdrop, not the page — a translucent background here (e.g. from
+       .field-error-border below) would show as a pale wash instead of dark. Force solid
+       colors on the options themselves so the open dropdown always stays readable. */
+    select.form-control option {
+      background-color: #1e293b;
+      color: #f8fafc;
+    }
+    /* .field-error-border's translucent red tint is fine for text inputs, but on a <select>
+       it composites against the popup's own backdrop (see above) and washes out to pale pink.
+       Keep the red border as the error signal; force the select itself back to a solid background. */
+    select.form-control.field-error-border {
+      background-color: #1e293b;
+    }
     .readonly-input {
       background-color: #0f172a; /* slate-900 */
       color: #94a3b8; /* slate-400 */
