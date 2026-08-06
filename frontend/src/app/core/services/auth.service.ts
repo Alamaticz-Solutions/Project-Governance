@@ -5,7 +5,7 @@ import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { User, AuthTokens } from '../models/models';
 
-import { environment } from '../../environments/environment';
+import { environment } from '../../../environments/environment';
 
 const API_URL = environment.apiUrl;
 const TOKEN_KEY = 'gov_access_token';
