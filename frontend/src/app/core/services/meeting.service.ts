@@ -27,6 +27,54 @@ export interface MeetingArtifact {
   uploaded_at: string | null;
 }
 
+export interface SessionFinding {
+  finding_type: string;
+  description: string;
+  speaker: string;
+}
+
+export interface ProcessObservation {
+  capability_area: string;
+  bpmn_file_affected: string | null;
+  observation: string;
+  diverges_from_normative: string;
+}
+
+export interface StakeholderStatement {
+  speaker: string;
+  topic_tag: string;
+  paraphrase: string;
+  transcript_timestamp: string | null;
+}
+
+export interface AnalystNotes {
+  session_quality: string;
+  session_quality_reason: string;
+  stakeholder_candor: string;
+  group_dynamics: string | null;
+  follow_up_recommended: boolean;
+  follow_up_reason: string | null;
+  methodological_flags: string | null;
+}
+
+export interface SessionDependency {
+  dependency: string;
+  dependency_type: string;
+  action: string;
+}
+
+export interface SessionSynthesis {
+  participants: string[];
+  session_purpose: string;
+  deferred_items: string[];
+  unexpected_findings: string[];
+  findings: SessionFinding[];
+  process_observations: ProcessObservation[];
+  stakeholder_voice: StakeholderStatement[];
+  analyst_notes: AnalystNotes;
+  next_session_dependencies: SessionDependency[];
+}
+
 export interface Meeting {
   id: string;
   title: string;
@@ -42,8 +90,60 @@ export interface Meeting {
   process_name: string | null;
   bpmn_xml: string | null;
   bpmn_status: string | null;
+  session_synthesis: SessionSynthesis | null;
+  session_synthesis_markdown: string | null;
+  session_synthesis_status: string;
   artifacts: MeetingArtifact[];
   created_at: string | null;
+}
+
+export interface QuoteEntry {
+  id: string;
+  meeting_id: string;
+  meeting_title: string;
+  meeting_date: string | null;
+  speaker: string;
+  topic_tag: string;
+  paraphrase: string;
+  transcript_timestamp: string | null;
+  corroborating_speakers: string[];
+  created_at: string;
+}
+
+export interface TopicSummary {
+  topic_tag: string;
+  speakers: string[];
+  entry_count: number;
+  is_convergent: boolean;
+}
+
+export interface QuoteIndexResponse {
+  items: QuoteEntry[];
+  total: number;
+  topics: TopicSummary[];
+  speakers: string[];
+}
+
+export interface TrackerItem {
+  id: string;
+  meeting_id: string;
+  meeting_title: string;
+  meeting_date: string | null;
+  item_type: string;
+  description: string;
+  speaker: string;
+  created_at: string;
+}
+
+export interface TrackerGroupSummary {
+  item_type: string;
+  count: number;
+}
+
+export interface TrackerResponse {
+  items: TrackerItem[];
+  total: number;
+  counts_by_type: TrackerGroupSummary[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -66,5 +166,27 @@ export class MeetingService {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<Meeting>(`${API_URL}/meetings/${meetingId}/upload`, formData);
+  }
+
+  approveSynthesis(meetingId: string): Observable<Meeting> {
+    return this.http.post<Meeting>(`${API_URL}/meetings/${meetingId}/approve-synthesis`, {});
+  }
+
+  private cleanParams(params: Record<string, string | boolean | undefined>): Record<string, string> {
+    const cleaned: Record<string, string> = {};
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null && value !== '') {
+        cleaned[key] = String(value);
+      }
+    }
+    return cleaned;
+  }
+
+  getQuoteIndex(params: { speaker?: string; topic_tag?: string; meeting_id?: string; convergent_only?: boolean } = {}): Observable<QuoteIndexResponse> {
+    return this.http.get<QuoteIndexResponse>(`${API_URL}/meetings/quote-index`, { params: this.cleanParams(params) });
+  }
+
+  getTracker(params: { item_type?: string; speaker?: string; meeting_id?: string } = {}): Observable<TrackerResponse> {
+    return this.http.get<TrackerResponse>(`${API_URL}/meetings/tracker`, { params: this.cleanParams(params) });
   }
 }

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { MeetingService, ActionItem, AgendaItem } from '../../core/services/meeting.service';
+import { MeetingService, ActionItem, AgendaItem, SessionSynthesis, QuoteIndexResponse, QuoteEntry, TrackerResponse, TrackerItem } from '../../core/services/meeting.service';
 // @ts-ignore - bpmn-js ships without bundled types for the default export path
 import BpmnViewer from 'bpmn-js/lib/NavigatedViewer';
 
@@ -22,7 +22,33 @@ interface MeetingCard {
   processName?: string | null;
   bpmnXml?: string | null;
   bpmnStatus?: string | null;
+  sessionSynthesis?: SessionSynthesis | null;
+  sessionSynthesisMarkdown?: string | null;
+  sessionSynthesisStatus?: string;
 }
+
+const FINDING_TYPE_STYLES: Record<string, string> = {
+  'Friction Point': 'bg-red-900/30 text-red-300 border-red-800/50',
+  'Clarification Item': 'bg-amber-900/30 text-amber-300 border-amber-800/50',
+  'Hypothesis': 'bg-purple-900/30 text-purple-300 border-purple-800/50',
+  'Decision': 'bg-emerald-900/30 text-emerald-300 border-emerald-800/50',
+  'Process Observation': 'bg-blue-900/30 text-blue-300 border-blue-800/50',
+  'RAID': 'bg-slate-700/50 text-slate-300 border-slate-600/50',
+};
+
+interface TrackerGroup {
+  key: string;
+  label: string;
+  icon: string;
+  types: string[];
+}
+
+const TRACKER_GROUPS: TrackerGroup[] = [
+  { key: 'ci', label: 'Clarification Items', icon: 'help_outline', types: ['Clarification Item'] },
+  { key: 'fp', label: 'Friction Points', icon: 'report_problem', types: ['Friction Point'] },
+  { key: 'h', label: 'Hypotheses', icon: 'psychology', types: ['Hypothesis'] },
+  { key: 'raid', label: 'RAID & Decisions', icon: 'gavel', types: ['RAID', 'Decision'] },
+];
 
 @Component({
   selector: 'app-meeting-center',
@@ -114,43 +140,51 @@ interface MeetingCard {
           </div>
         }
 
-      <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        
-        <!-- Upcoming Schedule Sidebar -->
-        <div class="xl:col-span-3 flex flex-col gap-4">
-          <div class="bg-slate-800/50 backdrop-blur-md rounded-xl shadow-sm border border-slate-700 p-5">
-            <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-700">
-              <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                <span class="material-icons text-[16px]">calendar_month</span> Upcoming Schedule
-              </h3>
-            </div>
+      <div class="flex flex-col gap-6">
 
-            <div class="space-y-3">
-              @for (meeting of upcomingMeetings; track meeting.id) {
-                <div (click)="selectMeeting(meeting)"
-                     class="group p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 relative overflow-hidden"
-                     [ngClass]="activeMeeting()?.id === meeting.id ? 'bg-indigo-900/40 border-indigo-500 shadow-sm' : 'bg-slate-800 border-slate-700 hover:border-indigo-400'">
-                  
-                  <div class="flex justify-between items-start mb-2.5">
-                    <span class="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded"
-                          [ngClass]="meeting.type === 'EAC' ? 'bg-purple-900/50 text-purple-300' : meeting.type === 'BTA' ? 'bg-blue-900/50 text-blue-300' : 'bg-emerald-900/50 text-emerald-300'">
-                      {{ meeting.type }} COUNCIL
-                    </span>
-                    <span class="text-[11px] font-bold text-slate-500 group-hover:text-indigo-300 transition-colors">{{ meeting.time.split(' - ')[0] }}</span>
-                  </div>
-                  <h4 class="font-bold text-slate-200 text-sm mb-1.5 leading-snug group-hover:text-white transition-colors">{{ meeting.title }}</h4>
-                  <p class="text-xs text-slate-400 font-medium flex items-center gap-1">
-                    <span class="material-icons text-[14px]">event</span> {{ meeting.date }}
-                  </p>
-                </div>
-              }
-            </div>
+        <!-- Upcoming Schedule Strip -->
+        <div class="bg-slate-800/50 backdrop-blur-md rounded-xl shadow-sm border border-slate-700 px-4 py-3">
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500 shrink-0 flex items-center gap-1">
+              <span class="material-icons text-[14px]">calendar_month</span> Upcoming
+            </span>
+            @for (meeting of upcomingMeetings; track meeting.id) {
+              <div (click)="selectMeeting(meeting)"
+                   class="group flex-1 min-w-[220px] flex items-center gap-2.5 px-3.5 py-2 rounded-lg border-2 cursor-pointer transition-all duration-200"
+                   [ngClass]="activeMeeting()?.id === meeting.id ? 'bg-indigo-900/40 border-indigo-500' : 'bg-slate-800 border-slate-700 hover:border-indigo-400'">
+                <span class="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0"
+                      [ngClass]="meeting.type === 'EAC' ? 'bg-purple-900/50 text-purple-300' : meeting.type === 'BTA' ? 'bg-blue-900/50 text-blue-300' : 'bg-emerald-900/50 text-emerald-300'">
+                  {{ meeting.type }}
+                </span>
+                <span class="text-[12.5px] font-bold text-slate-200 truncate group-hover:text-white transition-colors">{{ meeting.title }}</span>
+                <span class="text-[11px] text-slate-500 shrink-0 ml-auto">{{ meeting.date }} &middot; {{ meeting.time.split(' - ')[0] }}</span>
+              </div>
+            }
           </div>
         </div>
 
+        <!-- Main Tab Strip -->
+        <div class="flex gap-2 overflow-x-auto">
+          <button (click)="mainTab.set('workspace')"
+                  class="px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap border"
+                  [ngClass]="mainTab() === 'workspace' ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/25' : 'bg-slate-800/50 text-slate-400 border-slate-700/50 hover:bg-slate-700/50 hover:text-slate-200'">
+            <span class="material-icons text-[16px] align-middle mr-1">dashboard</span> Workspace
+          </button>
+          <button (click)="selectMainTab('quote-index')"
+                  class="px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap border"
+                  [ngClass]="mainTab() === 'quote-index' ? 'bg-teal-600 text-white border-teal-500 shadow-lg shadow-teal-500/25' : 'bg-slate-800/50 text-slate-400 border-slate-700/50 hover:bg-slate-700/50 hover:text-slate-200'">
+            <span class="material-icons text-[16px] align-middle mr-1">format_quote</span> Quote Index
+          </button>
+          <button (click)="selectMainTab('tracker')"
+                  class="px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap border"
+                  [ngClass]="mainTab() === 'tracker' ? 'bg-orange-600 text-white border-orange-500 shadow-lg shadow-orange-500/25' : 'bg-slate-800/50 text-slate-400 border-slate-700/50 hover:bg-slate-700/50 hover:text-slate-200'">
+            <span class="material-icons text-[16px] align-middle mr-1">checklist_rtl</span> Tracker
+          </button>
+        </div>
+
         <!-- Meeting Workspace -->
-        @if (activeMeeting(); as meeting) {
-          <div class="xl:col-span-9 flex flex-col gap-6 animate-fade-in">
+        @if (mainTab() === 'workspace' && activeMeeting(); as meeting) {
+          <div class="flex flex-col gap-6 animate-fade-in">
 
             <!-- Context Header & Upload Zone -->
             <div class="bg-slate-800/50 backdrop-blur-md rounded-xl p-6 shadow-sm border border-slate-700 flex flex-col xl:flex-row gap-6 justify-between relative overflow-hidden">
@@ -330,6 +364,81 @@ interface MeetingCard {
               </ul>
             </div>
 
+            <!-- Session Synthesis -->
+            <div class="bg-slate-800/50 backdrop-blur-md rounded-xl shadow-sm border border-slate-700 overflow-hidden">
+              <div class="bg-slate-900/40 px-5 py-4 border-b border-slate-700 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                  <span class="material-icons text-teal-400 text-[20px]">fact_check</span>
+                  <h3 class="font-bold text-white text-base">Session Synthesis</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                  @if (meeting.sessionSynthesis) {
+                    @if (meeting.sessionSynthesisStatus === 'approved') {
+                      <span class="bg-emerald-900/30 text-emerald-300 border border-emerald-800/50 px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1">
+                        <span class="material-icons text-[14px]">check_circle</span> Approved
+                      </span>
+                    } @else {
+                      <button (click)="approveSynthesis(meeting)" [disabled]="isApproving()" class="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm flex items-center gap-1">
+                        <span class="material-icons text-[14px]">task_alt</span> Approve for Quote Index & Tracker
+                      </button>
+                    }
+                  }
+                  @if (meeting.sessionSynthesisMarkdown) {
+                    <button (click)="downloadSessionSynthesis(meeting)" class="bg-slate-800 border border-slate-700 text-slate-300 hover:border-teal-600 hover:text-teal-400 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm flex items-center gap-1">
+                      <span class="material-icons text-[14px]">download</span> Download .md
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div class="p-5">
+                @if (meeting.sessionSynthesis; as synthesis) {
+                  <p class="text-sm text-slate-300 leading-relaxed mb-4">{{ synthesis.session_purpose }}</p>
+
+                  @if (synthesis.participants.length) {
+                    <div class="flex flex-wrap gap-1.5 mb-4">
+                      @for (p of synthesis.participants; track p) {
+                        <span class="text-[11px] font-bold bg-slate-900/50 text-slate-300 px-2 py-1 rounded-md border border-slate-700">{{ p }}</span>
+                      }
+                    </div>
+                  }
+
+                  @if (synthesis.findings.length) {
+                    <div class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2.5 flex items-center gap-1.5">
+                      <span class="material-icons text-[14px]">fact_check</span> Findings ({{ synthesis.findings.length }})
+                    </div>
+                    <ul class="space-y-2 mb-4">
+                      @for (f of synthesis.findings; track $index) {
+                        <li class="flex items-start gap-2.5 text-sm bg-slate-900/50 p-2.5 rounded-lg border border-slate-700">
+                          <span class="text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded border shrink-0 mt-0.5" [ngClass]="findingTypeClass(f.finding_type)">{{ f.finding_type }}</span>
+                          <span class="flex-1 text-slate-300">{{ f.description }}
+                            <span class="text-slate-500"> — {{ f.speaker }}</span>
+                          </span>
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="text-sm text-slate-500 mb-4">No typed findings identified in this session.</p>
+                  }
+
+                  @if (synthesis.analyst_notes.methodological_flags) {
+                    <div class="text-xs text-amber-400 bg-amber-900/10 border border-amber-900/30 rounded-lg p-3 flex items-start gap-2">
+                      <span class="material-icons text-[16px] shrink-0">info</span>
+                      <span>{{ synthesis.analyst_notes.methodological_flags }}</span>
+                    </div>
+                  }
+                } @else {
+                  <div class="flex flex-col items-center justify-center text-center text-slate-500 py-10">
+                    <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mb-3">
+                      <span class="material-icons text-3xl text-slate-600">fact_check</span>
+                    </div>
+                    <p class="text-sm font-medium text-slate-400">No session synthesis generated yet</p>
+                    <p class="text-xs mt-1">Upload a recording or transcript to begin.</p>
+                  </div>
+                }
+              </div>
+            </div>
+
             <!-- Process Diagram (BPMN) -->
             @if (meeting.containsProcessFlow) {
               <div class="bg-slate-800/50 backdrop-blur-md rounded-xl shadow-sm border border-slate-700 overflow-hidden mb-8">
@@ -372,6 +481,115 @@ interface MeetingCard {
               </div>
             }
 
+          </div>
+        }
+
+        <!-- Quote Index Tab -->
+        @if (mainTab() === 'quote-index') {
+          <div class="flex flex-col gap-4 animate-fade-in">
+            <div class="bg-slate-800/50 backdrop-blur-md rounded-xl border border-slate-700 p-4 flex flex-wrap gap-3 items-center">
+              <input type="text" [(ngModel)]="quoteSpeakerFilter" (change)="fetchQuoteIndex()" placeholder="Filter by speaker..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 flex-1 min-w-[180px]">
+              <input type="text" [(ngModel)]="quoteTopicFilter" (change)="fetchQuoteIndex()" placeholder="Filter by topic..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 flex-1 min-w-[180px]">
+              <label class="flex items-center gap-2 text-sm text-slate-300 font-medium cursor-pointer">
+                <input type="checkbox" [(ngModel)]="quoteConvergentOnly" (change)="fetchQuoteIndex()" class="w-4 h-4 rounded border-slate-600 bg-slate-800">
+                Corroborated topics only
+              </label>
+            </div>
+
+            @if (quoteIndexLoading()) {
+              <div class="flex items-center justify-center py-16 text-slate-500">
+                <span class="material-icons animate-spin mr-2">sync</span> Loading quote index...
+              </div>
+            } @else if (groupedQuoteTopics().length) {
+              @for (topic of groupedQuoteTopics(); track topic.topic_tag) {
+                <div class="bg-slate-800/50 backdrop-blur-md rounded-xl border border-slate-700 overflow-hidden">
+                  <div class="bg-slate-900/40 px-5 py-3 border-b border-slate-700 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                      <span class="material-icons text-teal-400 text-[18px]">label</span>
+                      <h4 class="font-bold text-white text-sm">{{ topic.topic_tag }}</h4>
+                      <span class="bg-slate-700/50 text-slate-300 text-[11px] font-bold px-2 py-0.5 rounded-md">{{ topic.entries.length }}</span>
+                    </div>
+                    @if (topic.is_convergent) {
+                      <span class="bg-teal-900/30 text-teal-300 border border-teal-800/50 text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1">
+                        <span class="material-icons text-[14px]">groups</span> Corroborated by {{ topic.speakers.length }} speakers
+                      </span>
+                    } @else {
+                      <span class="bg-slate-700/30 text-slate-400 text-[11px] font-bold px-2.5 py-1 rounded-md">Solo</span>
+                    }
+                  </div>
+                  <ul class="divide-y divide-slate-700">
+                    @for (entry of topic.entries; track entry.id) {
+                      <li class="p-4">
+                        <p class="text-sm text-slate-300 leading-relaxed">{{ entry.paraphrase }}</p>
+                        <div class="flex items-center gap-3 mt-2 text-[11px] text-slate-500 font-medium">
+                          <span class="flex items-center gap-1"><span class="material-icons text-[13px]">person</span>{{ entry.speaker }}</span>
+                          <span class="flex items-center gap-1"><span class="material-icons text-[13px]">event</span>{{ entry.meeting_title }}{{ entry.meeting_date ? ' &middot; ' + entry.meeting_date : '' }}</span>
+                          @if (entry.transcript_timestamp) {
+                            <span class="flex items-center gap-1"><span class="material-icons text-[13px]">schedule</span>{{ entry.transcript_timestamp }}</span>
+                          }
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+            } @else {
+              <div class="bg-slate-800/50 backdrop-blur-md rounded-xl border border-slate-700 flex flex-col items-center justify-center text-center text-slate-500 py-16">
+                <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mb-3">
+                  <span class="material-icons text-3xl text-slate-600">format_quote</span>
+                </div>
+                <p class="text-sm font-medium text-slate-400">No approved quote entries yet</p>
+                <p class="text-xs mt-1">Approve a meeting's Session Synthesis to see its stakeholder quotes here.</p>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Tracker Tab -->
+        @if (mainTab() === 'tracker') {
+          <div class="flex flex-col gap-4 animate-fade-in">
+            <div class="bg-slate-800/50 backdrop-blur-md rounded-xl border border-slate-700 p-4 flex flex-wrap gap-3 items-center">
+              <input type="text" [(ngModel)]="trackerSpeakerFilter" (change)="fetchTracker()" placeholder="Filter by speaker..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 flex-1 min-w-[180px]">
+            </div>
+
+            @if (trackerLoading()) {
+              <div class="flex items-center justify-center py-16 text-slate-500">
+                <span class="material-icons animate-spin mr-2">sync</span> Loading tracker...
+              </div>
+            } @else if (tracker()) {
+              @for (group of trackerGroups; track group.key) {
+                <div class="bg-slate-800/50 backdrop-blur-md rounded-xl border border-slate-700 overflow-hidden">
+                  <div class="bg-slate-900/40 px-5 py-3 border-b border-slate-700 flex items-center gap-2.5">
+                    <span class="material-icons text-orange-400 text-[18px]">{{ group.icon }}</span>
+                    <h4 class="font-bold text-white text-sm">{{ group.label }}</h4>
+                    <span class="bg-slate-700/50 text-slate-300 text-[11px] font-bold px-2 py-0.5 rounded-md">{{ trackerGroupCount(group) }}</span>
+                  </div>
+                  @if (trackerGroupItems(group).length) {
+                    <ul class="divide-y divide-slate-700">
+                      @for (item of trackerGroupItems(group); track item.id) {
+                        <li class="p-4">
+                          <p class="text-sm text-slate-300 leading-relaxed">{{ item.description }}</p>
+                          <div class="flex items-center gap-3 mt-2 text-[11px] text-slate-500 font-medium">
+                            <span class="flex items-center gap-1"><span class="material-icons text-[13px]">person</span>{{ item.speaker }}</span>
+                            <span class="flex items-center gap-1"><span class="material-icons text-[13px]">event</span>{{ item.meeting_title }}{{ item.meeting_date ? ' &middot; ' + item.meeting_date : '' }}</span>
+                          </div>
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="p-4 text-sm text-slate-500">No {{ group.label.toLowerCase() }} yet.</p>
+                  }
+                </div>
+              }
+            } @else {
+              <div class="bg-slate-800/50 backdrop-blur-md rounded-xl border border-slate-700 flex flex-col items-center justify-center text-center text-slate-500 py-16">
+                <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mb-3">
+                  <span class="material-icons text-3xl text-slate-600">checklist_rtl</span>
+                </div>
+                <p class="text-sm font-medium text-slate-400">No approved tracker items yet</p>
+                <p class="text-xs mt-1">Approve a meeting's Session Synthesis to see its findings here.</p>
+              </div>
+            }
           </div>
         }
       </div>
@@ -469,9 +687,23 @@ export class MeetingCenterComponent implements AfterViewChecked, OnDestroy {
 
   activeMeeting = signal<MeetingCard | null>(this.upcomingMeetings[0]);
   isProcessing = signal(false);
+  isApproving = signal(false);
   uploadedFileName = signal<string | null>(null);
   uploadError = signal<string | null>(null);
   private pollTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  mainTab = signal<'workspace' | 'quote-index' | 'tracker'>('workspace');
+  trackerGroups = TRACKER_GROUPS;
+
+  quoteIndex = signal<QuoteIndexResponse | null>(null);
+  quoteIndexLoading = signal(false);
+  quoteSpeakerFilter = '';
+  quoteTopicFilter = '';
+  quoteConvergentOnly = false;
+
+  tracker = signal<TrackerResponse | null>(null);
+  trackerLoading = signal(false);
+  trackerSpeakerFilter = '';
 
   isScheduling = signal(false);
   newMeeting = {
@@ -578,6 +810,9 @@ export class MeetingCenterComponent implements AfterViewChecked, OnDestroy {
           meeting.processName = result.process_name;
           meeting.bpmnXml = result.bpmn_xml;
           meeting.bpmnStatus = result.bpmn_status;
+          meeting.sessionSynthesis = result.session_synthesis;
+          meeting.sessionSynthesisMarkdown = result.session_synthesis_markdown;
+          meeting.sessionSynthesisStatus = result.session_synthesis_status;
 
           this.activeMeeting.set({ ...meeting });
           this.isProcessing.set(false);
@@ -621,6 +856,100 @@ export class MeetingCenterComponent implements AfterViewChecked, OnDestroy {
     );
   }
 
+  selectMainTab(tab: 'workspace' | 'quote-index' | 'tracker'): void {
+    this.mainTab.set(tab);
+    if (tab === 'quote-index' && !this.quoteIndex()) {
+      this.fetchQuoteIndex();
+    }
+    if (tab === 'tracker' && !this.tracker()) {
+      this.fetchTracker();
+    }
+  }
+
+  fetchQuoteIndex(): void {
+    this.quoteIndexLoading.set(true);
+    this.meetingService.getQuoteIndex({
+      speaker: this.quoteSpeakerFilter || undefined,
+      topic_tag: this.quoteTopicFilter || undefined,
+      convergent_only: this.quoteConvergentOnly || undefined,
+    }).subscribe({
+      next: (result) => {
+        this.quoteIndex.set(result);
+        this.quoteIndexLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load quote index:', err);
+        this.quoteIndexLoading.set(false);
+      }
+    });
+  }
+
+  fetchTracker(): void {
+    this.trackerLoading.set(true);
+    this.meetingService.getTracker({
+      speaker: this.trackerSpeakerFilter || undefined,
+    }).subscribe({
+      next: (result) => {
+        this.tracker.set(result);
+        this.trackerLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load tracker:', err);
+        this.trackerLoading.set(false);
+      }
+    });
+  }
+
+  groupedQuoteTopics(): { topic_tag: string; entries: QuoteEntry[]; is_convergent: boolean; speakers: string[] }[] {
+    const data = this.quoteIndex();
+    if (!data) return [];
+    const map = new Map<string, QuoteEntry[]>();
+    for (const item of data.items) {
+      if (!map.has(item.topic_tag)) map.set(item.topic_tag, []);
+      map.get(item.topic_tag)!.push(item);
+    }
+    return Array.from(map.entries()).map(([topic_tag, entries]) => ({
+      topic_tag,
+      entries,
+      is_convergent: entries.some(e => e.corroborating_speakers.length > 0),
+      speakers: Array.from(new Set(entries.flatMap(e => [e.speaker, ...e.corroborating_speakers]))).sort(),
+    }));
+  }
+
+  trackerGroupCount(group: TrackerGroup): number {
+    const data = this.tracker();
+    if (!data) return 0;
+    return data.counts_by_type
+      .filter(c => group.types.includes(c.item_type))
+      .reduce((sum, c) => sum + c.count, 0);
+  }
+
+  trackerGroupItems(group: TrackerGroup): TrackerItem[] {
+    const data = this.tracker();
+    if (!data) return [];
+    return data.items.filter(i => group.types.includes(i.item_type));
+  }
+
+  approveSynthesis(meeting: MeetingCard): void {
+    if (!meeting.backendMeetingId) return;
+    this.isApproving.set(true);
+    this.meetingService.approveSynthesis(meeting.backendMeetingId).subscribe({
+      next: (result) => {
+        meeting.sessionSynthesisStatus = result.session_synthesis_status;
+        this.activeMeeting.set({ ...meeting });
+        this.isApproving.set(false);
+        // Approving changes what the cross-meeting tabs show — refresh them now rather
+        // than leaving a stale cached result if the user already visited either tab.
+        if (this.quoteIndex()) this.fetchQuoteIndex();
+        if (this.tracker()) this.fetchTracker();
+      },
+      error: (err) => {
+        console.error('Failed to approve synthesis:', err);
+        this.isApproving.set(false);
+      }
+    });
+  }
+
   downloadBpmn(meeting: MeetingCard): void {
     if (!meeting.bpmnXml) return;
     const blob = new Blob([meeting.bpmnXml], { type: 'application/xml' });
@@ -628,6 +957,21 @@ export class MeetingCenterComponent implements AfterViewChecked, OnDestroy {
     const a = document.createElement('a');
     a.href = url;
     a.download = `${(meeting.processName || meeting.title).replace(/\s+/g, '_')}.bpmn`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  findingTypeClass(findingType: string): string {
+    return FINDING_TYPE_STYLES[findingType] || 'bg-slate-700/50 text-slate-300 border-slate-600/50';
+  }
+
+  downloadSessionSynthesis(meeting: MeetingCard): void {
+    if (!meeting.sessionSynthesisMarkdown) return;
+    const blob = new Blob([meeting.sessionSynthesisMarkdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${meeting.title.replace(/\s+/g, '_')}_Session_Synthesis.md`;
     a.click();
     URL.revokeObjectURL(url);
   }

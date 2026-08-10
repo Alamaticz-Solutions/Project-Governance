@@ -663,11 +663,17 @@ class Meeting(Base):
     bpmn_s3_key = Column(String(1000), nullable=True)
     bpmn_status = Column(String(50), nullable=True)  # generated, failed
 
+    session_synthesis = Column(JSON, nullable=True)            # SessionSynthesis.model_dump()
+    session_synthesis_markdown = Column(Text, nullable=True)   # rendered Layer 1 synthesis document
+    session_synthesis_status = Column(String(20), default="draft", nullable=False)  # draft, approved
+
     created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     artifacts = relationship("MeetingArtifact", back_populates="meeting", cascade="all, delete-orphan")
+    quote_entries = relationship("MeetingQuoteEntry", back_populates="meeting", cascade="all, delete-orphan")
+    tracker_items = relationship("MeetingTrackerItem", back_populates="meeting", cascade="all, delete-orphan")
     created_by = relationship("User")
 
 
@@ -689,3 +695,49 @@ class MeetingArtifact(Base):
 
     meeting = relationship("Meeting", back_populates="artifacts")
     uploaded_by = relationship("User")
+
+
+class MeetingQuoteEntry(Base):
+    """Layer 2 — one row per stakeholder-voice statement, extracted from
+    SessionSynthesis.stakeholder_voice when synthesis succeeds. Deleted and
+    reinserted per meeting on every re-synthesis so re-uploads don't accumulate
+    duplicates. Visibility in cross-meeting views is gated by the parent Meeting's
+    session_synthesis_status, not a column here."""
+    __tablename__ = "meeting_quote_entries"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    meeting_id = Column(UUID(as_uuid=True), ForeignKey("meetings.id", ondelete="CASCADE"), nullable=False)
+    speaker = Column(String(200), nullable=False)
+    topic_tag = Column(String(200), nullable=False)
+    paraphrase = Column(Text, nullable=False)
+    transcript_timestamp = Column(String(20), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    meeting = relationship("Meeting", back_populates="quote_entries")
+
+    __table_args__ = (
+        Index("ix_quote_entries_meeting", "meeting_id"),
+        Index("ix_quote_entries_topic_tag", "topic_tag"),
+        Index("ix_quote_entries_speaker", "speaker"),
+    )
+
+
+class MeetingTrackerItem(Base):
+    """Layer 3 — one row per typed finding, extracted from SessionSynthesis.findings
+    when synthesis succeeds. Same delete/reinsert-per-meeting lifecycle and
+    approval-gating as MeetingQuoteEntry."""
+    __tablename__ = "meeting_tracker_items"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    meeting_id = Column(UUID(as_uuid=True), ForeignKey("meetings.id", ondelete="CASCADE"), nullable=False)
+    item_type = Column(String(50), nullable=False)   # one of SessionFinding.finding_type's 6 literal values
+    description = Column(Text, nullable=False)
+    speaker = Column(String(200), nullable=False, default="Unspecified")
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    meeting = relationship("Meeting", back_populates="tracker_items")
+
+    __table_args__ = (
+        Index("ix_tracker_items_meeting", "meeting_id"),
+        Index("ix_tracker_items_type", "item_type"),
+    )

@@ -66,10 +66,20 @@ def classify_file_type(filename: str) -> str:
 
 
 def parse_vtt(file_bytes: bytes) -> str:
+    """Preserves speaker (caption.voice, from <v Speaker Name> tags) and start timestamp
+    per line — both are needed for per-speaker attribution in the session synthesis skill,
+    and were previously discarded here."""
     text = file_bytes.decode("utf-8", errors="ignore")
     buffer = io.StringIO(text)
     captions = webvtt.read_buffer(buffer)
-    lines = [caption.text.strip().replace("\n", " ") for caption in captions if caption.text.strip()]
+    lines = []
+    for caption in captions:
+        content = caption.text.strip().replace("\n", " ")
+        if not content:
+            continue
+        speaker = caption.voice.strip() if caption.voice else "Unspecified"
+        timestamp = caption.start[:8]  # "HH:MM:SS.mmm" -> "HH:MM:SS"
+        lines.append(f"[{timestamp}] {speaker}: {content}")
     return "\n".join(lines)
 
 
