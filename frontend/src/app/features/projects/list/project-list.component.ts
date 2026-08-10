@@ -1,8 +1,10 @@
-import { Component, signal, OnInit, inject } from '@angular/core';
+import { Component, signal, computed, effect, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ProjectService } from '../../../core/services/project.service';
+import { ProjectListCacheService } from '../../../core/services/project-list-cache.service';
+import { Project } from '../../../core/models/models';
+import { calculateProjectProgress, formatBudget } from '../../../core/utils/project-display.util';
 
 interface MappedProject {
   id: string; number: string; name: string; dept: string;
@@ -30,8 +32,13 @@ interface MappedProject {
               <span class="material-icons text-2xl">list_alt</span>
             </div>
             <div>
-              <h1 class="text-3xl font-extrabold text-white tracking-tight">All Projects</h1>
-              <p class="text-sm font-medium text-slate-400 mt-1">{{ filtered().length }} of {{ projects.length }} projects</p>
+              <h1 class="text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                All Projects
+                @if (refreshing()) {
+                  <span class="material-icons text-indigo-400 text-[18px] animate-spin" title="Refreshing...">autorenew</span>
+                }
+              </h1>
+              <p class="text-sm font-medium text-slate-400 mt-1">{{ filtered().length }} of {{ projects().length }} projects</p>
             </div>
           </div>
           <div class="flex items-center gap-3">
@@ -62,6 +69,7 @@ interface MappedProject {
               <option value="">All Status</option>
               <option value="active">Active</option>
               <option value="pending">Pending</option>
+              <option value="in_delivery">In Delivery</option>
               <option value="completed">Completed</option>
               <option value="on_hold">On Hold</option>
             </select>
@@ -98,7 +106,18 @@ interface MappedProject {
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-700/50">
-                @if (filtered().length === 0) {
+                @if (loading() && filtered().length === 0) {
+                  <tr>
+                    <td colspan="9">
+                      <div class="flex flex-col items-center justify-center p-16 text-center gap-3">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-slate-800 border border-slate-700">
+                          <span class="material-icons text-indigo-400 text-2xl animate-spin">autorenew</span>
+                        </div>
+                        <p class="text-sm font-semibold text-slate-400">Loading projects...</p>
+                      </div>
+                    </td>
+                  </tr>
+                } @else if (filtered().length === 0) {
                   <tr>
                     <td colspan="9">
                       <div class="flex flex-col items-center justify-center p-16 text-center">
@@ -110,7 +129,7 @@ interface MappedProject {
                       </div>
                     </td>
                   </tr>
-                }
+                } @else {
                 @for (p of filtered(); track p.id) {
                   <tr class="hover:bg-slate-800/40 transition-colors group">
                     <td class="px-5 py-4">
@@ -151,6 +170,7 @@ interface MappedProject {
                               'bg-emerald-900/30 text-emerald-400 border-emerald-500/30': p.status.toLowerCase() === 'completed',
                               'bg-amber-900/30 text-amber-400 border-amber-500/30': p.status.toLowerCase() === 'pending',
                               'bg-indigo-900/30 text-indigo-300 border-indigo-500/30': p.status.toLowerCase() === 'active',
+                              'bg-violet-900/30 text-violet-300 border-violet-500/30': p.status.toLowerCase() === 'in_delivery',
                               'bg-slate-800 text-slate-400 border-slate-700': p.status.toLowerCase() === 'on_hold'
                             }">
                         {{ p.status }}
@@ -170,6 +190,7 @@ interface MappedProject {
                       </div>
                     </td>
                   </tr>
+                }
                 }
               </tbody>
             </table>
@@ -201,81 +222,35 @@ interface MappedProject {
   `]
 })
 export class ProjectListComponent implements OnInit {
-  private projectService = inject(ProjectService);
-  projects: MappedProject[] = [];
+  private cache = inject(ProjectListCacheService);
+
+  // "loading" only reflects the state relevant to showing the blocking spinner
+  // (i.e. true first load) — a background refresh with data already on screen
+  // surfaces as the small "refreshing" indicator instead, never a blocking spinner.
+  loading = computed(() => this.cache.loading());
+  refreshing = computed(() => this.cache.loading() && this.cache.items().length > 0);
+
+  projects = computed<MappedProject[]>(() => this.cache.items().map(p => mapProjectToRow(p)));
   filtered = signal<MappedProject[]>([]);
+
   searchTerm = '';
   statusFilter = '';
   priorityFilter = '';
 
-  ngOnInit(): void {
-    this.loadProjects();
-  }
-
-  loadProjects(): void {
-    this.projectService.getProjects({ page_size: 100 }).subscribe({
-      next: (res) => {
-        this.projects = res.items.map(p => {
-          // Calculate progress percentage based on stage
-          const stageOrders: { [key: string]: number } = {
-            'BTA Review': 1,
-            'Prepare for EAC': 2,
-            'EAC Committee Review': 3,
-            'EAC Review': 3,
-            'EAC Meeting': 3,
-            'TRC Vetting & Gate Review': 4
-          };
-          const currentStage = p.current_stage || 'BTA Review';
-          const order = stageOrders[currentStage] || 1;
-          const isCompleted = p.status?.toLowerCase() === 'completed';
-          const progress = isCompleted ? 100 : Math.round((order / 5) * 100);
-
-          let formattedBudget = 'N/A';
-          if (p.budget_estimated) {
-            formattedBudget = p.budget_estimated >= 1000000 
-              ? `$${(p.budget_estimated / 1000000).toFixed(1)}M`
-              : `$${Math.round(p.budget_estimated / 1000)}K`;
-          }
-
-          let dueDate = 'N/A';
-          if (p.requested_end_date) {
-            dueDate = new Date(p.requested_end_date).toISOString().split('T')[0];
-          }
-
-          let pendingTeam = 'Unknown';
-          const role = (p.current_owner_role || '').toLowerCase();
-          if (role === 'bta') pendingTeam = 'BTA Team';
-          else if (role === 'eac') pendingTeam = 'EAC Team';
-          else if (role === 'trc') pendingTeam = 'TRC Team';
-          else if (role === 'admin') pendingTeam = 'Admin';
-          else if (role === 'project_manager') pendingTeam = 'Project Manager';
-          else if (isCompleted) pendingTeam = 'None';
-          else pendingTeam = role.toUpperCase() || 'BTA Team';
-
-          return {
-            id: p.id,
-            number: p.project_number,
-            name: p.project_name,
-            dept: p.department || p.business_unit || 'N/A',
-            manager: p.project_manager?.full_name || 'Unassigned',
-            budget: formattedBudget,
-            gate: p.current_stage || 'Intake',
-            priority: p.priority || 'medium',
-            status: p.status || 'pending',
-            progress: progress,
-            due: dueDate,
-            pendingWith: pendingTeam
-          };
-        });
-        this.applyFilters();
-      },
-      error: (err) => console.error('Failed to load projects', err)
+  constructor() {
+    // Re-apply filters whenever the underlying (cached or freshly-fetched) project list changes.
+    effect(() => {
+      this.applyFilters(this.projects());
     });
   }
 
-  applyFilters(): void {
+  ngOnInit(): void {
+    this.cache.refresh();
+  }
+
+  applyFilters(source: MappedProject[] = this.projects()): void {
     this.filtered.set(
-      this.projects.filter(p => {
+      source.filter(p => {
         const matchSearch = !this.searchTerm ||
           p.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
           p.number.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
@@ -293,4 +268,40 @@ export class ProjectListComponent implements OnInit {
     this.priorityFilter = '';
     this.applyFilters();
   }
+}
+
+function mapProjectToRow(p: Project): MappedProject {
+  const progress = calculateProjectProgress(p.current_stage, p.status);
+  const isCompleted = ['completed', 'in_delivery'].includes(p.status?.toLowerCase() || '');
+  const formattedBudget = formatBudget(p.budget_estimated);
+
+  let dueDate = 'N/A';
+  if (p.requested_end_date) {
+    dueDate = new Date(p.requested_end_date).toISOString().split('T')[0];
+  }
+
+  let pendingTeam = 'Unknown';
+  const role = (p.current_owner_role || '').toLowerCase();
+  if (role === 'bta') pendingTeam = 'BTA Team';
+  else if (role === 'eac') pendingTeam = 'EAC Team';
+  else if (role === 'trc') pendingTeam = 'TRC Team';
+  else if (role === 'admin') pendingTeam = 'Admin';
+  else if (role === 'project_manager') pendingTeam = 'Project Manager';
+  else if (isCompleted) pendingTeam = 'None';
+  else pendingTeam = role.toUpperCase() || 'BTA Team';
+
+  return {
+    id: p.id,
+    number: p.project_number,
+    name: p.project_name,
+    dept: p.department || p.business_unit || 'N/A',
+    manager: p.project_manager?.full_name || 'Unassigned',
+    budget: formattedBudget,
+    gate: p.current_stage || 'Intake',
+    priority: p.priority || 'medium',
+    status: p.status || 'pending',
+    progress: progress,
+    due: dueDate,
+    pendingWith: pendingTeam
+  };
 }

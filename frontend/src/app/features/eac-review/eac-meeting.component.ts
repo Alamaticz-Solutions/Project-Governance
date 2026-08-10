@@ -6,11 +6,12 @@ import { EacRequestService } from '../../core/services/eac-request.service';
 import { ProjectService } from '../../core/services/project.service';
 import { AuthService } from '../../core/services/auth.service';
 import { computed } from '@angular/core';
+import { ConfirmationScreenComponent } from '../../shared/components/confirmation-screen/confirmation-screen.component';
 
 @Component({
   selector: 'app-eac-meeting',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmationScreenComponent],
   template: `
     <div class="animate-fade-in eac-container">
       @if (submittedStatus() === null) {
@@ -295,43 +296,20 @@ import { computed } from '@angular/core';
       </div>
       } @else {
         <!-- Success Confirmation Screen -->
-        <div class="success-screen animate-fade-in flex flex-col items-center justify-center py-16 text-center" style="max-width: 650px; margin: 40px auto; padding: 40px; background: #FFFFFF; border: 1px solid #DFE1E6; border-radius: 8px; box-shadow: 0 4px 12px rgba(9, 30, 66, 0.08);">
-          
-          @if (submittedStatus() === 'approved') {
-            <div class="success-icon-wrapper mb-6" style="width: 80px; height: 80px; border-radius: 50%; background: #E3FCEF; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
-              <span class="material-icons text-success" style="font-size: 48px; color: #36B37E;">check_circle</span>
-            </div>
-            <h2 class="text-2xl font-bold text-dark mb-2" style="color: #172B4D; font-size: 24px; margin-bottom: 8px;">EAC Review Completed Successfully!</h2>
-            <p class="text-muted max-w-md mb-8" style="color: #6B778C; font-size: 15px; line-height: 1.5; margin-bottom: 24px;">
-              The proposal has successfully completed the Enterprise Architecture Committee (EAC) review and is ready for PIC preparation.
-            </p>
-          } @else if (submittedStatus() === 'deferred') {
-            <div class="success-icon-wrapper mb-6" style="width: 80px; height: 80px; border-radius: 50%; background: #FFF0B3; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
-              <span class="material-icons text-warning" style="font-size: 48px; color: #FFAB00;">pause_circle</span>
-            </div>
-            <h2 class="text-2xl font-bold text-dark mb-2" style="color: #172B4D; font-size: 24px; margin-bottom: 8px;">EAC Alignment Deferred</h2>
-            <p class="text-muted max-w-md mb-8" style="color: #6B778C; font-size: 15px; line-height: 1.5; margin-bottom: 24px;">
-              Project <strong>{{ projectId() }}</strong> has been marked as <strong>Deferred</strong>.
-            </p>
-          } @else if (submittedStatus() === 'clarification') {
-            <div class="success-icon-wrapper mb-6" style="width: 80px; height: 80px; border-radius: 50%; background: #DEEBFF; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
-              <span class="material-icons text-info" style="font-size: 48px; color: #0052CC;">info</span>
-            </div>
-            <h2 class="text-2xl font-bold text-dark mb-2" style="color: #172B4D; font-size: 24px; margin-bottom: 8px;">Clarification Requested</h2>
-            <p class="text-muted max-w-md mb-8" style="color: #6B778C; font-size: 15px; line-height: 1.5; margin-bottom: 24px;">
-              A request for clarification has been dispatched to the project owner.
-            </p>
+        <app-confirmation-screen
+          [title]="successTitle()"
+          [message]="successMessage()"
+          [iconName]="successIcon()"
+          [iconColor]="successIconColor()"
+          [iconBg]="successIconBg()"
+          returnLabel="Return to Projects"
+          returnRoute="/dashboard">
+          @if (isAdmin()) {
+            <button type="button" class="btn flex items-center gap-2" (click)="adminOverridePic()" style="background: #00875A; color: #FFFFFF; border: none; font-weight: 600; padding: 12px 28px; border-radius: 10px; cursor: pointer;">
+              <span class="material-icons text-sm">rocket_launch</span> Admin Override: PIC Prepare
+            </button>
           }
-
-          <div class="flex gap-4 justify-center" style="display: flex; gap: 16px; justify-content: center;">
-            <button type="button" class="btn btn-outline" (click)="goBackToDashboard()" style="padding: 10px 20px; border: 1px solid #DFE1E6; border-radius: 4px; background: #FFFFFF; color: #505F79; font-weight: 600; cursor: pointer;">Return to Projects</button>
-            @if (isAdmin()) {
-              <button type="button" class="btn flex items-center gap-2" (click)="adminOverridePic()" style="background: #00875A; color: #FFFFFF; border: none; font-weight: 600; padding: 10px 20px; border-radius: 6px;">
-                <span class="material-icons text-sm">rocket_launch</span> Admin Override: PIC Prepare
-              </button>
-            }
-          </div>
-        </div>
+        </app-confirmation-screen>
       }
     </div>
   `,
@@ -845,6 +823,39 @@ export class EacMeetingComponent {
 
   notesTranscript = '';
   submittedStatus = signal<'approved' | 'deferred' | 'clarification' | null>(null);
+
+  successTitle = computed(() => {
+    const s = this.submittedStatus();
+    if (s === 'approved') return 'EAC Review Completed Successfully!';
+    if (s === 'deferred') return 'EAC Alignment Deferred';
+    if (s === 'clarification') return 'Clarification Requested';
+    return '';
+  });
+  successMessage = computed(() => {
+    const s = this.submittedStatus();
+    if (s === 'approved') return 'The proposal has successfully completed the Enterprise Architecture Committee (EAC) review and is ready for PIC preparation.';
+    if (s === 'deferred') return `Project ${this.projectId()} has been marked as Deferred.`;
+    if (s === 'clarification') return 'A request for clarification has been dispatched to the project owner.';
+    return '';
+  });
+  successIcon = computed(() => {
+    const s = this.submittedStatus();
+    if (s === 'deferred') return 'pause_circle';
+    if (s === 'clarification') return 'info';
+    return 'check_circle';
+  });
+  successIconColor = computed(() => {
+    const s = this.submittedStatus();
+    if (s === 'deferred') return '#FFAB00';
+    if (s === 'clarification') return '#0052CC';
+    return '#36B37E';
+  });
+  successIconBg = computed(() => {
+    const s = this.submittedStatus();
+    if (s === 'deferred') return '#FFF0B3';
+    if (s === 'clarification') return '#DEEBFF';
+    return '#E3FCEF';
+  });
 
   constructor() {
     const state = history.state;

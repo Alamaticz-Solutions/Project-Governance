@@ -115,12 +115,6 @@ export const routes: Routes = [
         title: 'Knowledge Base — ABC Governance Portal',
       },
       {
-        path: 'notifications',
-        loadComponent: () =>
-          import('./features/notifications/notifications.component').then(m => m.NotificationsComponent),
-        title: 'Notifications — ABC Governance Portal',
-      },
-      {
         path: 'meeting-center',
         loadComponent: () =>
           import('./features/meeting-center/meeting-center.component').then(m => m.MeetingCenterComponent),

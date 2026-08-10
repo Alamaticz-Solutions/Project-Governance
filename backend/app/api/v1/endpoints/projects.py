@@ -139,7 +139,7 @@ async def create_project(
             notification_type=NotificationType.APPROVAL_REQUIRED,
             title="New Project Check-in for EPMO",
             message=f"Project '{project.project_name}' needs an initial EPMO check-in before moving to BTA.",
-            action_url=f"/epmo-review"
+            action_url=f"/workspace/{project.id}"
         ))
 
     # Audit log
@@ -249,30 +249,29 @@ async def get_pending_approvals(
     current_user: User = Depends(get_current_user)
 ):
     """Get all pending tasks/approvals assigned to the current user's role."""
-    stmt = select(ProjectApproval).where(ProjectApproval.status == "Pending")
-    
+    stmt = select(ProjectApproval).options(
+        selectinload(ProjectApproval.project).selectinload(Project.project_manager)
+    ).where(ProjectApproval.status == "Pending")
+
     # Filter by user role, unless the user is Admin/EPMO
     if current_user.role not in [UserRole.ADMIN, UserRole.EPMO]:
         stmt = stmt.where(ProjectApproval.assigned_role == current_user.role)
-        
+
     res = await db.execute(stmt)
     approvals = res.scalars().all()
-    
+
     results = []
     for app in approvals:
-        # Load project details
-        proj_stmt = select(Project).where(Project.id == app.project_id)
-        proj_res = await db.execute(proj_stmt)
-        project = proj_res.scalar_one_or_none()
+        # Project (and its manager) are already loaded via selectinload above — no per-row query needed.
+        project = app.project
         if not project:
             continue
-            
-        # Get manager/submitter name
-        mgr_stmt = select(User).where(User.id == project.manager_id)
-        mgr_res = await db.execute(mgr_stmt)
-        manager = mgr_res.scalar_one_or_none()
+
+        manager = project.project_manager
         submitted_by = manager.full_name if manager else "Unknown"
-        
+
+        extracted = project.ai_extracted_data if isinstance(project.ai_extracted_data, dict) else {}
+
         # Prepare project data for the frontend to bind
         project_data = {
             "id": str(project.id),
@@ -319,12 +318,35 @@ async def get_pending_approvals(
             "stakeholders": project.ai_extracted_data.get("stakeholders", []) if (project.ai_extracted_data and isinstance(project.ai_extracted_data, dict)) else [],
             "risksList": project.ai_extracted_data.get("risksList", []) if (project.ai_extracted_data and isinstance(project.ai_extracted_data, dict)) else [],
             "milestones": project.ai_extracted_data.get("milestones", []) if (project.ai_extracted_data and isinstance(project.ai_extracted_data, dict)) else [],
-            "solutionsConsidered": project.ai_extracted_data.get("solutionsConsidered", []) if (project.ai_extracted_data and isinstance(project.ai_extracted_data, dict)) else []
+            "solutionsConsidered": project.ai_extracted_data.get("solutionsConsidered", []) if (project.ai_extracted_data and isinstance(project.ai_extracted_data, dict)) else [],
+            # PIC Preparation fields, captured during "Prepare for PIC" and read back for the PIC Meeting decision screen
+            "picVendorName": extracted.get("pic_vendor_name", ""),
+            "picVendorJustification": extracted.get("pic_vendor_justification", ""),
+            "picVendorBenefits": extracted.get("pic_vendor_benefits", ""),
+            "picBenefitCategory": extracted.get("pic_benefit_category", ""),
+            "picAnnualValueY1": extracted.get("pic_annual_value_y1", ""),
+            "picAnnualValueY2": extracted.get("pic_annual_value_y2", ""),
+            "picBenefitMethodology": extracted.get("pic_benefit_methodology", ""),
+            "picCapex": extracted.get("pic_capex", ""),
+            "picNpv": extracted.get("pic_npv", ""),
+            "picIrr": extracted.get("pic_irr", ""),
+            "picPaybackMonths": extracted.get("pic_payback_months", ""),
+            "picMilestones": extracted.get("pic_milestones", ""),
+            "picResourceAsk": extracted.get("pic_resource_ask", ""),
+            "picChecklistCfo": extracted.get("pic_checklist_cfo", False),
+            "picChecklistSponsor": extracted.get("pic_checklist_sponsor", False),
+            "picChecklistPortfolio": extracted.get("pic_checklist_portfolio", False),
+            "picChecklistProcurement": extracted.get("pic_checklist_procurement", False),
+            "picChecklistCapitalBudgets": extracted.get("pic_checklist_capital_budgets", False),
+            "picChecklistVendorContracts": extracted.get("pic_checklist_vendor_contracts", False),
+            "picChecklistSponsorCommitment": extracted.get("pic_checklist_sponsor_commitment", False),
         }
-        
+
         forward_mapping = {
             "BTA Review": "EAC",
             "EAC Review": "PIC",
+            "Prepare for PIC": "PIC Meeting",
+            "PIC Meeting": "TRC Vetting & Gate Review",
             "PIC Review": "Completed / Final Approval",
             "Initial Review": "BTA",
         }
@@ -579,7 +601,7 @@ async def submit_decision(
                     notification_type=NotificationType.APPROVAL_REQUIRED,
                     title="New Project for BTA Review",
                     message=f"Project '{project.project_name}' has passed EPMO and needs BTA Review.",
-                    action_url=f"/bta-review"
+                    action_url=f"/workspace/{project.id}"
                 ))
                 
         elif payload.stage == "BTA Review":
@@ -611,7 +633,7 @@ async def submit_decision(
                     notification_type=NotificationType.APPROVAL_REQUIRED,
                     title="Finance Review Required",
                     message=f"Project '{project.project_name}' has been approved by BTA and requires Finance Review.",
-                    action_url=f"/finance-review"
+                    action_url=f"/workspace/{project.id}"
                 ))
 
         elif payload.stage == "Finance Review":
@@ -643,7 +665,7 @@ async def submit_decision(
                     notification_type=NotificationType.APPROVAL_REQUIRED,
                     title="Prepare for EAC Required",
                     message=f"Project '{project.project_name}' has passed Finance Review and needs EAC Preparation.",
-                    action_url=f"/prepare-eac"
+                    action_url=f"/workspace/{project.id}"
                 ))
 
         elif payload.stage in ["Prepare for EAC", "EAC Review", "EAC Committee Review", "EAC Meeting"]:
@@ -673,17 +695,48 @@ async def submit_decision(
                     notification_type=NotificationType.APPROVAL_REQUIRED,
                     title="Prepare for PIC Required",
                     message=f"Project '{project.project_name}' has received EAC approval and needs PIC Preparation.",
-                    action_url=f"/prepare-pic"
+                    action_url=f"/workspace/{project.id}"
                 ))
 
-        elif payload.stage in ["Prepare for PIC", "PIC Meeting"]:
+        elif payload.stage == "Prepare for PIC":
+            # PIC Preparation Completed → move to PIC Meeting for committee decision
+            project.current_stage = "PIC Meeting"
+            project.current_status = "Pending"
+            project.current_owner_role = "pic"
+            project.last_stage_completed = "Prepare for PIC"
+            project.workflow_status = "PIC Preparation Completed"
+
+            next_approval = ProjectApproval(
+                project_id=project.id,
+                approval_stage="PIC Meeting",
+                assigned_role=UserRole.PIC,
+                status="Pending",
+                sequence_order=5,
+                notification_sent=True
+            )
+            db.add(next_approval)
+
+            pic_stmt = select(User).where(User.role == UserRole.PIC)
+            pic_res = await db.execute(pic_stmt)
+            pics = pic_res.scalars().all()
+            for pic in pics:
+                db.add(Notification(
+                    recipient_id=pic.id,
+                    project_id=project.id,
+                    notification_type=NotificationType.APPROVAL_REQUIRED,
+                    title="PIC Meeting Required",
+                    message=f"Project '{project.project_name}' has been prepared and is ready for PIC Meeting decision.",
+                    action_url=f"/workspace/{project.id}"
+                ))
+
+        elif payload.stage == "PIC Meeting":
             project.current_stage = "TRC Vetting & Gate Review"
             project.current_status = "Approved"
             project.current_owner_role = "trc"
             project.last_stage_completed = "PIC Review"
             project.workflow_status = "PIC Review Completed"
-            project.status = ProjectStatus.COMPLETED
-            
+            project.status = ProjectStatus.IN_DELIVERY
+
             gate_rev = GateReview(
                 project_id=project.id,
                 gate_code="P",
@@ -782,7 +835,7 @@ async def fast_track_complete_project(
     project.current_owner_role = "trc"
     project.last_stage_completed = "PIC Meeting"
     project.workflow_status = "PIC Review Completed"
-    project.status = ProjectStatus.COMPLETED
+    project.status = ProjectStatus.IN_DELIVERY
     
     # Complete any pending approvals
     approvals_stmt = select(ProjectApproval).where(

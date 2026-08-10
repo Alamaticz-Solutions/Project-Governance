@@ -1,9 +1,10 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { User, AuthTokens } from '../models/models';
+import { AuthEventsService } from './auth-events.service';
 
 import { environment } from '../../../environments/environment';
 
@@ -22,7 +23,11 @@ export class AuthService {
   readonly userRole = computed(() => this._currentUser()?.role ?? null);
   readonly userFullName = computed(() => this._currentUser()?.full_name ?? '');
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private authEvents: AuthEventsService
+  ) {}
 
   login(email: string, password: string): Observable<AuthTokens> {
     const body = new URLSearchParams();
@@ -59,6 +64,11 @@ export class AuthService {
     localStorage.removeItem(USER_KEY);
     this._currentUser.set(null);
     this._isAuthenticated.set(false);
+    // The session-scoped caches (notifications, pending approvals, project list)
+    // are root singletons that survive a logout (no page reload happens), so
+    // without this a wedged in-flight flag or the previous user's data could
+    // leak into the next login on the same tab.
+    this.authEvents.loggedOut$.next();
     this.router.navigate(['/auth/login']);
   }
 

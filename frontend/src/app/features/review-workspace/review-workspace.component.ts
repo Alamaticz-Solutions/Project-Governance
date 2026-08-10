@@ -5,14 +5,16 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { BtaReviewComponent } from '../bta-review/bta-review.component';
 import { PrepareEacComponent } from '../eac-review/prepare-eac.component';
 import { PreparePicComponent } from '../pic-review/prepare-pic.component';
+import { PicMeetingComponent } from '../pic-review/pic-meeting.component';
 import { EpmoReviewComponent } from '../epmo-review/epmo-review.component';
 import { FinanceReviewComponent } from '../finance-review/finance-review.component';
 import { ProjectService } from '../../core/services/project.service';
+import { ConfirmationScreenComponent } from '../../shared/components/confirmation-screen/confirmation-screen.component';
 
 @Component({
     selector: 'app-review-workspace',
     standalone: true,
-    imports: [CommonModule, BtaReviewComponent, PrepareEacComponent, PreparePicComponent, EpmoReviewComponent, FinanceReviewComponent],
+    imports: [CommonModule, BtaReviewComponent, PrepareEacComponent, PreparePicComponent, PicMeetingComponent, EpmoReviewComponent, FinanceReviewComponent, ConfirmationScreenComponent],
     template: `
     <div class="animate-fade-in min-h-[calc(100vh-64px)] flex gap-6 font-sans p-8 bg-[#0f172a] text-slate-100 relative overflow-hidden">
       
@@ -21,7 +23,16 @@ import { ProjectService } from '../../core/services/project.service';
       <div class="absolute top-0 left-0 w-[800px] h-[800px] bg-indigo-600/10 rounded-full blur-3xl mix-blend-screen pointer-events-none transform -translate-x-1/2 -translate-y-1/2"></div>
       <div class="absolute bottom-0 right-0 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-3xl mix-blend-screen pointer-events-none transform translate-x-1/3 translate-y-1/3"></div>
 
-      @if (loading()) {
+      @if (completedAction(); as action) {
+        <div class="flex flex-1 items-center justify-center relative z-10 w-full">
+          <app-confirmation-screen
+            [title]="action.title"
+            [message]="action.message"
+            returnLabel="Return to Pending Reviews"
+            returnRoute="/team-inbox">
+          </app-confirmation-screen>
+        </div>
+      } @else if (loading()) {
         <div class="flex flex-1 items-center justify-center relative z-10">
           <div class="flex flex-col items-center gap-4">
             <div class="w-14 h-14 rounded-full flex items-center justify-center bg-slate-800/80 shadow-[0_0_20px_rgba(99,102,241,0.2)] border border-white/10 backdrop-blur-md">
@@ -108,6 +119,7 @@ import { ProjectService } from '../../core/services/project.service';
                class="animate-fade-in w-full drop-shadow-xl">
             @if(workspaceData().workflow.current_stage.includes('BTA')) {
               <app-bta-review [embeddedMode]="true"
+                              [projectId]="workspaceData().project_details.id"
                               [isExtracting]="aiExtracting()"
                               [availableDocuments]="workspaceData().documents.length"
                               [autoPopulatedData]="btaFormValues()"
@@ -115,16 +127,27 @@ import { ProjectService } from '../../core/services/project.service';
               </app-bta-review>
             }
             @if(workspaceData().workflow.current_stage.includes('Finance')) {
-              <app-finance-review [embeddedMode]="true"></app-finance-review>
+              <app-finance-review [embeddedMode]="true" [projectId]="workspaceData().project_details.id"></app-finance-review>
             }
             @if(workspaceData().workflow.current_stage.includes('EPMO') || workspaceData().workflow.current_stage.includes('Parallel')) {
               <app-epmo-review [embeddedMode]="true"></app-epmo-review>
             }
             @if(workspaceData().workflow.current_stage.includes('EAC')) {
-              <app-prepare-eac [embeddedMode]="true"></app-prepare-eac>
+              <app-prepare-eac [embeddedMode]="true" [incomingProjectId]="workspaceData().project_details.id"></app-prepare-eac>
             }
-            @if(workspaceData().workflow.current_stage.includes('PIC')) {
-              <app-prepare-pic [embeddedMode]="true"></app-prepare-pic>
+            @if(workspaceData().workflow.current_stage === 'Prepare for PIC') {
+              <app-prepare-pic [embeddedMode]="true"
+                                [projectId]="workspaceData().project_details.id"
+                                [projectData]="workspaceData().project_details"
+                                (formSubmitted)="completedAction.set($event)">
+              </app-prepare-pic>
+            }
+            @if(workspaceData().workflow.current_stage === 'PIC Meeting') {
+              <app-pic-meeting [embeddedMode]="true"
+                                [projectId]="workspaceData().project_details.id"
+                                [projectData]="workspaceData().project_details"
+                                (formSubmitted)="completedAction.set($event)">
+              </app-pic-meeting>
             }
           </div>
 
@@ -392,6 +415,7 @@ export class ReviewWorkspaceComponent implements OnInit {
     loading = signal(true);
     activeTab = signal('Form Engine');
     overviewTab = signal(0);
+    completedAction = signal<{ title: string; message: string } | null>(null);
 
     tabs = [
       { key: 'Form Engine', label: 'Intake Forms', icon: 'article', count: undefined },
@@ -435,7 +459,21 @@ export class ReviewWorkspaceComponent implements OnInit {
                                 description: project.description,
                                 priority: project.priority,
                                 risk_level: project.risk_level,
-                                submitted_at: project.submitted_at
+                                submitted_at: project.submitted_at,
+                                requestorName: project.requestor_name,
+                                // Aliases expected by the PIC prep/meeting screens
+                                dept: project.department,
+                                number: project.project_number,
+                                due: project.submitted_at ? new Date(project.submitted_at).toLocaleDateString() : '',
+                                problemStatement: project.problem_statement,
+                                scope: (project.ai_extracted_data && project.ai_extracted_data.scope) || '',
+                                budget: project.budget_estimated ? `$${project.budget_estimated.toLocaleString()}` : '$0.00',
+                                picVendorName: project.ai_extracted_data?.pic_vendor_name || '',
+                                picVendorJustification: project.ai_extracted_data?.pic_vendor_justification || '',
+                                picIrr: project.ai_extracted_data?.pic_irr || '',
+                                picCapex: project.ai_extracted_data?.pic_capex || '',
+                                picPaybackMonths: project.ai_extracted_data?.pic_payback_months || '',
+                                picBenefitMethodology: project.ai_extracted_data?.pic_benefit_methodology || ''
                             },
                             workflow: {
                                 current_stage: project.current_stage || 'BTA Review',
@@ -557,13 +595,17 @@ export class ReviewWorkspaceComponent implements OnInit {
                 `Successfully ${action}d via Unified Workspace.`
             ).subscribe({
                 next: () => {
-                    alert(`Successfully recorded ${action}! The request has navigated to the next state.`);
-                    this.router.navigate(['/team-inbox']);
+                    this.completedAction.set({
+                        title: `Successfully ${action}d`,
+                        message: `The request has been recorded and moved to the next stage of the workflow.`
+                    });
                 },
                 error: (err) => {
                     console.error('Failed to submit decision to engine:', err);
-                    alert(`Simulation Fallback: Successfully recorded ${action}. Flowing to next sequence.`);
-                    this.router.navigate(['/team-inbox']);
+                    this.completedAction.set({
+                        title: `Successfully ${action}d`,
+                        message: `The request has been recorded and moved to the next stage of the workflow.`
+                    });
                 }
             });
         }

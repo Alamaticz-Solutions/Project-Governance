@@ -2,9 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
-import { BtaRequestService } from '../../../core/services/bta-request.service';
-import { EacRequestService } from '../../../core/services/eac-request.service';
-import { FinanceRequestService } from '../../../core/services/finance-request.service';
+import { PendingApprovalsService } from '../../../core/services/pending-approvals.service';
 
 interface NavItem {
   label: string;
@@ -142,23 +140,16 @@ export class SidebarComponent {
   navAdmin = NAV_ADMIN;
 
   private authService = inject(AuthService);
-  private btaRequestService = inject(BtaRequestService);
-  private eacRequestService = inject(EacRequestService);
-  private financeRequestService = inject(FinanceRequestService);
+  private pendingApprovals = inject(PendingApprovalsService);
   router = inject(Router);
 
+  // Reads the same source the 5 team request services derive from (which is
+  // itself backed by GET /projects/approvals/pending, already scoped server-side:
+  // the full cross-team list for Admin/EPMO, own-role-only for everyone else).
+  // Previously this re-summed 3 of the 5 team subsets by hand and forgot EPMO
+  // and PIC entirely, so those users always saw 0 and Admin was undercounted.
   navGovernance = computed(() => {
-    const role = this.authService.userRole();
-    let count = 0;
-    if (role === 'bta' || role === 'admin') {
-      count += this.btaRequestService.requests().length;
-    }
-    if (role === 'eac' || role === 'admin') {
-      count += this.eacRequestService.requests().length;
-    }
-    if (role === 'finance' || role === 'admin') {
-      count += this.financeRequestService.requests().length;
-    }
+    const count = this.pendingApprovals.tasks().length;
     return [
       { label: 'Pending Reviews',    icon: 'pending_actions', route: '/team-inbox', badge: count },
       { label: 'Meeting Center',     icon: 'groups',          route: '/meeting-center' },

@@ -6,11 +6,13 @@ import { EacRequestService } from '../../core/services/eac-request.service';
 import { PicRequestService } from '../../core/services/pic-request.service';
 import { ProjectService } from '../../core/services/project.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmationScreenComponent } from '../../shared/components/confirmation-screen/confirmation-screen.component';
+import { GatewayChecklistComponent } from '../../shared/components/gateway-checklist/gateway-checklist.component';
 
 @Component({
   selector: 'app-prepare-eac',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, ConfirmationScreenComponent, GatewayChecklistComponent],
   template: `
     <div class="animate-fade-in" [ngClass]="embeddedMode ? '' : 'eac-container'">
 
@@ -247,7 +249,7 @@ import { AuthService } from '../../core/services/auth.service';
                         }
                       </tbody>
                     </table>
-                    <div class="p-2 border-t border-gray-200">
+                    <div class="p-2 border-t border-white/10">
                       <button type="button" class="btn btn-link btn-sm text-primary flex items-center gap-1 font-medium" (click)="addStakeholder()">
                         <span class="material-icons text-sm">add</span> Add Stakeholders
                       </button>
@@ -338,7 +340,7 @@ import { AuthService } from '../../core/services/auth.service';
               @if (currentSection() === 'risk') {
                 <div class="form-section animate-fade-in">
                   <div class="section-header">
-                    <div class="section-icon" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);color:#D97706;"><span class="material-icons">gpp_maybe</span></div>
+                    <div class="section-icon" style="background:rgba(217,119,6,0.15);color:#FBBF24;"><span class="material-icons">gpp_maybe</span></div>
                     <div>
                       <h2 class="form-section-title">Risk &amp; Compliance</h2>
                       <p class="section-subtitle">Identify and mitigate project risks and regulatory requirements</p>
@@ -386,7 +388,7 @@ import { AuthService } from '../../core/services/auth.service';
                           }
                         </tbody>
                       </table>
-                      <div class="p-2 border-t border-gray-200">
+                      <div class="p-2 border-t border-white/10">
                         <button type="button" class="btn btn-link btn-sm text-primary flex items-center gap-1 font-medium" (click)="addRisk()">
                           <span class="material-icons text-sm">add</span> Add Risk & Compliance
                         </button>
@@ -409,7 +411,7 @@ import { AuthService } from '../../core/services/auth.service';
               @if (currentSection() === 'timeline') {
                 <div class="form-section animate-fade-in">
                   <div class="section-header">
-                    <div class="section-icon" style="background:linear-gradient(135deg,#ECFEFF,#CFFAFE);color:#0891B2;"><span class="material-icons">calendar_month</span></div>
+                    <div class="section-icon" style="background:rgba(6,182,212,0.15);color:#22D3EE;"><span class="material-icons">calendar_month</span></div>
                     <div>
                       <h2 class="form-section-title">Timeline &amp; Resources</h2>
                       <p class="section-subtitle">Set project dates, milestones, budget and human resources</p>
@@ -451,7 +453,7 @@ import { AuthService } from '../../core/services/auth.service';
                           }
                         </tbody>
                       </table>
-                      <div class="p-2 border-t border-gray-200">
+                      <div class="p-2 border-t border-white/10">
                         <button type="button" class="btn btn-link btn-sm text-primary flex items-center gap-1 font-medium" (click)="addMilestone()">
                           <span class="material-icons text-sm">add</span> Add Timeline
                         </button>
@@ -502,7 +504,7 @@ import { AuthService } from '../../core/services/auth.service';
               @if (currentSection() === 'impact') {
                 <div class="form-section animate-fade-in">
                   <div class="section-header">
-                    <div class="section-icon" style="background:linear-gradient(135deg,#D1FAE5,#A7F3D0);color:#059669;"><span class="material-icons">trending_up</span></div>
+                    <div class="section-icon" style="background:rgba(16,185,129,0.15);color:#34D399;"><span class="material-icons">trending_up</span></div>
                     <div>
                       <h2 class="form-section-title">Business Impact &amp; Alternatives</h2>
                       <p class="section-subtitle">Quantify business value and document alternative options considered</p>
@@ -565,7 +567,7 @@ import { AuthService } from '../../core/services/auth.service';
                           }
                         </tbody>
                       </table>
-                      <div class="p-2 border-t border-gray-200">
+                      <div class="p-2 border-t border-white/10">
                         <button type="button" class="btn btn-link btn-sm text-primary flex items-center gap-1 font-medium" (click)="addSolution()">
                           <span class="material-icons text-sm">add</span> Add Solutions Considered
                         </button>
@@ -584,7 +586,7 @@ import { AuthService } from '../../core/services/auth.service';
               @if (currentSection() === 'readiness') {
                 <div class="form-section animate-fade-in">
                   <div class="section-header">
-                    <div class="section-icon" style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);color:#7C3AED;"><span class="material-icons">rocket_launch</span></div>
+                    <div class="section-icon" style="background:rgba(124,58,237,0.15);color:#A78BFA;"><span class="material-icons">rocket_launch</span></div>
                     <div>
                       <h2 class="form-section-title">Feasibility &amp; Future Readiness</h2>
                       <p class="section-subtitle">Assess scalability, technical feasibility and capability alignment</p>
@@ -617,115 +619,13 @@ import { AuthService } from '../../core/services/auth.service';
               @if (currentSection() === 'checklist') {
                 <div class="form-section animate-fade-in">
                   <div class="section-header">
-                    <div class="section-icon" style="background:linear-gradient(135deg,#D1FAE5,#A7F3D0);color:#059669;"><span class="material-icons">fact_check</span></div>
+                    <div class="section-icon" style="background:rgba(16,185,129,0.15);color:#34D399;"><span class="material-icons">fact_check</span></div>
                     <div>
                       <h2 class="form-section-title">EAC Committee Mandatory Checklist</h2>
                       <p class="section-subtitle">Confirm all gate reviewers and mandatory architecture verifications</p>
                     </div>
                   </div>
-                  <div class="p-8 bg-gradient-to-br from-[#FAFBFC] to-white border border-gray-200 rounded-2xl shadow-sm mb-8 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-64 h-64 bg-green-50 rounded-full blur-3xl opacity-50 -mr-10 -mt-10 pointer-events-none"></div>
-                    <h3 class="relative z-10 text-[15px] font-extrabold text-[#172B4D] mb-6 uppercase tracking-[0.1em] flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-green-100 text-[#00875A] flex items-center justify-center">
-                            <span class="material-icons text-[18px]">group</span> 
-                        </div>
-                        EAC Committee Gate Reviewers
-                    </h3>
-                    <div class="grid grid-cols-2 gap-5 relative z-10">
-                        <label class="relative flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-[#00875A] hover:shadow-md cursor-pointer transition-all duration-300 overflow-hidden group">
-                            <input type="checkbox" class="peer sr-only" checked>
-                            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#00875A] translate-x-[-100%] peer-checked:translate-x-0 transition-transform duration-300 ease-out z-0"></div>
-                            <div class="absolute inset-0 bg-green-50/20 opacity-0 peer-checked:opacity-100 transition-opacity duration-300 z-0"></div>
-                            <div class="flex-shrink-0 w-6 h-6 border-2 border-gray-300 rounded bg-white peer-checked:bg-[#00875A] peer-checked:border-[#00875A] transition-all duration-300 flex items-center justify-center relative z-10">
-                                <svg class="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-300 scale-50 peer-checked:scale-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                            </div>
-                            <div class="relative z-10 flex-1 pl-1">
-                                <span class="block text-[14px] font-bold text-gray-800 group-hover:text-[#00875A] transition-colors">Enterprise Architecture Lead</span>
-                            </div>
-                        </label>
-                        <label class="relative flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-[#00875A] hover:shadow-md cursor-pointer transition-all duration-300 overflow-hidden group">
-                            <input type="checkbox" class="peer sr-only" checked>
-                            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#00875A] translate-x-[-100%] peer-checked:translate-x-0 transition-transform duration-300 ease-out z-0"></div>
-                            <div class="absolute inset-0 bg-green-50/20 opacity-0 peer-checked:opacity-100 transition-opacity duration-300 z-0"></div>
-                            <div class="flex-shrink-0 w-6 h-6 border-2 border-gray-300 rounded bg-white peer-checked:bg-[#00875A] peer-checked:border-[#00875A] transition-all duration-300 flex items-center justify-center relative z-10">
-                                <svg class="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-300 scale-50 peer-checked:scale-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                            </div>
-                            <div class="relative z-10 flex-1 pl-1">
-                                <span class="block text-[14px] font-bold text-gray-800 group-hover:text-[#00875A] transition-colors">Data & Analytics Director</span>
-                            </div>
-                        </label>
-                        <label class="relative flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-[#00875A] hover:shadow-md cursor-pointer transition-all duration-300 overflow-hidden group">
-                            <input type="checkbox" class="peer sr-only">
-                            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#00875A] translate-x-[-100%] peer-checked:translate-x-0 transition-transform duration-300 ease-out z-0"></div>
-                            <div class="absolute inset-0 bg-green-50/20 opacity-0 peer-checked:opacity-100 transition-opacity duration-300 z-0"></div>
-                            <div class="flex-shrink-0 w-6 h-6 border-2 border-gray-300 rounded bg-white peer-checked:bg-[#00875A] peer-checked:border-[#00875A] transition-all duration-300 flex items-center justify-center relative z-10">
-                                <svg class="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-300 scale-50 peer-checked:scale-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                            </div>
-                            <div class="relative z-10 flex-1 pl-1">
-                                <span class="block text-[14px] font-bold text-gray-800 group-hover:text-[#00875A] transition-colors">Chief Information Security</span>
-                            </div>
-                        </label>
-                        <label class="relative flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-[#00875A] hover:shadow-md cursor-pointer transition-all duration-300 overflow-hidden group">
-                            <input type="checkbox" class="peer sr-only">
-                            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#00875A] translate-x-[-100%] peer-checked:translate-x-0 transition-transform duration-300 ease-out z-0"></div>
-                            <div class="absolute inset-0 bg-green-50/20 opacity-0 peer-checked:opacity-100 transition-opacity duration-300 z-0"></div>
-                            <div class="flex-shrink-0 w-6 h-6 border-2 border-gray-300 rounded bg-white peer-checked:bg-[#00875A] peer-checked:border-[#00875A] transition-all duration-300 flex items-center justify-center relative z-10">
-                                <svg class="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-300 scale-50 peer-checked:scale-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                            </div>
-                            <div class="relative z-10 flex-1 pl-1">
-                                <span class="block text-[14px] font-bold text-gray-800 group-hover:text-[#00875A] transition-colors">Infrastructure Operations VP</span>
-                            </div>
-                        </label>
-                    </div>
-                  </div>
-
-                  <div class="p-8 bg-[#FAFBFC] border border-[#DFE1E6] rounded-2xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden">
-                    <div class="absolute bottom-0 left-0 w-80 h-32 bg-red-50 rounded-full blur-3xl opacity-60 -ml-20 -mb-10 pointer-events-none"></div>
-                    <h3 class="relative z-10 text-[15px] font-extrabold text-[#DE350B] mb-6 uppercase tracking-[0.1em] flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-red-100 text-[#DE350B] flex items-center justify-center">
-                            <span class="material-icons text-[18px]">verified_user</span>
-                        </div>
-                        Mandatory EAC Architecture Verification
-                    </h3>
-                    <div class="flex flex-col gap-4 relative z-10">
-                        <label class="relative flex items-start gap-5 p-5 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-[#DE350B] hover:shadow-md cursor-pointer transition-all duration-300 overflow-hidden group">
-                            <input type="checkbox" class="peer sr-only">
-                            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#DE350B] translate-x-[-100%] peer-checked:translate-x-0 transition-transform duration-300 ease-out z-0"></div>
-                            <div class="absolute inset-0 bg-red-50/10 opacity-0 peer-checked:opacity-100 transition-opacity duration-300 z-0"></div>
-                            <div class="flex-shrink-0 w-6 h-6 mt-0.5 border-2 border-gray-300 rounded bg-white peer-checked:bg-[#DE350B] peer-checked:border-[#DE350B] transition-all duration-300 flex items-center justify-center relative z-10">
-                                <svg class="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-300 scale-50 peer-checked:scale-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                            </div>
-                            <div class="relative z-10 flex-1 pl-1">
-                                <span class="block text-[15px] font-extrabold text-gray-900 group-hover:text-[#DE350B] transition-colors leading-snug">Business Architecture Alignment Verified</span>
-                                <span class="block text-[13px] font-medium text-gray-500 mt-1.5 leading-relaxed">Proposed solution perfectly meets the strategic organizational goals.</span>
-                            </div>
-                        </label>
-                        <label class="relative flex items-start gap-5 p-5 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-[#DE350B] hover:shadow-md cursor-pointer transition-all duration-300 overflow-hidden group">
-                            <input type="checkbox" class="peer sr-only">
-                            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#DE350B] translate-x-[-100%] peer-checked:translate-x-0 transition-transform duration-300 ease-out z-0"></div>
-                            <div class="absolute inset-0 bg-red-50/10 opacity-0 peer-checked:opacity-100 transition-opacity duration-300 z-0"></div>
-                            <div class="flex-shrink-0 w-6 h-6 mt-0.5 border-2 border-gray-300 rounded bg-white peer-checked:bg-[#DE350B] peer-checked:border-[#DE350B] transition-all duration-300 flex items-center justify-center relative z-10">
-                                <svg class="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-300 scale-50 peer-checked:scale-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                            </div>
-                            <div class="relative z-10 flex-1 pl-1">
-                                <span class="block text-[15px] font-extrabold text-gray-900 group-hover:text-[#DE350B] transition-colors leading-snug">Data & Integration Blueprints Approved</span>
-                                <span class="block text-[13px] font-medium text-gray-500 mt-1.5 leading-relaxed">Siloed systems are correctly bridged with scalable APIs.</span>
-                            </div>
-                        </label>
-                        <label class="relative flex items-start gap-5 p-5 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-[#DE350B] hover:shadow-md cursor-pointer transition-all duration-300 overflow-hidden group">
-                            <input type="checkbox" class="peer sr-only">
-                            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#DE350B] translate-x-[-100%] peer-checked:translate-x-0 transition-transform duration-300 ease-out z-0"></div>
-                            <div class="absolute inset-0 bg-red-50/10 opacity-0 peer-checked:opacity-100 transition-opacity duration-300 z-0"></div>
-                            <div class="flex-shrink-0 w-6 h-6 mt-0.5 border-2 border-gray-300 rounded bg-white peer-checked:bg-[#DE350B] peer-checked:border-[#DE350B] transition-all duration-300 flex items-center justify-center relative z-10">
-                                <svg class="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity duration-300 scale-50 peer-checked:scale-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                            </div>
-                            <div class="relative z-10 flex-1 pl-1">
-                                <span class="block text-[15px] font-extrabold text-gray-900 group-hover:text-[#DE350B] transition-colors leading-snug">Core Security Standards Met</span>
-                                <span class="block text-[13px] font-medium text-gray-500 mt-1.5 leading-relaxed">Vendor compliance and infrastructure isolation successfully pass standards.</span>
-                            </div>
-                        </label>
-                    </div>
-                  </div>
+                  <app-gateway-checklist [projectId]="projectId()" gateOwner="EAC"></app-gateway-checklist>
                 </div>
               }
             </form>
@@ -764,25 +664,17 @@ import { AuthService } from '../../core/services/auth.service';
 
         </div>
         } @else {
-          <div class="success-screen animate-fade-in flex flex-col items-center justify-center py-16 text-center">
-            <div class="success-icon-wrapper mb-6">
-              <span class="material-icons success-icon-large" style="font-size: 64px; color: #36B37E">check_circle</span>
-            </div>
-            <h2 class="text-2xl font-bold text-primary-dark mb-2">EAC Dossier Submitted!</h2>
-            <p class="text-muted max-w-md mb-8">
-              The EAC prepare phase is complete. It has now been routed to the Project Improvement Committee (PIC).
-            </p>
-            
-            <div class="flex gap-4">
-              <button type="button" class="btn btn-outline" (click)="cancel()">Return to Inbox</button>
-              
-              @if (isAdmin()) {
-                <button type="button" class="btn flex items-center gap-2" (click)="adminOverridePic()" style="background: #00875A; color: #FFFFFF; border: none; font-weight: 600; padding: 8px 16px; border-radius: 6px;">
-                  <span class="material-icons text-sm">rocket_launch</span> Admin Override: PIC Prepare
-                </button>
-              }
-            </div>
-          </div>
+          <app-confirmation-screen
+            title="EAC Dossier Submitted!"
+            message="The EAC prepare phase is complete. It has now been routed to the Project Investment Committee (PIC)."
+            returnLabel="Return to Inbox"
+            returnRoute="/team-inbox">
+            @if (isAdmin()) {
+              <button type="button" class="btn flex items-center gap-2" (click)="adminOverridePic()" style="background: #00875A; color: #FFFFFF; border: none; font-weight: 600; padding: 12px 28px; border-radius: 10px; cursor: pointer;">
+                <span class="material-icons text-sm">rocket_launch</span> Admin Override: PIC Prepare
+              </button>
+            }
+          </app-confirmation-screen>
         }
       </div>
     </div>
@@ -795,19 +687,20 @@ import { AuthService } from '../../core/services/auth.service';
       max-width: 1400px;
       margin: 0 auto;
       padding: 20px;
-      background: linear-gradient(135deg, #F0F4FF 0%, #FAF5FF 50%, #F0FFFE 100%);
+      background: transparent;
       min-height: calc(100vh - 60px);
       font-family: 'Inter', sans-serif;
     }
 
     /* ── Global Horizontal Stepper (premium pills) ── */
     .global-stepper-container {
-      background: white;
-      border: 1px solid rgba(226,232,240,0.8);
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
       border-radius: 14px;
       padding: 16px 24px;
       margin-bottom: 16px;
-      box-shadow: 0 2px 12px rgba(79,70,229,0.06);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     }
 
     .global-stepper {
@@ -824,23 +717,23 @@ import { AuthService } from '../../core/services/auth.service';
       font-size: 12px;
       font-weight: 600;
       color: #94A3B8;
-      &.active { color: #1E293B; }
-      &.done  { color: #059669; }
+      &.active { color: #F1F5F9; }
+      &.done  { color: #34D399; }
     }
 
     .g-step-dot {
       width: 22px; height: 22px;
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      background: white;
-      border: 2px solid #E2E8F0;
+      background: rgba(255,255,255,0.05);
+      border: 2px solid rgba(255,255,255,0.12);
       color: #94A3B8;
       flex-shrink: 0;
       transition: all 0.2s;
-      &.done  { background: #059669; border-color: #059669; color: white; }
+      &.done  { background: #059669; border-color: #34D399; color: white; }
       &.active {
         background: linear-gradient(135deg, #4F46E5, #7C3AED);
-        border-color: #4F46E5;
+        border-color: #818CF8;
         box-shadow: 0 0 0 3px rgba(79,70,229,0.2);
       }
     }
@@ -850,7 +743,7 @@ import { AuthService } from '../../core/services/auth.service';
     .g-step-line {
       flex: 1;
       height: 2px;
-      background: #E2E8F0;
+      background: rgba(255,255,255,0.12);
       margin: 0 10px;
       border-radius: 9999px;
       &.done { background: linear-gradient(90deg, #059669, #34D399); }
@@ -858,10 +751,11 @@ import { AuthService } from '../../core/services/auth.service';
 
     /* ── Main Window Card ── */
     .eac-window-card {
-      background: white;
-      border: 1px solid rgba(226,232,240,0.8);
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
       border-radius: 18px;
-      box-shadow: 0 4px 24px rgba(79,70,229,0.07);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
       overflow: hidden;
       position: relative;
       &::before {
@@ -875,8 +769,8 @@ import { AuthService } from '../../core/services/auth.service';
 
     .window-header {
       padding: 18px 28px;
-      border-bottom: 1px solid rgba(226,232,240,0.6);
-      background: rgba(248,250,252,0.5);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.03);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -897,20 +791,20 @@ import { AuthService } from '../../core/services/auth.service';
     .window-title {
       font-size: 16px;
       font-weight: 800;
-      color: #1E293B;
+      color: #F1F5F9;
       margin: 0;
       font-family: 'Outfit', sans-serif;
     }
 
     .window-subtitle { font-size: 12px; color: #94A3B8; margin-top: 2px; }
-    .text-accent { color: #4F46E5; font-weight: 600; }
+    .text-accent { color: #818CF8; font-weight: 600; }
 
     .urgency-chip {
       display: inline-flex;
       padding: 2px 10px;
       border-radius: 9999px;
-      background: linear-gradient(135deg, #FEF3C7, #FDE68A);
-      color: #D97706;
+      background: rgba(217,119,6,0.15);
+      color: #FBBF24;
       font-size: 11px;
       font-weight: 700;
       margin-left: 4px;
@@ -920,15 +814,15 @@ import { AuthService } from '../../core/services/auth.service';
 
     .win-btn {
       padding: 6px 14px;
-      border: 1.5px solid rgba(226,232,240,0.9);
-      background: white;
+      border: 1.5px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
       border-radius: 8px;
       cursor: pointer;
       font-size: 12px;
       font-weight: 600;
-      color: #64748B;
+      color: #94A3B8;
       transition: all 0.2s;
-      &:hover { background: rgba(238,242,255,0.6); border-color: rgba(79,70,229,0.3); color: #4F46E5; }
+      &:hover { background: rgba(99,102,241,0.15); border-color: rgba(79,70,229,0.3); color: #818CF8; }
     }
 
     /* ── Layout ── */
@@ -948,8 +842,8 @@ import { AuthService } from '../../core/services/auth.service';
 
     .right-stepper-area {
       padding: 28px 20px;
-      background: rgba(248,250,252,0.5);
-      border-left: 1px solid rgba(226,232,240,0.5);
+      background: rgba(255,255,255,0.03);
+      border-left: 1px solid rgba(255,255,255,0.1);
     }
 
     /* ── Form Section ── */
@@ -961,15 +855,15 @@ import { AuthService } from '../../core/services/auth.service';
       gap: 16px;
       margin-bottom: 24px;
       padding-bottom: 20px;
-      border-bottom: 1px solid rgba(226,232,240,0.6);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
 
     .section-icon {
       width: 48px; height: 48px;
       border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, #EEF2FF, #F5F3FF);
-      color: #4F46E5;
+      background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(124,58,237,0.08));
+      color: #818CF8;
       flex-shrink: 0;
       box-shadow: 0 2px 8px rgba(79,70,229,0.15);
       .material-icons { font-size: 22px; }
@@ -978,7 +872,7 @@ import { AuthService } from '../../core/services/auth.service';
     .form-section-title {
       font-size: 18px;
       font-weight: 800;
-      color: #1E293B;
+      color: #F1F5F9;
       margin: 0 0 4px;
       font-family: 'Outfit', sans-serif;
     }
@@ -1008,7 +902,7 @@ import { AuthService } from '../../core/services/auth.service';
     .field-label {
       font-size: 11px;
       font-weight: 700;
-      color: #475569;
+      color: #CBD5E1;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -1035,15 +929,15 @@ import { AuthService } from '../../core/services/auth.service';
       font-size: 13px;
       font-family: 'Inter', sans-serif;
       font-weight: 500;
-      border: 1.5px solid #E2E8F0;
+      border: 1.5px solid rgba(255,255,255,0.12);
       border-radius: 10px;
-      background: white;
-      color: #1E293B;
+      background: rgba(255,255,255,0.05);
+      color: #F1F5F9;
       outline: none;
       transition: all 0.2s ease;
       &:focus {
         border-color: rgba(79,70,229,0.5);
-        background: white;
+        background: rgba(255,255,255,0.05);
         box-shadow: 0 0 0 4px rgba(79,70,229,0.10);
       }
       &::placeholder { color: #CBD5E1; }
@@ -1055,8 +949,8 @@ import { AuthService } from '../../core/services/auth.service';
     .editor-toolbar {
       display: flex;
       gap: 3px;
-      background: rgba(241,245,249,0.8);
-      border: 1.5px solid #E2E8F0;
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(255,255,255,0.12);
       border-bottom: none;
       padding: 5px;
       border-radius: 10px 10px 0 0;
@@ -1070,24 +964,24 @@ import { AuthService } from '../../core/services/auth.service';
       cursor: pointer;
       font-size: 12px;
       font-weight: 600;
-      color: #64748B;
+      color: #94A3B8;
       min-width: 26px; height: 26px;
       display: flex; align-items: center; justify-content: center;
       transition: all 0.15s;
-      &:hover { background: white; border-color: #E2E8F0; color: #1E293B; box-shadow: 0 1px 4px rgba(15,23,42,0.08); }
+      &:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); color: #F1F5F9; box-shadow: 0 1px 4px rgba(15,23,42,0.08); }
     }
 
     .editor-textarea {
       border-radius: 0 0 10px 10px !important;
-      border-top-color: #E2E8F0;
+      border-top-color: rgba(255,255,255,0.12);
     }
 
     /* ── Tables ── */
     .table-container {
-      border: 1.5px solid rgba(226,232,240,0.8);
+      border: 1.5px solid rgba(255,255,255,0.1);
       border-radius: 12px;
       overflow: hidden;
-      background: white;
+      background: rgba(255,255,255,0.05);
       box-shadow: 0 2px 8px rgba(79,70,229,0.04);
     }
 
@@ -1096,26 +990,26 @@ import { AuthService } from '../../core/services/auth.service';
       border-collapse: collapse;
 
       th {
-        background: rgba(248,250,252,0.9);
+        background: rgba(255,255,255,0.03);
         padding: 10px 14px;
         text-align: left;
         font-size: 10px;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.6px;
-        color: #64748B;
-        border-bottom: 1.5px solid rgba(226,232,240,0.8);
+        color: #94A3B8;
+        border-bottom: 1.5px solid rgba(255,255,255,0.1);
       }
 
       td {
         padding: 9px 14px;
-        border-bottom: 1px solid rgba(226,232,240,0.5);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
         vertical-align: middle;
       }
 
       tr:last-child td { border-bottom: none; }
       tbody tr { transition: background 0.15s; }
-      tbody tr:hover { background: rgba(238,242,255,0.3); }
+      tbody tr:hover { background: rgba(99,102,241,0.15); }
     }
 
     .table-input {
@@ -1123,13 +1017,13 @@ import { AuthService } from '../../core/services/auth.service';
       height: 34px;
       font-size: 12px;
       border-radius: 7px !important;
-      background: rgba(248,250,252,0.8) !important;
+      background: rgba(255,255,255,0.03) !important;
     }
 
     .table-add-row {
       padding: 10px 14px;
-      border-top: 1px solid rgba(226,232,240,0.6);
-      background: rgba(248,250,252,0.5);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.03);
     }
 
     .add-row-btn {
@@ -1139,11 +1033,11 @@ import { AuthService } from '../../core/services/auth.service';
       cursor: pointer;
       font-size: 12px;
       font-weight: 700;
-      color: #4F46E5;
+      color: #818CF8;
       padding: 4px 8px;
       border-radius: 7px;
       transition: all 0.15s;
-      &:hover { background: rgba(238,242,255,0.7); }
+      &:hover { background: rgba(99,102,241,0.15); }
     }
 
     .del-icon {
@@ -1151,7 +1045,7 @@ import { AuthService } from '../../core/services/auth.service';
       color: #CBD5E1;
       cursor: pointer;
       transition: color 0.15s;
-      &:hover { color: #DC2626; }
+      &:hover { color: #F87171; }
     }
 
     /* ── Embedded Tabs ── */
@@ -1160,7 +1054,7 @@ import { AuthService } from '../../core/services/auth.service';
       overflow-x: auto;
       padding-bottom: 16px;
       margin-bottom: 16px;
-      border-bottom: 1px solid rgba(226,232,240,0.6);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
 
     .emb-tab-btn {
@@ -1171,10 +1065,10 @@ import { AuthService } from '../../core/services/auth.service';
       white-space: nowrap;
       cursor: pointer;
       transition: all 0.2s;
-      border: 1.5px solid rgba(226,232,240,0.9);
-      background: white;
-      color: #64748B;
-      &:hover { border-color: rgba(79,70,229,0.3); color: #4F46E5; }
+      border: 1.5px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
+      color: #94A3B8;
+      &:hover { border-color: rgba(79,70,229,0.3); color: #818CF8; }
     }
 
     .emb-tab-active {
@@ -1202,10 +1096,10 @@ import { AuthService } from '../../core/services/auth.service';
     }
 
     .btn-outline {
-      background: white;
-      border: 1.5px solid rgba(226,232,240,0.9);
-      color: #64748B;
-      &:hover:not([disabled]) { background: rgba(248,250,252,0.9); border-color: rgba(79,70,229,0.3); color: #4F46E5; }
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      color: #94A3B8;
+      &:hover:not([disabled]) { background: rgba(255,255,255,0.03); border-color: rgba(79,70,229,0.3); color: #818CF8; }
       &[disabled] { opacity: 0.4; cursor: not-allowed; }
     }
 
@@ -1222,7 +1116,7 @@ import { AuthService } from '../../core/services/auth.service';
       background: transparent;
       border: none;
       padding: 4px 8px;
-      &:hover { background: rgba(238,242,255,0.6); border-radius: 7px; }
+      &:hover { background: rgba(99,102,241,0.15); border-radius: 7px; }
     }
 
     /* ── EAC Footer ── */
@@ -1232,7 +1126,7 @@ import { AuthService } from '../../core/services/auth.service';
       align-items: center;
       padding: 20px 0 24px;
       margin-top: 8px;
-      border-top: 1px solid rgba(226,232,240,0.6);
+      border-top: 1px solid rgba(255,255,255,0.1);
     }
 
     /* ── Right Vertical Stepper (premium) ── */
@@ -1248,7 +1142,7 @@ import { AuthService } from '../../core/services/auth.service';
         top: 12px; bottom: 12px;
         left: 7px;
         width: 2px;
-        background: linear-gradient(180deg, #4F46E5 0%, rgba(226,232,240,0.4) 100%);
+        background: linear-gradient(180deg, #4F46E5 0%, rgba(255,255,255,0.1) 100%);
         border-radius: 9999px;
         z-index: 0;
       }
@@ -1264,13 +1158,13 @@ import { AuthService } from '../../core/services/auth.service';
       padding: 8px 10px;
       border-radius: 10px;
       transition: background 0.15s;
-      &:hover:not(.active) { background: rgba(238,242,255,0.5); }
+      &:hover:not(.active) { background: rgba(99,102,241,0.15); }
 
       .v-step-indicator {
         width: 16px; height: 16px;
         border-radius: 50%;
-        background: white;
-        border: 2px solid #E2E8F0;
+        background: rgba(255,255,255,0.05);
+        border: 2px solid rgba(255,255,255,0.12);
         flex-shrink: 0;
         transition: all 0.2s;
       }
@@ -1285,8 +1179,8 @@ import { AuthService } from '../../core/services/auth.service';
 
       &.completed {
         .v-step-indicator {
-          border-color: #059669;
-          background: #D1FAE5;
+          border-color: #34D399;
+          background: rgba(16,185,129,0.15);
           &::after {
             content: '';
             display: block;
@@ -1296,18 +1190,18 @@ import { AuthService } from '../../core/services/auth.service';
             margin: auto;
           }
         }
-        .v-step-label { color: #64748B; }
+        .v-step-label { color: #94A3B8; }
       }
 
       &.active {
-        background: rgba(238,242,255,0.7);
+        background: rgba(99,102,241,0.15);
         .v-step-indicator {
           background: linear-gradient(135deg, #4F46E5, #7C3AED);
-          border-color: #4F46E5;
+          border-color: #818CF8;
           box-shadow: 0 0 0 3px rgba(79,70,229,0.2), 0 2px 8px rgba(79,70,229,0.35);
         }
         .v-step-label {
-          color: #4F46E5;
+          color: #818CF8;
           font-weight: 700;
         }
       }
@@ -1322,12 +1216,12 @@ import { AuthService } from '../../core/services/auth.service';
     }
 
     .green-panel {
-      background: linear-gradient(135deg, #F0FDF9, #F5FFFA);
+      background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.03));
       border: 1px solid rgba(5,150,105,0.15);
     }
 
     .red-panel {
-      background: linear-gradient(135deg, #FFF8F8, #FFF5F5);
+      background: linear-gradient(135deg, rgba(220,38,38,0.1), rgba(220,38,38,0.03));
       border: 1px solid rgba(220,38,38,0.12);
     }
 
@@ -1344,8 +1238,8 @@ import { AuthService } from '../../core/services/auth.service';
       z-index: 10;
     }
 
-    .green-title { color: #065F46; }
-    .red-title   { color: #991B1B; }
+    .green-title { color: #34D399; }
+    .red-title   { color: #F87171; }
 
     .checklist-panel-icon {
       width: 30px; height: 30px;
@@ -1353,8 +1247,8 @@ import { AuthService } from '../../core/services/auth.service';
       display: flex; align-items: center; justify-content: center;
     }
 
-    .green-icon { background: rgba(5,150,105,0.12); color: #059669; }
-    .red-icon   { background: rgba(220,38,38,0.1);  color: #DC2626; }
+    .green-icon { background: rgba(5,150,105,0.12); color: #34D399; }
+    .red-icon   { background: rgba(220,38,38,0.1);  color: #F87171; }
 
     .checklist-item {
       position: relative;
@@ -1362,8 +1256,8 @@ import { AuthService } from '../../core/services/auth.service';
       align-items: center;
       gap: 14px;
       padding: 14px 16px;
-      background: white;
-      border: 1.5px solid rgba(226,232,240,0.7);
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(255,255,255,0.1);
       border-radius: 12px;
       cursor: pointer;
       overflow: hidden;
@@ -1377,8 +1271,8 @@ import { AuthService } from '../../core/services/auth.service';
       align-items: flex-start;
       gap: 16px;
       padding: 18px 18px;
-      background: white;
-      border: 1.5px solid rgba(226,232,240,0.7);
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(255,255,255,0.1);
       border-radius: 12px;
       cursor: pointer;
       overflow: hidden;
@@ -1406,9 +1300,9 @@ import { AuthService } from '../../core/services/auth.service';
     .ci-checkbox {
       flex-shrink: 0;
       width: 20px; height: 20px;
-      border: 2px solid #E2E8F0;
+      border: 2px solid rgba(255,255,255,0.12);
       border-radius: 6px;
-      background: white;
+      background: rgba(255,255,255,0.05);
       display: flex; align-items: center; justify-content: center;
       transition: all 0.2s;
       position: relative; z-index: 10;
@@ -1418,9 +1312,9 @@ import { AuthService } from '../../core/services/auth.service';
       flex-shrink: 0;
       width: 22px; height: 22px;
       margin-top: 2px;
-      border: 2px solid #E2E8F0;
+      border: 2px solid rgba(255,255,255,0.12);
       border-radius: 6px;
-      background: white;
+      background: rgba(255,255,255,0.05);
       display: flex; align-items: center; justify-content: center;
       transition: all 0.2s;
       position: relative; z-index: 10;
@@ -1437,14 +1331,14 @@ import { AuthService } from '../../core/services/auth.service';
     .ci-label {
       font-size: 13px;
       font-weight: 700;
-      color: #1E293B;
+      color: #F1F5F9;
       transition: color 0.15s;
       flex: 1;
     }
 
-    .text-primary { color: #4F46E5; }
+    .text-primary { color: #818CF8; }
     .text-muted   { color: #94A3B8; }
-    .text-danger  { color: #DC2626; }
+    .text-danger  { color: #F87171; }
     .font-medium  { font-weight: 500; }
   `]
 })
@@ -1458,7 +1352,10 @@ export class PrepareEacComponent {
 
   @Input() embeddedMode = false;
   @Input() forceReviewScreen = false;
-  
+  @Input() set incomingProjectId(id: string | undefined) {
+    if (id) this.projectId.set(id);
+  }
+
   eacForm: FormGroup;
 
   projectId = signal('P-1002');
@@ -1634,14 +1531,8 @@ export class PrepareEacComponent {
 
       this.projectService.submitDecision(this.projectId(), 'Prepare for EAC', 'Complete', 'EAC Dossier submitted.', payload).subscribe({
         next: () => {
-          if (this.fromAdminOverride()) {
-            this.eacRequestService.refreshRequests();
-            this.submittedSuccess.set(true);
-          } else {
-            alert('EAC Review Completed. Next it is Moving to PIC Review');
-            this.eacRequestService.refreshRequests();
-            this.router.navigate(['/team-inbox']);
-          }
+          this.eacRequestService.refreshRequests();
+          this.submittedSuccess.set(true);
         },
         error: (err) => console.error('Failed to submit Prepare for EAC', err)
       });

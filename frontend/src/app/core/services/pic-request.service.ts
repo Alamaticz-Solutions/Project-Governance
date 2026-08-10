@@ -1,5 +1,5 @@
-import { Injectable, signal, inject } from '@angular/core';
-import { ProjectService } from './project.service';
+import { Injectable, computed, inject } from '@angular/core';
+import { PendingApprovalsService } from './pending-approvals.service';
 
 export interface PicRequest {
   id: string;
@@ -17,26 +17,13 @@ export interface PicRequest {
 
 @Injectable({ providedIn: 'root' })
 export class PicRequestService {
-  private projectService = inject(ProjectService);
-  private requestsSignal = signal<PicRequest[]>([]);
+  private pendingApprovals = inject(PendingApprovalsService);
 
-  readonly requests = this.requestsSignal.asReadonly();
-
-  constructor() {
-    this.refreshRequests();
-  }
+  readonly requests = computed(() => this.pendingApprovals.tasks()
+    .filter(t => t.type === 'Prepare for PIC' || t.type === 'PIC Meeting') as PicRequest[]);
 
   refreshRequests() {
-    this.projectService.getPendingTasks().subscribe({
-      next: (tasks) => {
-        const picTasks = tasks.filter(t => 
-          t.type === 'Prepare for PIC' || 
-          t.type === 'PIC Meeting'
-        );
-        this.requestsSignal.set(picTasks);
-      },
-      error: (err) => console.error('Failed to load PIC requests', err)
-    });
+    this.pendingApprovals.refresh(true);
   }
 
   addRequest(request: PicRequest) {
@@ -44,10 +31,10 @@ export class PicRequestService {
   }
 
   removeRequest(projectId: string, type: string) {
-    this.requestsSignal.update(reqs => reqs.filter(r => !(r.projectId === projectId && r.type === type)));
+    this.pendingApprovals.removeTask(projectId, type);
   }
 
   getRequestsByType(type: string): PicRequest[] {
-    return this.requestsSignal().filter(r => r.type === type);
+    return this.requests().filter(r => r.type === type);
   }
 }

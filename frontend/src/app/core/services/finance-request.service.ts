@@ -1,5 +1,5 @@
-import { Injectable, signal, inject } from '@angular/core';
-import { ProjectService } from './project.service';
+import { Injectable, computed, inject } from '@angular/core';
+import { PendingApprovalsService } from './pending-approvals.service';
 
 export interface FinanceRequest {
   id: string;
@@ -16,23 +16,12 @@ export interface FinanceRequest {
 
 @Injectable({ providedIn: 'root' })
 export class FinanceRequestService {
-  private projectService = inject(ProjectService);
-  private requestsSignal = signal<FinanceRequest[]>([]);
+  private pendingApprovals = inject(PendingApprovalsService);
 
-  readonly requests = this.requestsSignal.asReadonly();
-
-  constructor() {
-    this.refreshRequests();
-  }
+  readonly requests = computed(() => this.pendingApprovals.tasks().filter(t => t.type === 'Finance Review') as FinanceRequest[]);
 
   refreshRequests() {
-    this.projectService.getPendingTasks().subscribe({
-      next: (tasks) => {
-        const financeTasks = tasks.filter(t => t.type === 'Finance Review');
-        this.requestsSignal.set(financeTasks);
-      },
-      error: (err) => console.error('Failed to load Finance requests', err)
-    });
+    this.pendingApprovals.refresh(true);
   }
 
   addRequest(request: FinanceRequest) {
@@ -40,6 +29,6 @@ export class FinanceRequestService {
   }
 
   removeRequest(projectId: string) {
-    this.requestsSignal.update(reqs => reqs.filter(r => r.projectId !== projectId));
+    this.pendingApprovals.removeTask(projectId, 'Finance Review');
   }
 }

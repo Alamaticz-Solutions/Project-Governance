@@ -1,5 +1,5 @@
-import { Injectable, signal, inject } from '@angular/core';
-import { ProjectService } from './project.service';
+import { Injectable, computed, inject } from '@angular/core';
+import { PendingApprovalsService } from './pending-approvals.service';
 
 export interface BtaRequest {
   id: string;
@@ -16,23 +16,12 @@ export interface BtaRequest {
 
 @Injectable({ providedIn: 'root' })
 export class BtaRequestService {
-  private projectService = inject(ProjectService);
-  private requestsSignal = signal<BtaRequest[]>([]);
+  private pendingApprovals = inject(PendingApprovalsService);
 
-  readonly requests = this.requestsSignal.asReadonly();
-
-  constructor() {
-    this.refreshRequests();
-  }
+  readonly requests = computed(() => this.pendingApprovals.tasks().filter(t => t.type === 'BTA Review') as BtaRequest[]);
 
   refreshRequests() {
-    this.projectService.getPendingTasks().subscribe({
-      next: (tasks) => {
-        const btaTasks = tasks.filter(t => t.type === 'BTA Review');
-        this.requestsSignal.set(btaTasks);
-      },
-      error: (err) => console.error('Failed to load BTA requests', err)
-    });
+    this.pendingApprovals.refresh(true);
   }
 
   addRequest(request: BtaRequest) {
@@ -40,6 +29,6 @@ export class BtaRequestService {
   }
 
   removeRequest(projectId: string) {
-    this.requestsSignal.update(reqs => reqs.filter(r => r.projectId !== projectId));
+    this.pendingApprovals.removeTask(projectId, 'BTA Review');
   }
 }

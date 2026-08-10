@@ -1,5 +1,5 @@
-import { Injectable, signal, inject } from '@angular/core';
-import { ProjectService } from './project.service';
+import { Injectable, computed, inject } from '@angular/core';
+import { PendingApprovalsService } from './pending-approvals.service';
 
 export interface EacRequest {
   id: string;
@@ -17,34 +17,15 @@ export interface EacRequest {
 
 @Injectable({ providedIn: 'root' })
 export class EacRequestService {
-  private projectService = inject(ProjectService);
-  private requestsSignal = signal<EacRequest[]>([]);
+  private pendingApprovals = inject(PendingApprovalsService);
 
-  readonly requests = this.requestsSignal.asReadonly();
-
-  constructor() {
-    this.refreshRequests();
-  }
+  // Support matching 'EAC Meeting' and 'EAC Committee Review'; normalize the latter to 'EAC Meeting'.
+  readonly requests = computed(() => this.pendingApprovals.tasks()
+    .filter(t => t.type === 'Prepare for EAC' || t.type === 'EAC Committee Review' || t.type === 'EAC Meeting')
+    .map(t => t.type === 'EAC Committee Review' ? { ...t, type: 'EAC Meeting' } : t) as EacRequest[]);
 
   refreshRequests() {
-    this.projectService.getPendingTasks().subscribe({
-      next: (tasks) => {
-        // Support matching 'EAC Meeting' and 'EAC Committee Review'
-        const eacTasks = tasks.filter(t => 
-          t.type === 'Prepare for EAC' || 
-          t.type === 'EAC Committee Review' || 
-          t.type === 'EAC Meeting'
-        ).map(t => {
-          // Normalize type if backend sends EAC Committee Review to EAC Meeting
-          if (t.type === 'EAC Committee Review') {
-            t.type = 'EAC Meeting';
-          }
-          return t;
-        });
-        this.requestsSignal.set(eacTasks);
-      },
-      error: (err) => console.error('Failed to load EAC requests', err)
-    });
+    this.pendingApprovals.refresh(true);
   }
 
   addRequest(request: EacRequest) {
@@ -52,10 +33,10 @@ export class EacRequestService {
   }
 
   removeRequest(projectId: string, type: string) {
-    this.requestsSignal.update(reqs => reqs.filter(r => !(r.projectId === projectId && r.type === type)));
+    this.pendingApprovals.removeTask(projectId, type);
   }
 
   getRequestsByType(type: string): EacRequest[] {
-    return this.requestsSignal().filter(r => r.type === type);
+    return this.requests().filter(r => r.type === type);
   }
 }

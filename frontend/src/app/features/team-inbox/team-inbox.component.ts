@@ -8,6 +8,7 @@ import { EacRequestService } from '../../core/services/eac-request.service';
 import { PicRequestService } from '../../core/services/pic-request.service';
 import { EpmoRequestService } from '../../core/services/epmo-request.service';
 import { FinanceRequestService } from '../../core/services/finance-request.service';
+import { PendingApprovalsService } from '../../core/services/pending-approvals.service';
 
 @Component({
   selector: 'app-team-inbox',
@@ -26,6 +27,9 @@ import { FinanceRequestService } from '../../core/services/finance-request.servi
             <h1 class="font-display text-3xl font-bold text-white tracking-tight flex items-center gap-3 drop-shadow-md">
               <span class="material-icons text-indigo-400 text-[32px]">inbox</span>
               Pending Reviews: {{ teamName() }}
+              @if (refreshing()) {
+                <span class="material-icons text-indigo-400 text-[18px] animate-spin" title="Refreshing...">autorenew</span>
+              }
             </h1>
             <p class="text-sm font-medium text-slate-400 mt-1">Manage and process governance tasks awaiting your team's decision.</p>
           </div>
@@ -61,7 +65,7 @@ import { FinanceRequestService } from '../../core/services/finance-request.servi
               </div>
 
               <button class="premium-btn-icon w-10 h-10 flex items-center justify-center transition-all" (click)="refresh()" title="Refresh Tasks">
-                  <span class="material-icons text-[20px]">refresh</span>
+                  <span class="material-icons text-[20px]" [class.animate-spin]="refreshing()">refresh</span>
               </button>
           </div>
         </div>
@@ -92,7 +96,19 @@ import { FinanceRequestService } from '../../core/services/finance-request.servi
                       </tr>
                   </thead>
                   <tbody class="divide-y divide-white/5 text-sm">
-                      @for (task of filteredTasks(); track task.id) {
+                      @if (loading() && filteredTasks().length === 0) {
+                      <tr>
+                          <td colspan="8" class="py-16 px-6">
+                              <div class="flex flex-col items-center justify-center gap-3">
+                                  <div class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-800/80 border border-white/10">
+                                      <span class="material-icons text-indigo-400 text-xl animate-spin">autorenew</span>
+                                  </div>
+                                  <p class="text-sm font-semibold text-slate-400">Loading tasks...</p>
+                              </div>
+                          </td>
+                      </tr>
+                  } @else {
+                  @for (task of filteredTasks(); track task.id) {
                           <tr class="hover-row transition-all duration-300 cursor-pointer group" (click)="openTask(task)">
                               <!-- 1. Project ID Column -->
                               <td class="px-6 py-4 font-bold text-indigo-300 group-hover:text-indigo-200 transition-colors w-[12%]">{{ task.projectNumber }}</td>
@@ -167,6 +183,7 @@ import { FinanceRequestService } from '../../core/services/finance-request.servi
                               </td>
                           </tr>
                       }
+                  }
                   </tbody>
               </table>
           </div>
@@ -271,6 +288,10 @@ export class TeamInboxComponent implements OnInit {
   private picRequestService = inject(PicRequestService);
   private epmoRequestService = inject(EpmoRequestService);
   private financeRequestService = inject(FinanceRequestService);
+  private pendingApprovalsService = inject(PendingApprovalsService);
+
+  loading = computed(() => this.pendingApprovalsService.loading());
+  refreshing = computed(() => this.pendingApprovalsService.loading() && this.tasks().length > 0);
 
   tasks = computed(() => {
     const role = (this.userRole() || '').toLowerCase();

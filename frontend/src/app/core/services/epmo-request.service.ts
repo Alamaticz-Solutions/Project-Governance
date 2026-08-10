@@ -1,5 +1,5 @@
-import { Injectable, signal, inject } from '@angular/core';
-import { ProjectService } from './project.service';
+import { Injectable, computed, inject } from '@angular/core';
+import { PendingApprovalsService } from './pending-approvals.service';
 
 export interface EpmoRequest {
   id: string;
@@ -16,23 +16,12 @@ export interface EpmoRequest {
 
 @Injectable({ providedIn: 'root' })
 export class EpmoRequestService {
-  private projectService = inject(ProjectService);
-  private requestsSignal = signal<EpmoRequest[]>([]);
+  private pendingApprovals = inject(PendingApprovalsService);
 
-  readonly requests = this.requestsSignal.asReadonly();
-
-  constructor() {
-    this.refreshRequests();
-  }
+  readonly requests = computed(() => this.pendingApprovals.tasks().filter(t => t.type === 'EPMO Review') as EpmoRequest[]);
 
   refreshRequests() {
-    this.projectService.getPendingTasks().subscribe({
-      next: (tasks) => {
-        const epmoTasks = tasks.filter(t => t.type === 'EPMO Review');
-        this.requestsSignal.set(epmoTasks);
-      },
-      error: (err) => console.error('Failed to load EPMO requests', err)
-    });
+    this.pendingApprovals.refresh(true);
   }
 
   addRequest(request: EpmoRequest) {
@@ -40,6 +29,6 @@ export class EpmoRequestService {
   }
 
   removeRequest(projectId: string) {
-    this.requestsSignal.update(reqs => reqs.filter(r => r.projectId !== projectId));
+    this.pendingApprovals.removeTask(projectId, 'EPMO Review');
   }
 }

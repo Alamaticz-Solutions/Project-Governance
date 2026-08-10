@@ -629,7 +629,7 @@ export class IntakeComponent {
       
       // Step 2 values
       budget_type: formData2.budgetType,
-      budget_estimated: formData2.budgetEstimated ? parseFloat(formData2.budgetEstimated) : undefined,
+      budget_estimated: formData2.budgetEstimated ? parseFloat(String(formData2.budgetEstimated).replace(/[^0-9.]/g, '')) || undefined : undefined,
       priority: formData2.priority,
       risk_level: formData2.riskLevel,
       strategic_alignment: formData2.strategicAlignment || '',

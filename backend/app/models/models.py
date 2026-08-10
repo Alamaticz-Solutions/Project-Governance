@@ -43,6 +43,7 @@ class ProjectStatus(str, enum.Enum):
     DRAFT = "draft"
     ACTIVE = "active"
     ON_HOLD = "on_hold"
+    IN_DELIVERY = "in_delivery"   # PIC-approved: request has converted into a Project, now in TRC vetting/delivery
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     ARCHIVED = "archived"
@@ -83,6 +84,12 @@ class ApprovalDecision(str, enum.Enum):
     REJECTED = "rejected"
     NEEDS_INFO = "needs_info"
     DEFERRED = "deferred"
+
+
+class ChecklistResultStatus(str, enum.Enum):
+    PENDING = "Pending"
+    APPROVED = "Approved"
+    NOT_APPROVED = "Not Approved"
 
 
 class NotificationType(str, enum.Enum):
@@ -244,6 +251,7 @@ class Project(Base):
     gate_reviews = relationship("GateReview", back_populates="project", cascade="all, delete-orphan")
     stakeholders = relationship("ProjectStakeholder", back_populates="project", cascade="all, delete-orphan")
     approvals = relationship("ProjectApproval", back_populates="project", cascade="all, delete-orphan")
+    gateway_checklist_results = relationship("GatewayChecklistResult", back_populates="project", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_projects_status_priority", "status", "priority"),
@@ -452,6 +460,55 @@ class GateReview(Base):
     __table_args__ = (
         Index("ix_gate_review_project_gate", "project_id", "gate_code"),
         Index("ix_gate_review_status", "status"),
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# GATEWAY REVIEWER CHECKLIST (dynamic, per-team gate checklists)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class GatewayChecklistTemplate(Base):
+    """Master gate-reviewer checklist item, owned by a team (GateOwner), seeded from the governance checklist source."""
+    __tablename__ = "gateway_checklist_templates"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source_id = Column(Integer, nullable=False)     # GatewayChecklistID from the source checklist
+    gate_name = Column(String(200), nullable=False)
+    gate_owner = Column(String(50), nullable=False)  # team code, e.g. BTA, EPMO, FINANCE, EAC, PIC
+    checklist_item = Column(String(300), nullable=False)
+    gate_description = Column(Text)
+    required_when = Column(String(100))
+    checklist_outcome = Column(Text)
+    sequence_order = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    results = relationship("GatewayChecklistResult", back_populates="template", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_gateway_checklist_template_owner", "gate_owner"),
+    )
+
+
+class GatewayChecklistResult(Base):
+    """Per-project status/comments for a gateway checklist template item."""
+    __tablename__ = "gateway_checklist_results"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    template_id = Column(UUID(as_uuid=True), ForeignKey("gateway_checklist_templates.id", ondelete="CASCADE"), nullable=False)
+    status = Column(SAEnum(ChecklistResultStatus), default=ChecklistResultStatus.PENDING, nullable=False)
+    comments = Column(Text)
+    completed_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    completed_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    project = relationship("Project", back_populates="gateway_checklist_results")
+    template = relationship("GatewayChecklistTemplate", back_populates="results")
+    completed_by = relationship("User")
+
+    __table_args__ = (
+        UniqueConstraint("project_id", "template_id", name="uq_gateway_checklist_project_template"),
     )
 
 
