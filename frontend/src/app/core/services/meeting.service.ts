@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
 
@@ -93,6 +94,9 @@ export interface Meeting {
   session_synthesis: SessionSynthesis | null;
   session_synthesis_markdown: string | null;
   session_synthesis_status: string;
+  project_id: string | null;
+  project_number: string | null;
+  project_name: string | null;
   artifacts: MeetingArtifact[];
   created_at: string | null;
 }
@@ -150,15 +154,40 @@ export interface TrackerResponse {
 export class MeetingService {
   constructor(private http: HttpClient) {}
 
-  listMeetings(): Observable<{ items: Meeting[]; total: number }> {
-    return this.http.get<{ items: Meeting[]; total: number }>(`${API_URL}/meetings`);
+  // Root-scoped cache of the unfiltered meeting list — a routed component gets destroyed
+  // and recreated on every navigation, so without this, opening the global Meeting Center
+  // a second time re-triggers a full "loading" state even though nothing changed. Consumers
+  // read allMeetingsCache() synchronously for an instant render, then call
+  // refreshAllMeetings() to pick up anything created elsewhere since the last fetch.
+  private allMeetingsCacheSignal = signal<Meeting[] | null>(null);
+  readonly allMeetingsCache = this.allMeetingsCacheSignal.asReadonly();
+
+  refreshAllMeetings(): Observable<Meeting[]> {
+    return this.listMeetings().pipe(
+      map(res => res.items),
+      tap(items => this.allMeetingsCacheSignal.set(items))
+    );
+  }
+
+  listMeetings(projectId?: string): Observable<{ items: Meeting[]; total: number }> {
+    return this.http.get<{ items: Meeting[]; total: number }>(`${API_URL}/meetings`, {
+      params: this.cleanParams({ project_id: projectId }),
+    });
+  }
+
+  linkToProject(meetingId: string, projectId: string): Observable<Meeting> {
+    return this.http.post<Meeting>(`${API_URL}/meetings/${meetingId}/link-project`, { project_id: projectId });
+  }
+
+  unlinkFromProject(meetingId: string): Observable<Meeting> {
+    return this.http.post<Meeting>(`${API_URL}/meetings/${meetingId}/unlink-project`, {});
   }
 
   getMeeting(id: string): Observable<Meeting> {
     return this.http.get<Meeting>(`${API_URL}/meetings/${id}`);
   }
 
-  createMeeting(payload: { title: string; meeting_type?: string; meeting_date?: string; meeting_time?: string }): Observable<Meeting> {
+  createMeeting(payload: { title: string; meeting_type?: string; meeting_date?: string; meeting_time?: string; project_id?: string }): Observable<Meeting> {
     return this.http.post<Meeting>(`${API_URL}/meetings`, payload);
   }
 
@@ -182,11 +211,11 @@ export class MeetingService {
     return cleaned;
   }
 
-  getQuoteIndex(params: { speaker?: string; topic_tag?: string; meeting_id?: string; convergent_only?: boolean } = {}): Observable<QuoteIndexResponse> {
+  getQuoteIndex(params: { speaker?: string; topic_tag?: string; meeting_id?: string; project_id?: string; convergent_only?: boolean } = {}): Observable<QuoteIndexResponse> {
     return this.http.get<QuoteIndexResponse>(`${API_URL}/meetings/quote-index`, { params: this.cleanParams(params) });
   }
 
-  getTracker(params: { item_type?: string; speaker?: string; meeting_id?: string } = {}): Observable<TrackerResponse> {
+  getTracker(params: { item_type?: string; speaker?: string; meeting_id?: string; project_id?: string } = {}): Observable<TrackerResponse> {
     return this.http.get<TrackerResponse>(`${API_URL}/meetings/tracker`, { params: this.cleanParams(params) });
   }
 }

@@ -1,5 +1,6 @@
 import { Component, signal, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BtaReviewComponent } from '../bta-review/bta-review.component';
@@ -9,12 +10,14 @@ import { PicMeetingComponent } from '../pic-review/pic-meeting.component';
 import { EpmoReviewComponent } from '../epmo-review/epmo-review.component';
 import { FinanceReviewComponent } from '../finance-review/finance-review.component';
 import { ProjectService } from '../../core/services/project.service';
+import { MeetingService, Meeting, QuoteIndexResponse, TrackerResponse } from '../../core/services/meeting.service';
 import { ConfirmationScreenComponent } from '../../shared/components/confirmation-screen/confirmation-screen.component';
+import { MeetingDetailComponent, MeetingCard } from '../../shared/components/meeting-detail/meeting-detail.component';
 
 @Component({
     selector: 'app-review-workspace',
     standalone: true,
-    imports: [CommonModule, BtaReviewComponent, PrepareEacComponent, PreparePicComponent, PicMeetingComponent, EpmoReviewComponent, FinanceReviewComponent, ConfirmationScreenComponent],
+    imports: [CommonModule, FormsModule, BtaReviewComponent, PrepareEacComponent, PreparePicComponent, PicMeetingComponent, EpmoReviewComponent, FinanceReviewComponent, ConfirmationScreenComponent, MeetingDetailComponent],
     template: `
     <div class="animate-fade-in min-h-[calc(100vh-64px)] flex gap-6 font-sans p-8 bg-[#0f172a] text-slate-100 relative overflow-hidden">
       
@@ -235,6 +238,143 @@ import { ConfirmationScreenComponent } from '../../shared/components/confirmatio
               </div>
             </div>
 
+            <!-- MEETING CENTER TAB -->
+            <div *ngIf="activeTab() === 'Meetings'" class="animate-fade-in space-y-4 relative z-10">
+              <div class="flex flex-wrap justify-between items-center gap-3 mb-2">
+                <div>
+                  <h3 class="text-lg font-bold text-white drop-shadow-md">Meeting Center</h3>
+                  <p class="text-[12px] mt-0.5 text-slate-400">Meetings linked to this request &middot; {{ linkedMeetings().length }} linked</p>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap justify-end">
+                  <input type="file" #meetingFileUpload class="hidden" accept=".vtt,.txt,.mp4,.mov,.m4a,.mp3,.wav,.webm" (change)="onMeetingFileSelected($event)">
+                  <button (click)="meetingFileUpload.click()" [disabled]="uploadingMeeting()"
+                          class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 bg-slate-800/60 text-slate-300 border border-white/10 hover:bg-slate-700/80 hover:text-white hover:border-indigo-500/50 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <span class="material-icons text-[18px]">{{ uploadingMeeting() ? 'hourglass_top' : 'upload_file' }}</span>
+                    {{ uploadingMeeting() ? 'Processing...' : 'Upload recording (.vtt)' }}
+                  </button>
+                  <select [(ngModel)]="selectedMeetingToLink"
+                          class="bg-slate-900/60 border border-white/10 text-slate-200 text-[13px] rounded-xl px-3 py-2.5 outline-none focus:border-indigo-500/50 max-w-[220px]">
+                    <option value="">Or link an existing meeting...</option>
+                    <option *ngFor="let m of linkableMeetings()" [value]="m.id">{{ m.title }} &middot; {{ m.meeting_date || 'undated' }}</option>
+                  </select>
+                  <button (click)="linkSelectedMeeting()" [disabled]="!selectedMeetingToLink"
+                          class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-[0_4px_14px_rgba(99,102,241,0.3)] hover:shadow-[0_8px_24px_rgba(99,102,241,0.5)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none">
+                    <span class="material-icons text-[18px]">link</span>
+                    Link
+                  </button>
+                </div>
+              </div>
+
+              @if (meetingUploadError()) {
+                <div class="flex items-center gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[13px]">
+                  <span class="material-icons text-[16px]">error_outline</span>
+                  {{ meetingUploadError() }}
+                </div>
+              }
+
+              @if (meetingsLoading()) {
+                <p class="text-sm text-slate-400">Loading meetings...</p>
+              } @else if (linkedMeetings().length === 0) {
+                <div class="flex flex-col items-center justify-center py-16 text-center bg-slate-900/30 rounded-xl border border-dashed border-white/10">
+                  <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 bg-indigo-500/10 border border-indigo-500/20 shadow-inner">
+                    <span class="material-icons text-3xl text-indigo-400">video_call</span>
+                  </div>
+                  <p class="font-semibold text-sm text-slate-300">No meetings linked to this request yet</p>
+                  <p class="text-xs mt-1 text-slate-400">Link an existing meeting above, or upload a new one from the global Meeting Center and link it here.</p>
+                </div>
+              }
+
+              <div *ngFor="let m of linkedMeetings()" class="rounded-xl transition-all duration-300 bg-slate-800/40 border border-white/5 hover:border-indigo-500/30 overflow-hidden">
+                <div class="flex justify-between items-start gap-3 p-4 cursor-pointer" (click)="toggleMeetingExpand(m.id)">
+                  <div class="flex items-start gap-2 flex-1 min-w-0">
+                    <span class="material-icons text-[18px] text-slate-400 mt-0.5 shrink-0 transition-transform" [class.rotate-90]="isMeetingExpanded(m.id)">chevron_right</span>
+                    <div class="min-w-0">
+                      <p class="text-sm font-bold text-slate-200 truncate">{{ m.title }}</p>
+                      <p class="text-[11px] font-medium mt-0.5 text-slate-400">{{ m.meeting_type || 'Unspecified type' }} &middot; {{ m.meeting_date || 'undated' }} &middot; {{ m.status }}</p>
+                    </div>
+                  </div>
+                  <button (click)="$event.stopPropagation(); unlinkMeeting(m.id)" title="Unlink from this request"
+                          class="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 text-slate-400 hover:bg-rose-500/20 hover:text-rose-400 shrink-0">
+                    <span class="material-icons text-[18px]">link_off</span>
+                  </button>
+                </div>
+
+                @if (!isMeetingExpanded(m.id)) {
+                  <div class="px-4 pb-4">
+                    @if (m.summary) {
+                      <p class="text-[13px] text-slate-300 leading-relaxed mb-3">{{ m.summary }}</p>
+                    }
+                    <div class="flex flex-wrap items-center gap-2">
+                      @if (m.decisions.length) {
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">{{ m.decisions.length }} decision(s)</span>
+                      }
+                      @if (m.action_items.length) {
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">{{ m.action_items.length }} action item(s)</span>
+                      }
+                      @if (m.contains_process_flow) {
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">Process diagram: {{ m.bpmn_status || 'pending' }}</span>
+                      }
+                    </div>
+                  </div>
+                } @else {
+                  <div class="px-4 pb-4 border-t border-white/5 pt-4">
+                    <app-meeting-detail [meeting]="toMeetingCard(m)" (synthesisApproved)="loadMeetings()"></app-meeting-detail>
+                  </div>
+                }
+              </div>
+
+              <!-- Request-scoped Quote Index & Tracker -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <div class="rounded-xl bg-slate-800/40 border border-white/5 overflow-hidden">
+                  <button (click)="toggleQuoteIndex()" class="w-full flex items-center justify-between p-4 text-left">
+                    <span class="text-sm font-bold text-slate-200 flex items-center gap-2"><span class="material-icons text-[18px] text-teal-400">format_quote</span> Quote index</span>
+                    <span class="material-icons text-[18px] text-slate-400 transition-transform" [class.rotate-90]="showQuoteIndex()">chevron_right</span>
+                  </button>
+                  @if (showQuoteIndex()) {
+                    <div class="px-4 pb-4 space-y-3">
+                      @if (quoteIndexLoading()) {
+                        <p class="text-sm text-slate-400">Loading...</p>
+                      } @else if (requestQuoteIndex() && requestQuoteIndex()!.items.length) {
+                        @for (entry of requestQuoteIndex()!.items; track entry.id) {
+                          <div class="bg-slate-900/40 border border-white/5 rounded-lg p-3">
+                            <p class="text-[11px] font-bold text-teal-300 mb-1">{{ entry.topic_tag }}</p>
+                            <p class="text-[13px] text-slate-300 leading-relaxed">{{ entry.paraphrase }}</p>
+                            <p class="text-[11px] text-slate-500 mt-1.5">{{ entry.speaker }} &middot; {{ entry.meeting_title }}</p>
+                          </div>
+                        }
+                      } @else {
+                        <p class="text-sm text-slate-400">No approved quotes yet for this request's meetings.</p>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <div class="rounded-xl bg-slate-800/40 border border-white/5 overflow-hidden">
+                  <button (click)="toggleTracker()" class="w-full flex items-center justify-between p-4 text-left">
+                    <span class="text-sm font-bold text-slate-200 flex items-center gap-2"><span class="material-icons text-[18px] text-orange-400">checklist_rtl</span> Tracker</span>
+                    <span class="material-icons text-[18px] text-slate-400 transition-transform" [class.rotate-90]="showTracker()">chevron_right</span>
+                  </button>
+                  @if (showTracker()) {
+                    <div class="px-4 pb-4 space-y-3">
+                      @if (trackerLoading()) {
+                        <p class="text-sm text-slate-400">Loading...</p>
+                      } @else if (requestTracker() && requestTracker()!.items.length) {
+                        @for (item of requestTracker()!.items; track item.id) {
+                          <div class="bg-slate-900/40 border border-white/5 rounded-lg p-3">
+                            <p class="text-[11px] font-bold text-orange-300 mb-1">{{ item.item_type }}</p>
+                            <p class="text-[13px] text-slate-300 leading-relaxed">{{ item.description }}</p>
+                            <p class="text-[11px] text-slate-500 mt-1.5">{{ item.speaker }} &middot; {{ item.meeting_title }}</p>
+                          </div>
+                        }
+                      } @else {
+                        <p class="text-sm text-slate-400">No approved findings yet for this request's meetings.</p>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+
             <!-- AUDIT TRAIL TAB -->
             <div *ngIf="activeTab() === 'Audit'" class="animate-fade-in relative z-10">
               <div class="mb-6">
@@ -422,8 +562,26 @@ export class ReviewWorkspaceComponent implements OnInit {
       { key: 'Documents',   label: 'Documents',   icon: 'folder',  count: 0 },
       { key: 'Comments',    label: 'Comments',    icon: 'chat_bubble_outline', count: 0 },
       { key: 'Overview',    label: 'Overview',    icon: 'find_in_page', count: undefined },
+      { key: 'Meetings',    label: 'Meeting Center', icon: 'video_call', count: 0 },
       { key: 'Audit',       label: 'Audit Trail', icon: 'history', count: undefined },
     ];
+
+    linkedMeetings = signal<Meeting[]>([]);
+    linkableMeetings = signal<Meeting[]>([]);
+    meetingsLoading = signal(false);
+    selectedMeetingToLink = '';
+    uploadingMeeting = signal(false);
+    meetingUploadError = signal<string | null>(null);
+    private static readonly MEETING_POLL_INTERVAL_MS = 3000;
+    private meetingPollTimeoutId: any = null;
+
+    expandedMeetingIds = signal<Set<string>>(new Set());
+    showQuoteIndex = signal(false);
+    showTracker = signal(false);
+    quoteIndexLoading = signal(false);
+    trackerLoading = signal(false);
+    requestQuoteIndex = signal<QuoteIndexResponse | null>(null);
+    requestTracker = signal<TrackerResponse | null>(null);
 
     btaOverviewSections = [
         { title: 'Project Overview & Identification' },
@@ -444,6 +602,7 @@ export class ReviewWorkspaceComponent implements OnInit {
     private route = inject(ActivatedRoute);
     private router = inject(Router);
     private projectService = inject(ProjectService);
+    private meetingService = inject(MeetingService);
 
     ngOnInit() {
         this.route.paramMap.subscribe(params => {
@@ -493,6 +652,7 @@ export class ReviewWorkspaceComponent implements OnInit {
                         };
                         this.workspaceData.set(this.injectDynamicTabs(mappedData));
                         this.updateTabCounts();
+                        this.loadMeetings();
                         if (this.workspaceData().workflow.current_stage.includes('BTA') || this.workspaceData().workflow.current_stage.includes('EAC') || this.workspaceData().workflow.current_stage.includes('PIC')) {
                             this.activeTab.set('Form Engine');
                         } else {
@@ -504,6 +664,7 @@ export class ReviewWorkspaceComponent implements OnInit {
                         console.error('Failed to load real DB project, using mock fallback', err);
                         this.workspaceData.set(this.injectDynamicTabs(this.getMockData(id)));
                         this.updateTabCounts();
+                        this.loadMeetings();
                         this.activeTab.set('Overview');
                         this.loading.set(false);
                     }
@@ -517,9 +678,211 @@ export class ReviewWorkspaceComponent implements OnInit {
             this.tabs = this.tabs.map(t => {
                 if (t.key === 'Documents') return { ...t, count: this.workspaceData().documents.length };
                 if (t.key === 'Comments') return { ...t, count: this.workspaceData().comments.length };
+                if (t.key === 'Meetings') return { ...t, count: this.linkedMeetings().length };
                 return t;
             });
         }
+    }
+
+    loadMeetings() {
+        const projectId = this.workspaceData()?.project_details?.id;
+        if (!projectId) return;
+
+        this.meetingsLoading.set(true);
+        this.meetingService.listMeetings(projectId).subscribe({
+            next: (res) => {
+                this.linkedMeetings.set(res.items);
+                this.meetingsLoading.set(false);
+                this.updateTabCounts();
+            },
+            error: (err) => {
+                console.error('Failed to load linked meetings:', err);
+                this.meetingsLoading.set(false);
+            }
+        });
+
+        // Meetings not yet linked to this request, offered in the "link an existing meeting" picker.
+        this.meetingService.listMeetings().subscribe({
+            next: (res) => this.linkableMeetings.set(res.items.filter(m => m.project_id !== projectId)),
+            error: (err) => console.error('Failed to load linkable meetings:', err)
+        });
+
+        if (this.showQuoteIndex()) this.fetchRequestQuoteIndex();
+        if (this.showTracker()) this.fetchRequestTracker();
+    }
+
+    isMeetingExpanded(id: string): boolean {
+        return this.expandedMeetingIds().has(id);
+    }
+
+    toggleMeetingExpand(id: string): void {
+        this.expandedMeetingIds.update(ids => {
+            const next = new Set(ids);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    }
+
+    toMeetingCard(m: Meeting): MeetingCard {
+        return {
+            id: 0,
+            type: m.meeting_type || 'MEETING',
+            title: m.title,
+            date: m.meeting_date || '',
+            time: m.meeting_time || '',
+            actions: (m.action_items || []).map((a, i) => ({ id: i + 1, text: a.text, assignee: a.assignee, done: false })),
+            agenda: (m.agenda_items || []).map((a, i) => ({ id: String(i + 1), project: a.project, department: a.department || 'Unspecified' })),
+            backendMeetingId: m.id,
+            summary: m.summary || undefined,
+            decisions: m.decisions,
+            containsProcessFlow: m.contains_process_flow,
+            processName: m.process_name,
+            bpmnXml: m.bpmn_xml,
+            bpmnStatus: m.bpmn_status,
+            sessionSynthesis: m.session_synthesis,
+            sessionSynthesisMarkdown: m.session_synthesis_markdown,
+            sessionSynthesisStatus: m.session_synthesis_status,
+            projectId: m.project_id
+        };
+    }
+
+    toggleQuoteIndex(): void {
+        this.showQuoteIndex.update(v => !v);
+        if (this.showQuoteIndex() && !this.requestQuoteIndex()) this.fetchRequestQuoteIndex();
+    }
+
+    toggleTracker(): void {
+        this.showTracker.update(v => !v);
+        if (this.showTracker() && !this.requestTracker()) this.fetchRequestTracker();
+    }
+
+    private fetchRequestQuoteIndex(): void {
+        const projectId = this.workspaceData()?.project_details?.id;
+        if (!projectId) return;
+        this.quoteIndexLoading.set(true);
+        this.meetingService.getQuoteIndex({ project_id: projectId }).subscribe({
+            next: (res) => {
+                this.requestQuoteIndex.set(res);
+                this.quoteIndexLoading.set(false);
+            },
+            error: (err) => {
+                console.error('Failed to load request quote index:', err);
+                this.quoteIndexLoading.set(false);
+            }
+        });
+    }
+
+    private fetchRequestTracker(): void {
+        const projectId = this.workspaceData()?.project_details?.id;
+        if (!projectId) return;
+        this.trackerLoading.set(true);
+        this.meetingService.getTracker({ project_id: projectId }).subscribe({
+            next: (res) => {
+                this.requestTracker.set(res);
+                this.trackerLoading.set(false);
+            },
+            error: (err) => {
+                console.error('Failed to load request tracker:', err);
+                this.trackerLoading.set(false);
+            }
+        });
+    }
+
+    linkSelectedMeeting() {
+        const projectId = this.workspaceData()?.project_details?.id;
+        if (!this.selectedMeetingToLink || !projectId) return;
+
+        this.meetingService.linkToProject(this.selectedMeetingToLink, projectId).subscribe({
+            next: () => {
+                this.selectedMeetingToLink = '';
+                this.loadMeetings();
+            },
+            error: (err) => {
+                console.error('Failed to link meeting to request:', err);
+                this.meetingUploadError.set('Failed to link that meeting to this request.');
+            }
+        });
+    }
+
+    unlinkMeeting(meetingId: string) {
+        this.meetingService.unlinkFromProject(meetingId).subscribe({
+            next: () => this.loadMeetings(),
+            error: (err) => console.error('Failed to unlink meeting from request:', err)
+        });
+    }
+
+    onMeetingFileSelected(event: any): void {
+        const inputEl: HTMLInputElement = event.target;
+        const file: File | undefined = inputEl?.files?.[0];
+        if (!file) return;
+        inputEl.value = '';
+
+        const projectId = this.workspaceData()?.project_details?.id;
+        const stage = this.workspaceData()?.workflow?.current_stage || 'Governance';
+        if (!projectId) return;
+
+        this.meetingUploadError.set(null);
+        this.uploadingMeeting.set(true);
+
+        // Created with project_id set at birth — the tab already knows which request this
+        // recording belongs to, so no separate link step is needed for this path.
+        this.meetingService.createMeeting({
+            title: `${stage} meeting — ${new Date().toLocaleDateString()}`,
+            meeting_type: stage,
+            meeting_date: new Date().toISOString().split('T')[0],
+            project_id: projectId
+        }).subscribe({
+            next: (created) => {
+                this.meetingService.uploadArtifact(created.id, file).subscribe({
+                    next: () => this.pollMeetingProcessing(created.id),
+                    error: (err) => {
+                        console.error('Failed to upload meeting artifact:', err);
+                        this.meetingUploadError.set(err?.error?.detail || 'Failed to process the uploaded file.');
+                        this.uploadingMeeting.set(false);
+                    }
+                });
+            },
+            error: (err) => {
+                console.error('Failed to create meeting record:', err);
+                this.meetingUploadError.set('Failed to create a meeting record for this request.');
+                this.uploadingMeeting.set(false);
+            }
+        });
+    }
+
+    private pollMeetingProcessing(meetingId: string): void {
+        this.meetingService.getMeeting(meetingId).subscribe({
+            next: (result) => {
+                const coreStillProcessing = result.status === 'Processing';
+                // BPMN generation is a second, slower LLM call that runs after the core
+                // extraction is done — keep polling until it settles too, otherwise the
+                // Process Diagram section freezes on "Generating..." forever once this
+                // stops, even though the backend eventually finishes it.
+                const bpmnStillGenerating = result.bpmn_status === 'generating';
+
+                if (result.status === 'Failed') {
+                    const failedArtifact = result.artifacts?.find(a => a.processing_status === 'failed');
+                    this.meetingUploadError.set(failedArtifact?.error_message || 'Failed to process the uploaded file.');
+                }
+
+                if (!coreStillProcessing) {
+                    this.uploadingMeeting.set(false);
+                    this.loadMeetings();
+                }
+
+                if (coreStillProcessing || bpmnStillGenerating) {
+                    this.meetingPollTimeoutId = setTimeout(
+                        () => this.pollMeetingProcessing(meetingId),
+                        ReviewWorkspaceComponent.MEETING_POLL_INTERVAL_MS
+                    );
+                }
+            },
+            error: (err) => {
+                console.error('Failed to check meeting processing status:', err);
+                this.meetingUploadError.set('Failed to check processing status.');
+                this.uploadingMeeting.set(false);
+            }
+        });
     }
 
     simulateAiExtraction() {

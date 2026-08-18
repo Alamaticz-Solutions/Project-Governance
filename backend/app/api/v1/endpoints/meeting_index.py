@@ -34,6 +34,7 @@ async def get_quote_index(
     speaker: str | None = Query(None),
     topic_tag: str | None = Query(None),
     meeting_id: uuid.UUID | None = Query(None),
+    project_id: uuid.UUID | None = Query(None, description="Scope to quotes from meetings linked to this request."),
     convergent_only: bool = Query(False),
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=500),
@@ -45,6 +46,8 @@ async def get_quote_index(
         .join(Meeting, Meeting.id == MeetingQuoteEntry.meeting_id)
         .where(Meeting.session_synthesis_status == "approved")
     )
+    if project_id is not None:
+        base_query = base_query.where(Meeting.project_id == project_id)
     all_rows = (await db.execute(base_query)).all()
 
     topic_speakers: dict[str, set[str]] = {}
@@ -104,6 +107,7 @@ async def get_tracker(
     item_type: str | None = Query(None),
     speaker: str | None = Query(None),
     meeting_id: uuid.UUID | None = Query(None),
+    project_id: uuid.UUID | None = Query(None, description="Scope to findings from meetings linked to this request."),
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
@@ -121,6 +125,9 @@ async def get_tracker(
         .where(Meeting.session_synthesis_status == "approved")
         .group_by(MeetingTrackerItem.item_type)
     )
+    if project_id is not None:
+        base_query = base_query.where(Meeting.project_id == project_id)
+        counts_query = counts_query.where(Meeting.project_id == project_id)
     counts_by_type = [
         TrackerGroupSummary(item_type=item_type_value, count=count)
         for item_type_value, count in (await db.execute(counts_query)).all()

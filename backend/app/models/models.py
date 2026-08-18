@@ -5,6 +5,7 @@ These define every table in the PostgreSQL database.
 import uuid
 import enum
 from datetime import datetime, timezone
+from typing import Optional
 from sqlalchemy import (
     Column, String, Text, Boolean, Integer, Float, DateTime,
     ForeignKey, Enum as SAEnum, JSON, Index, UniqueConstraint, event
@@ -724,6 +725,12 @@ class Meeting(Base):
     session_synthesis_markdown = Column(Text, nullable=True)   # rendered Layer 1 synthesis document
     session_synthesis_status = Column(String(20), default="draft", nullable=False)  # draft, approved
 
+    # Optional link to the governance request this meeting was held for. Nullable because
+    # meetings can also exist standalone in the global Meeting Center with no request context.
+    # Linking/unlinking is a manual action (see /meetings/{id}/link-project) rather than
+    # automatic on upload, so a meeting uploaded globally can be attached to a request later.
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
+
     created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
@@ -732,6 +739,18 @@ class Meeting(Base):
     quote_entries = relationship("MeetingQuoteEntry", back_populates="meeting", cascade="all, delete-orphan")
     tracker_items = relationship("MeetingTrackerItem", back_populates="meeting", cascade="all, delete-orphan")
     created_by = relationship("User")
+    project = relationship("Project")
+
+    @property
+    def project_number(self) -> Optional[str]:
+        """Requires Meeting.project to be eager-loaded (selectinload) — accessing a lazy
+        relationship here would try a sync DB call on an async session and raise
+        MissingGreenlet."""
+        return self.project.project_number if self.project else None
+
+    @property
+    def project_name(self) -> Optional[str]:
+        return self.project.project_name if self.project else None
 
 
 class MeetingArtifact(Base):

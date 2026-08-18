@@ -1,5 +1,5 @@
 """Meeting Center endpoints: create meetings, upload artifacts, run the extraction agent."""
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
 from sqlalchemy.orm import selectinload
@@ -9,8 +9,8 @@ import re
 import uuid
 
 from app.db.database import get_db, AsyncSessionLocal
-from app.models.models import Meeting, MeetingArtifact, MeetingQuoteEntry, MeetingTrackerItem, User
-from app.schemas.meetings import MeetingCreateRequest, MeetingResponse, MeetingListResponse
+from app.models.models import Meeting, MeetingArtifact, MeetingQuoteEntry, MeetingTrackerItem, Project, User
+from app.schemas.meetings import LinkProjectRequest, MeetingCreateRequest, MeetingResponse, MeetingListResponse
 from app.api.v1.endpoints.auth import get_current_user
 from app.services import s3_service, meeting_agent, session_synthesis
 
@@ -25,14 +25,19 @@ MAX_UPLOAD_BYTES = 300 * 1024 * 1024
 
 @router.get("/", response_model=MeetingListResponse)
 async def list_meetings(
+    project_id: uuid.UUID | None = Query(default=None, description="Filter to meetings linked to this request/project."),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(
-        select(Meeting).options(selectinload(Meeting.artifacts)).order_by(Meeting.created_at.desc())
-    )
+    query = select(Meeting).options(selectinload(Meeting.artifacts), selectinload(Meeting.project)).order_by(Meeting.created_at.desc())
+    count_query = select(func.count()).select_from(Meeting)
+    if project_id is not None:
+        query = query.where(Meeting.project_id == project_id)
+        count_query = count_query.where(Meeting.project_id == project_id)
+
+    result = await db.execute(query)
     meetings = result.scalars().all()
-    total = (await db.execute(select(func.count()).select_from(Meeting))).scalar()
+    total = (await db.execute(count_query)).scalar()
     return MeetingListResponse(items=[MeetingResponse.model_validate(m) for m in meetings], total=total)
 
 
@@ -43,11 +48,55 @@ async def get_meeting(
     current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(
-        select(Meeting).options(selectinload(Meeting.artifacts)).where(Meeting.id == meeting_id)
+        select(Meeting).options(selectinload(Meeting.artifacts), selectinload(Meeting.project)).where(Meeting.id == meeting_id)
     )
     meeting = result.scalar_one_or_none()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
+    return MeetingResponse.model_validate(meeting)
+
+
+@router.post("/{meeting_id}/link-project", response_model=MeetingResponse)
+async def link_meeting_to_project(
+    meeting_id: uuid.UUID,
+    payload: LinkProjectRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Attaches an existing meeting (created via the global Meeting Center) to a request,
+    so it surfaces in that request's own Meeting Center tab. One meeting links to at most
+    one project — re-linking moves it rather than adding a second link."""
+    meeting = (await db.execute(
+        select(Meeting).options(selectinload(Meeting.artifacts), selectinload(Meeting.project)).where(Meeting.id == meeting_id)
+    )).scalar_one_or_none()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    project = (await db.execute(select(Project).where(Project.id == payload.project_id))).scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    meeting.project_id = payload.project_id
+    await db.commit()
+    await db.refresh(meeting, attribute_names=["artifacts", "project"])
+    return MeetingResponse.model_validate(meeting)
+
+
+@router.post("/{meeting_id}/unlink-project", response_model=MeetingResponse)
+async def unlink_meeting_from_project(
+    meeting_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    meeting = (await db.execute(
+        select(Meeting).options(selectinload(Meeting.artifacts), selectinload(Meeting.project)).where(Meeting.id == meeting_id)
+    )).scalar_one_or_none()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    meeting.project_id = None
+    await db.commit()
+    await db.refresh(meeting, attribute_names=["artifacts", "project"])
     return MeetingResponse.model_validate(meeting)
 
 
@@ -61,7 +110,7 @@ async def approve_synthesis(
     are inserted as soon as synthesis succeeds, but stay invisible in the cross-meeting
     Quote Index/Tracker views (see meeting_index.py) until this is called."""
     result = await db.execute(
-        select(Meeting).options(selectinload(Meeting.artifacts)).where(Meeting.id == meeting_id)
+        select(Meeting).options(selectinload(Meeting.artifacts), selectinload(Meeting.project)).where(Meeting.id == meeting_id)
     )
     meeting = result.scalar_one_or_none()
     if not meeting:
@@ -71,7 +120,7 @@ async def approve_synthesis(
 
     meeting.session_synthesis_status = "approved"
     await db.commit()
-    await db.refresh(meeting, attribute_names=["artifacts"])
+    await db.refresh(meeting, attribute_names=["artifacts", "project"])
     return MeetingResponse.model_validate(meeting)
 
 
@@ -81,17 +130,23 @@ async def create_meeting(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if payload.project_id is not None:
+        project = (await db.execute(select(Project).where(Project.id == payload.project_id))).scalar_one_or_none()
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
     meeting = Meeting(
         title=payload.title,
         meeting_type=payload.meeting_type,
         meeting_date=payload.meeting_date,
         meeting_time=payload.meeting_time,
+        project_id=payload.project_id,
         status="Scheduled",
         created_by_id=current_user.id,
     )
     db.add(meeting)
     await db.flush()
-    await db.refresh(meeting, attribute_names=["artifacts"])
+    await db.refresh(meeting, attribute_names=["artifacts", "project"])
     return MeetingResponse.model_validate(meeting)
 
 
@@ -108,7 +163,7 @@ async def upload_meeting_artifact(
     pipeline. See process_artifact_in_background() for how S3 upload and extraction are run
     concurrently rather than one after the other."""
     result = await db.execute(
-        select(Meeting).options(selectinload(Meeting.artifacts)).where(Meeting.id == meeting_id)
+        select(Meeting).options(selectinload(Meeting.artifacts), selectinload(Meeting.project)).where(Meeting.id == meeting_id)
     )
     meeting = result.scalar_one_or_none()
     if not meeting:
@@ -147,7 +202,7 @@ async def upload_meeting_artifact(
     db.add(artifact)
     meeting.status = "Processing"
     await db.commit()
-    await db.refresh(meeting, attribute_names=["artifacts"])
+    await db.refresh(meeting, attribute_names=["artifacts", "project"])
 
     background_tasks.add_task(
         process_artifact_in_background,

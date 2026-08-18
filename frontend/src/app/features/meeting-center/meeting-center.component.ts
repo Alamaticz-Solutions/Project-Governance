@@ -1,40 +1,10 @@
-import { Component, signal, AfterViewChecked, OnDestroy, ElementRef, ViewChild } from '@angular/core';
+import { Component, signal, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { MeetingService, ActionItem, AgendaItem, SessionSynthesis, QuoteIndexResponse, QuoteEntry, TrackerResponse, TrackerItem } from '../../core/services/meeting.service';
-// @ts-ignore - bpmn-js ships without bundled types for the default export path
-import BpmnViewer from 'bpmn-js/lib/NavigatedViewer';
-
-interface MeetingCard {
-  id: number;
-  type: string;
-  title: string;
-  date: string;
-  time: string;
-  actions: { id: number; text: string; assignee: string; done: boolean }[];
-  agenda: { id: string; project: string; department: string }[];
-  backendMeetingId?: string;
-  summary?: string;
-  decisions?: string[];
-  containsProcessFlow?: boolean;
-  processName?: string | null;
-  bpmnXml?: string | null;
-  bpmnStatus?: string | null;
-  sessionSynthesis?: SessionSynthesis | null;
-  sessionSynthesisMarkdown?: string | null;
-  sessionSynthesisStatus?: string;
-}
-
-const FINDING_TYPE_STYLES: Record<string, string> = {
-  'Friction Point': 'bg-red-900/30 text-red-300 border-red-800/50',
-  'Clarification Item': 'bg-amber-900/30 text-amber-300 border-amber-800/50',
-  'Hypothesis': 'bg-purple-900/30 text-purple-300 border-purple-800/50',
-  'Decision': 'bg-emerald-900/30 text-emerald-300 border-emerald-800/50',
-  'Process Observation': 'bg-blue-900/30 text-blue-300 border-blue-800/50',
-  'RAID': 'bg-slate-700/50 text-slate-300 border-slate-600/50',
-};
+import { MeetingService, Meeting, ActionItem, AgendaItem, QuoteIndexResponse, QuoteEntry, TrackerResponse, TrackerItem } from '../../core/services/meeting.service';
+import { MeetingDetailComponent, MeetingCard } from '../../shared/components/meeting-detail/meeting-detail.component';
 
 interface TrackerGroup {
   key: string;
@@ -53,7 +23,7 @@ const TRACKER_GROUPS: TrackerGroup[] = [
 @Component({
   selector: 'app-meeting-center',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MeetingDetailComponent],
   template: `
     <div class="animate-fade-in min-h-[calc(100vh-4rem)] bg-[#0f172a] text-slate-100 relative overflow-hidden font-sans">
       <!-- Deep Gradient Background (ChatGPT Voice Style) -->
@@ -142,25 +112,40 @@ const TRACKER_GROUPS: TrackerGroup[] = [
 
       <div class="flex flex-col gap-6">
 
-        <!-- Upcoming Schedule Strip -->
-        <div class="bg-slate-800/50 backdrop-blur-md rounded-xl shadow-sm border border-slate-700 px-4 py-3">
-          <div class="flex flex-wrap items-center gap-3">
-            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500 shrink-0 flex items-center gap-1">
-              <span class="material-icons text-[14px]">calendar_month</span> Upcoming
-            </span>
-            @for (meeting of upcomingMeetings; track meeting.id) {
-              <div (click)="selectMeeting(meeting)"
-                   class="group flex-1 min-w-[220px] flex items-center gap-2.5 px-3.5 py-2 rounded-lg border-2 cursor-pointer transition-all duration-200"
-                   [ngClass]="activeMeeting()?.id === meeting.id ? 'bg-indigo-900/40 border-indigo-500' : 'bg-slate-800 border-slate-700 hover:border-indigo-400'">
-                <span class="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0"
-                      [ngClass]="meeting.type === 'EAC' ? 'bg-purple-900/50 text-purple-300' : meeting.type === 'BTA' ? 'bg-blue-900/50 text-blue-300' : 'bg-emerald-900/50 text-emerald-300'">
-                  {{ meeting.type }}
+        <!-- Meetings grouped by request — a project can pass through several review teams,
+             and each team's uploaded transcript becomes its own meeting record here, all
+             sharing the same project_id. Meetings not linked to a request are hidden from
+             this view entirely (see groupedMeetings()). -->
+        <div class="flex flex-col gap-2">
+          @for (group of groupedMeetings(); track group.key) {
+            <div class="bg-slate-800/50 backdrop-blur-md rounded-xl shadow-sm border border-slate-700 overflow-hidden">
+              <button (click)="toggleGroup(group.key)" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left">
+                <span class="flex items-center gap-2 min-w-0">
+                  <span class="material-icons text-[16px] text-slate-500 transition-transform" [ngClass]="isGroupExpanded(group.key) ? 'rotate-90' : ''">chevron_right</span>
+                  <span class="text-[11px] font-extrabold uppercase tracking-widest text-indigo-300 shrink-0">{{ group.projectNumber }}</span>
+                  <span class="text-[13px] font-bold text-slate-200 truncate">{{ group.projectName }}</span>
                 </span>
-                <span class="text-[12.5px] font-bold text-slate-200 truncate group-hover:text-white transition-colors">{{ meeting.title }}</span>
-                <span class="text-[11px] text-slate-500 shrink-0 ml-auto">{{ meeting.date }} &middot; {{ meeting.time.split(' - ')[0] }}</span>
-              </div>
-            }
-          </div>
+                <span class="text-[11px] font-bold text-slate-500 shrink-0">{{ group.meetings.length }} meeting{{ group.meetings.length === 1 ? '' : 's' }}</span>
+              </button>
+
+              @if (isGroupExpanded(group.key)) {
+                <div class="px-3 pb-3 flex flex-wrap gap-2">
+                  @for (meeting of group.meetings; track meeting.id) {
+                    <div (click)="selectMeeting(meeting)"
+                         class="group flex-1 min-w-[220px] flex items-center gap-2.5 px-3.5 py-2 rounded-lg border-2 cursor-pointer transition-all duration-200"
+                         [ngClass]="activeMeeting()?.id === meeting.id ? 'bg-indigo-900/40 border-indigo-500' : 'bg-slate-800 border-slate-700 hover:border-indigo-400'">
+                      <span class="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0"
+                            [ngClass]="meeting.type === 'EAC' ? 'bg-purple-900/50 text-purple-300' : meeting.type === 'BTA' ? 'bg-blue-900/50 text-blue-300' : 'bg-emerald-900/50 text-emerald-300'">
+                        {{ meeting.type }}
+                      </span>
+                      <span class="text-[12.5px] font-bold text-slate-200 truncate group-hover:text-white transition-colors">{{ meeting.title }}</span>
+                      <span class="text-[11px] text-slate-500 shrink-0 ml-auto">{{ meeting.date }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
         </div>
 
         <!-- Main Tab Strip -->
@@ -248,238 +233,7 @@ const TRACKER_GROUPS: TrackerGroup[] = [
               </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <!-- AI Meeting Summary -->
-              <div class="bg-slate-800/50 backdrop-blur-md rounded-xl shadow-sm border border-slate-700 flex flex-col overflow-hidden h-[360px]">
-                <div class="bg-indigo-900/40 px-5 py-4 flex items-center gap-2.5">
-                  <span class="material-icons text-indigo-300 text-[20px]">auto_awesome</span>
-                  <h3 class="font-bold text-white text-base">AI Summary & Notes</h3>
-                </div>
-                
-                <div class="p-5 flex-1 overflow-y-auto custom-scrollbar">
-                  @if (meeting.summary) {
-                    <p class="text-sm text-slate-300 leading-relaxed mb-5">{{ meeting.summary }}</p>
-                    
-                    @if (meeting.decisions && meeting.decisions.length) {
-                      <div>
-                        <div class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2.5 flex items-center gap-1.5">
-                          <span class="material-icons text-[14px]">gavel</span> Key Decisions
-                        </div>
-                        <ul class="space-y-2">
-                          @for (d of meeting.decisions; track d) { 
-                            <li class="flex items-start gap-2 text-sm text-slate-300 bg-slate-900/50 p-2.5 rounded-lg border border-slate-700">
-                              <span class="material-icons text-emerald-400 text-[18px] shrink-0 mt-0.5">check_circle</span>
-                              <span class="font-medium">{{ d }}</span>
-                            </li> 
-                          }
-                        </ul>
-                      </div>
-                    }
-                  } @else {
-                    <div class="flex flex-col items-center justify-center h-full text-center text-slate-500">
-                      <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mb-3">
-                        <span class="material-icons text-3xl text-slate-600">summarize</span>
-                      </div>
-                      <p class="text-sm font-medium text-slate-400">No summary generated yet</p>
-                      <p class="text-xs mt-1">Upload a recording or transcript to begin.</p>
-                    </div>
-                  }
-                </div>
-              </div>
-
-              <!-- Action Items -->
-              <div class="bg-slate-800/50 backdrop-blur-md rounded-xl shadow-sm border border-slate-700 flex flex-col h-[360px]">
-                <div class="px-5 py-4 border-b border-slate-700 flex items-center justify-between bg-slate-900/30">
-                  <div class="flex items-center gap-2.5">
-                    <span class="material-icons text-orange-400 text-[20px]">checklist</span>
-                    <h3 class="font-bold text-white text-base">Action Items</h3>
-                  </div>
-                  <span class="bg-orange-900/30 text-orange-300 text-xs font-bold px-2 py-0.5 rounded-md">{{ meeting.actions.length }}</span>
-                </div>
-                
-                <div class="p-4 flex-1 overflow-y-auto custom-scrollbar">
-                  <div class="space-y-2.5">
-                    @for (action of meeting.actions; track action.id) {
-                      <label class="flex items-start gap-3 p-3 bg-slate-900/40 hover:bg-slate-900/60 rounded-lg border border-slate-700 cursor-pointer group transition-colors">
-                        <div class="relative flex items-center justify-center mt-0.5">
-                          <input type="checkbox" [checked]="action.done" class="w-4 h-4 rounded border-slate-600 bg-slate-800 transition-all peer cursor-pointer appearance-none checked:bg-indigo-600 checked:border-indigo-600 shadow-sm">
-                          <span class="material-icons text-white text-[12px] absolute pointer-events-none opacity-0 peer-checked:opacity-100">check</span>
-                        </div>
-                        <div class="flex-1">
-                          <p class="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors" [class.line-through]="action.done" [class.opacity-50]="action.done">{{ action.text }}</p>
-                          <div class="flex items-center gap-1.5 mt-1.5">
-                            <div class="w-4 h-4 rounded-full bg-slate-700 flex items-center justify-center text-[8px] font-bold text-slate-400 uppercase">{{ action.assignee.substring(0, 2) }}</div>
-                            <p class="text-[11px] text-slate-500 font-medium">{{ action.assignee }}</p>
-                          </div>
-                        </div>
-                      </label>
-                    }
-                    @if (!meeting.actions.length) {
-                      <div class="flex flex-col items-center justify-center h-full text-center text-slate-500 py-12">
-                        <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mb-3">
-                          <span class="material-icons text-3xl text-slate-600">task</span>
-                        </div>
-                        <p class="text-sm font-medium text-slate-400">No action items extracted</p>
-                      </div>
-                    }
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Agenda & Project Review Queue -->
-            <div class="bg-slate-800/50 backdrop-blur-md rounded-xl shadow-sm border border-slate-700 overflow-hidden">
-              <div class="bg-slate-900/40 px-5 py-4 border-b border-slate-700 flex items-center gap-2.5">
-                <span class="material-icons text-blue-400 text-[20px]">view_agenda</span>
-                <h3 class="font-bold text-white text-base">Project Proposals Reviewed</h3>
-              </div>
-              <ul class="divide-y divide-slate-700">
-                @for (item of meeting.agenda; track item.id) {
-                  <li class="p-4 hover:bg-slate-900/40 flex items-center justify-between transition-colors group">
-                    <div class="flex items-center gap-4">
-                      <div class="w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 text-indigo-400 font-bold flex flex-col items-center justify-center text-[10px] group-hover:border-indigo-500 group-hover:bg-indigo-900/30 transition-colors">
-                        <span class="uppercase tracking-wide leading-none text-slate-600">PRJ</span>
-                        <span class="text-sm text-slate-200">{{ item.id }}</span>
-                      </div>
-                      <div>
-                        <h4 class="font-bold text-slate-200 text-sm group-hover:text-indigo-300 transition-colors">{{ item.project }}</h4>
-                        <p class="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
-                          <span class="material-icons text-[14px]">business</span> {{ item.department }}
-                        </p>
-                      </div>
-                    </div>
-                    <button class="bg-slate-800 border border-slate-700 text-slate-300 hover:border-indigo-500 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1">
-                      Review <span class="material-icons text-[14px]">arrow_forward</span>
-                    </button>
-                  </li>
-                }
-                @if (!meeting.agenda.length) {
-                  <li class="p-8 text-center text-slate-500 flex flex-col items-center">
-                    <div class="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center mb-2">
-                      <span class="material-icons text-2xl text-slate-600">subject</span>
-                    </div>
-                    <p class="text-sm font-medium text-slate-400">No agenda items extracted</p>
-                  </li>
-                }
-              </ul>
-            </div>
-
-            <!-- Session Synthesis -->
-            <div class="bg-slate-800/50 backdrop-blur-md rounded-xl shadow-sm border border-slate-700 overflow-hidden">
-              <div class="bg-slate-900/40 px-5 py-4 border-b border-slate-700 flex items-center justify-between">
-                <div class="flex items-center gap-2.5">
-                  <span class="material-icons text-teal-400 text-[20px]">fact_check</span>
-                  <h3 class="font-bold text-white text-base">Session Synthesis</h3>
-                </div>
-                <div class="flex items-center gap-2">
-                  @if (meeting.sessionSynthesis) {
-                    @if (meeting.sessionSynthesisStatus === 'approved') {
-                      <span class="bg-emerald-900/30 text-emerald-300 border border-emerald-800/50 px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1">
-                        <span class="material-icons text-[14px]">check_circle</span> Approved
-                      </span>
-                    } @else {
-                      <button (click)="approveSynthesis(meeting)" [disabled]="isApproving()" class="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm flex items-center gap-1">
-                        <span class="material-icons text-[14px]">task_alt</span> Approve for Quote Index & Tracker
-                      </button>
-                    }
-                  }
-                  @if (meeting.sessionSynthesisMarkdown) {
-                    <button (click)="downloadSessionSynthesis(meeting)" class="bg-slate-800 border border-slate-700 text-slate-300 hover:border-teal-600 hover:text-teal-400 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm flex items-center gap-1">
-                      <span class="material-icons text-[14px]">download</span> Download .md
-                    </button>
-                  }
-                </div>
-              </div>
-
-              <div class="p-5">
-                @if (meeting.sessionSynthesis; as synthesis) {
-                  <p class="text-sm text-slate-300 leading-relaxed mb-4">{{ synthesis.session_purpose }}</p>
-
-                  @if (synthesis.participants.length) {
-                    <div class="flex flex-wrap gap-1.5 mb-4">
-                      @for (p of synthesis.participants; track p) {
-                        <span class="text-[11px] font-bold bg-slate-900/50 text-slate-300 px-2 py-1 rounded-md border border-slate-700">{{ p }}</span>
-                      }
-                    </div>
-                  }
-
-                  @if (synthesis.findings.length) {
-                    <div class="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2.5 flex items-center gap-1.5">
-                      <span class="material-icons text-[14px]">fact_check</span> Findings ({{ synthesis.findings.length }})
-                    </div>
-                    <ul class="space-y-2 mb-4">
-                      @for (f of synthesis.findings; track $index) {
-                        <li class="flex items-start gap-2.5 text-sm bg-slate-900/50 p-2.5 rounded-lg border border-slate-700">
-                          <span class="text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded border shrink-0 mt-0.5" [ngClass]="findingTypeClass(f.finding_type)">{{ f.finding_type }}</span>
-                          <span class="flex-1 text-slate-300">{{ f.description }}
-                            <span class="text-slate-500"> — {{ f.speaker }}</span>
-                          </span>
-                        </li>
-                      }
-                    </ul>
-                  } @else {
-                    <p class="text-sm text-slate-500 mb-4">No typed findings identified in this session.</p>
-                  }
-
-                  @if (synthesis.analyst_notes.methodological_flags) {
-                    <div class="text-xs text-amber-400 bg-amber-900/10 border border-amber-900/30 rounded-lg p-3 flex items-start gap-2">
-                      <span class="material-icons text-[16px] shrink-0">info</span>
-                      <span>{{ synthesis.analyst_notes.methodological_flags }}</span>
-                    </div>
-                  }
-                } @else {
-                  <div class="flex flex-col items-center justify-center text-center text-slate-500 py-10">
-                    <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mb-3">
-                      <span class="material-icons text-3xl text-slate-600">fact_check</span>
-                    </div>
-                    <p class="text-sm font-medium text-slate-400">No session synthesis generated yet</p>
-                    <p class="text-xs mt-1">Upload a recording or transcript to begin.</p>
-                  </div>
-                }
-              </div>
-            </div>
-
-            <!-- Process Diagram (BPMN) -->
-            @if (meeting.containsProcessFlow) {
-              <div class="bg-slate-800/50 backdrop-blur-md rounded-xl shadow-sm border border-slate-700 overflow-hidden mb-8">
-                <div class="bg-slate-900/40 px-5 py-4 border-b border-slate-700 flex items-center justify-between">
-                  <div class="flex items-center gap-2.5">
-                    <span class="material-icons text-emerald-400 text-[20px]">account_tree</span>
-                    <div>
-                      <h3 class="font-bold text-white text-base">Process Diagram{{ meeting.processName ? ': ' + meeting.processName : '' }}</h3>
-                    </div>
-                  </div>
-                  @if (meeting.bpmnXml) {
-                    <div class="flex items-center gap-2">
-                      @if (meeting.bpmnStatus === 'generated') {
-                        <button (click)="downloadBpmnPng(meeting)" class="bg-slate-800 border border-slate-700 text-slate-300 hover:border-emerald-600 hover:text-emerald-400 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm flex items-center gap-1">
-                          <span class="material-icons text-[14px]">image</span> Download PNG
-                        </button>
-                      }
-                      <button (click)="downloadBpmn(meeting)" class="bg-slate-800 border border-slate-700 text-slate-300 hover:border-emerald-600 hover:text-emerald-400 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm flex items-center gap-1">
-                        <span class="material-icons text-[14px]">download</span> Download XML
-                      </button>
-                    </div>
-                  }
-                </div>
-                
-                <div class="relative bg-slate-950/30 border-t border-slate-700">
-                  @if (meeting.bpmnStatus === 'generated' && meeting.bpmnXml) {
-                    <div #bpmnContainer class="bpmn-container h-[400px] w-full"></div>
-                  } @else if (meeting.bpmnStatus === 'failed') {
-                    <div class="p-10 flex flex-col items-center justify-center text-red-400">
-                      <span class="material-icons text-4xl mb-2">error_outline</span>
-                      <p class="text-sm font-bold">BPMN generation failed</p>
-                    </div>
-                  } @else {
-                    <div class="p-10 flex flex-col items-center justify-center text-slate-500 h-[300px]">
-                      <span class="material-icons text-3xl animate-spin mb-3 text-emerald-500">sync</span>
-                      <p class="text-sm font-bold text-slate-300">Generating process diagram...</p>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
+            <app-meeting-detail [meeting]="meeting" (synthesisApproved)="onSynthesisApproved()"></app-meeting-detail>
 
           </div>
         }
@@ -649,45 +403,13 @@ const TRACKER_GROUPS: TrackerGroup[] = [
     }
   `]
 })
-export class MeetingCenterComponent implements AfterViewChecked, OnDestroy {
-  @ViewChild('bpmnContainer') bpmnContainerRef?: ElementRef<HTMLDivElement>;
+export class MeetingCenterComponent implements OnInit, OnDestroy {
+  // Meetings not linked to any request are hidden from this view entirely — every meeting
+  // here is expected to belong to a governance request. See groupedMeetings().
+  upcomingMeetings: MeetingCard[] = [];
 
-  private bpmnViewer: any = null;
-  private renderedBpmnXml: string | null = null;
-
-  upcomingMeetings: MeetingCard[] = [
-    {
-      id: 1,
-      type: 'EAC',
-      title: 'Monthly Architecture Alignment Council',
-      date: '2026-08-04',
-      time: '10:00 AM - 11:30 AM',
-      actions: [],
-      agenda: []
-    },
-    {
-      id: 2,
-      type: 'BTA',
-      title: 'Weekly Business Tech Intake',
-      date: '2026-08-05',
-      time: '02:00 PM - 03:00 PM',
-      actions: [],
-      agenda: []
-    },
-    {
-      id: 3,
-      type: 'PIC',
-      title: 'Q3 Investment Validation Sign-off',
-      date: '2026-08-10',
-      time: '09:00 AM - 11:00 AM',
-      actions: [],
-      agenda: []
-    }
-  ];
-
-  activeMeeting = signal<MeetingCard | null>(this.upcomingMeetings[0]);
+  activeMeeting = signal<MeetingCard | null>(null);
   isProcessing = signal(false);
-  isApproving = signal(false);
   uploadedFileName = signal<string | null>(null);
   uploadError = signal<string | null>(null);
   private pollTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -713,7 +435,81 @@ export class MeetingCenterComponent implements AfterViewChecked, OnDestroy {
     time: '10:00 AM - 11:30 AM'
   };
 
+  expandedProjectGroups = signal<Set<string>>(new Set());
+
   constructor(private meetingService: MeetingService) {}
+
+  groupedMeetings(): { key: string; projectNumber: string | null; projectName: string | null; meetings: MeetingCard[] }[] {
+    const groups = new Map<string, { key: string; projectNumber: string | null; projectName: string | null; meetings: MeetingCard[] }>();
+    for (const m of this.upcomingMeetings) {
+      if (!m.projectId) continue; // hidden — this view only shows meetings linked to a request
+      const key = m.projectId;
+      if (!groups.has(key)) {
+        groups.set(key, { key, projectNumber: m.projectNumber || null, projectName: m.projectName || null, meetings: [] });
+      }
+      groups.get(key)!.meetings.push(m);
+    }
+    return Array.from(groups.values()).sort((a, b) => (a.projectNumber || '').localeCompare(b.projectNumber || ''));
+  }
+
+  isGroupExpanded(key: string): boolean {
+    return this.expandedProjectGroups().has(key);
+  }
+
+  toggleGroup(key: string): void {
+    this.expandedProjectGroups.update(keys => {
+      const next = new Set(keys);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
+
+  ngOnInit(): void {
+    // This component is destroyed and recreated on every navigation to this route, so
+    // without a cache, revisiting the page always shows a loading flash even though
+    // nothing changed. The root-scoped cache in MeetingService survives navigation: render
+    // it immediately if present, then refresh in the background to pick up anything created
+    // elsewhere (e.g. from a request's own Meeting Center tab) since the last fetch.
+    const cached = this.meetingService.allMeetingsCache();
+    if (cached) {
+      this.applyBackendMeetings(cached);
+    }
+    this.meetingService.refreshAllMeetings().subscribe({
+      next: (items) => this.applyBackendMeetings(items),
+      error: (err) => console.error('Failed to load meetings from backend:', err)
+    });
+  }
+
+  private applyBackendMeetings(items: Meeting[]): void {
+    this.upcomingMeetings = items.map((m, i) => this.mapBackendMeetingToCard(m, 1000 + i));
+    // Expanded by default — collapsing is an opt-out once someone has many requests to scan past.
+    this.expandedProjectGroups.set(new Set(this.groupedMeetings().map(g => g.key)));
+  }
+
+  private mapBackendMeetingToCard(m: Meeting, localId: number): MeetingCard {
+    return {
+      id: localId,
+      type: m.meeting_type || 'MEETING',
+      title: m.title,
+      date: m.meeting_date || '',
+      time: m.meeting_time || '',
+      actions: (m.action_items || []).map((a, i) => ({ id: i + 1, text: a.text, assignee: a.assignee, done: false })),
+      agenda: (m.agenda_items || []).map((a, i) => ({ id: String(i + 1), project: a.project, department: a.department || 'Unspecified' })),
+      backendMeetingId: m.id,
+      summary: m.summary || undefined,
+      decisions: m.decisions,
+      containsProcessFlow: m.contains_process_flow,
+      processName: m.process_name,
+      bpmnXml: m.bpmn_xml,
+      bpmnStatus: m.bpmn_status,
+      sessionSynthesis: m.session_synthesis,
+      sessionSynthesisMarkdown: m.session_synthesis_markdown,
+      sessionSynthesisStatus: m.session_synthesis_status,
+      projectId: m.project_id,
+      projectNumber: m.project_number,
+      projectName: m.project_name
+    };
+  }
 
   saveNewMeeting() {
     if (!this.newMeeting.title) return;
@@ -930,112 +726,14 @@ export class MeetingCenterComponent implements AfterViewChecked, OnDestroy {
     return data.items.filter(i => group.types.includes(i.item_type));
   }
 
-  approveSynthesis(meeting: MeetingCard): void {
-    if (!meeting.backendMeetingId) return;
-    this.isApproving.set(true);
-    this.meetingService.approveSynthesis(meeting.backendMeetingId).subscribe({
-      next: (result) => {
-        meeting.sessionSynthesisStatus = result.session_synthesis_status;
-        this.activeMeeting.set({ ...meeting });
-        this.isApproving.set(false);
-        // Approving changes what the cross-meeting tabs show — refresh them now rather
-        // than leaving a stale cached result if the user already visited either tab.
-        if (this.quoteIndex()) this.fetchQuoteIndex();
-        if (this.tracker()) this.fetchTracker();
-      },
-      error: (err) => {
-        console.error('Failed to approve synthesis:', err);
-        this.isApproving.set(false);
-      }
-    });
-  }
-
-  downloadBpmn(meeting: MeetingCard): void {
-    if (!meeting.bpmnXml) return;
-    const blob = new Blob([meeting.bpmnXml], { type: 'application/xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(meeting.processName || meeting.title).replace(/\s+/g, '_')}.bpmn`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  findingTypeClass(findingType: string): string {
-    return FINDING_TYPE_STYLES[findingType] || 'bg-slate-700/50 text-slate-300 border-slate-600/50';
-  }
-
-  downloadSessionSynthesis(meeting: MeetingCard): void {
-    if (!meeting.sessionSynthesisMarkdown) return;
-    const blob = new Blob([meeting.sessionSynthesisMarkdown], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${meeting.title.replace(/\s+/g, '_')}_Session_Synthesis.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  async downloadBpmnPng(meeting: MeetingCard): Promise<void> {
-    if (!this.bpmnViewer) return;
-    try {
-      const { svg } = await this.bpmnViewer.saveSVG();
-      const svgUrl = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
-
-      const img = new Image();
-      img.onload = () => {
-        // Render at 2x for a crisper export than the on-screen diagram size.
-        const scale = 2;
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth * scale;
-        canvas.height = img.naturalHeight * scale;
-
-        const ctx = canvas.getContext('2d');
-        URL.revokeObjectURL(svgUrl);
-        if (!ctx) return;
-
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.scale(scale, scale);
-        ctx.drawImage(img, 0, 0);
-
-        canvas.toBlob((blob) => {
-          if (!blob) return;
-          const pngUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = pngUrl;
-          a.download = `${(meeting.processName || meeting.title).replace(/\s+/g, '_')}.png`;
-          a.click();
-          URL.revokeObjectURL(pngUrl);
-        }, 'image/png');
-      };
-      img.onerror = (err) => {
-        console.error('Failed to rasterize BPMN SVG for PNG export:', err);
-        URL.revokeObjectURL(svgUrl);
-      };
-      img.src = svgUrl;
-    } catch (err) {
-      console.error('Failed to export BPMN diagram as PNG:', err);
-    }
-  }
-
-  ngAfterViewChecked(): void {
-    const meeting = this.activeMeeting();
-    if (!meeting || meeting.bpmnStatus !== 'generated' || !meeting.bpmnXml || !this.bpmnContainerRef) return;
-    if (this.renderedBpmnXml === meeting.bpmnXml) return;
-
-    if (!this.bpmnViewer) {
-      this.bpmnViewer = new BpmnViewer({ container: this.bpmnContainerRef.nativeElement });
-    }
-    const xml = meeting.bpmnXml;
-    this.bpmnViewer.importXML(xml).then(() => {
-      this.bpmnViewer.get('canvas').zoom('fit-viewport');
-      this.renderedBpmnXml = xml;
-    }).catch((err: any) => console.error('Failed to render BPMN diagram:', err));
+  onSynthesisApproved(): void {
+    // Approving changes what the cross-meeting tabs show — refresh them now rather
+    // than leaving a stale cached result if the user already visited either tab.
+    if (this.quoteIndex()) this.fetchQuoteIndex();
+    if (this.tracker()) this.fetchTracker();
   }
 
   ngOnDestroy(): void {
     this.clearPoll();
-    this.bpmnViewer?.destroy();
   }
 }

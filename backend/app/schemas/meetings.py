@@ -10,6 +10,11 @@ class MeetingCreateRequest(BaseModel):
     meeting_type: Optional[str] = None
     meeting_date: Optional[str] = None
     meeting_time: Optional[str] = None
+    project_id: Optional[uuid.UUID] = None
+
+
+class LinkProjectRequest(BaseModel):
+    project_id: uuid.UUID
 
 
 class ActionItem(BaseModel):
@@ -104,6 +109,10 @@ class MeetingResponse(BaseModel):
     session_synthesis: Optional[SessionSynthesisOut] = None
     session_synthesis_markdown: Optional[str] = None
     session_synthesis_status: str = "draft"
+
+    project_id: Optional[uuid.UUID] = None
+    project_number: Optional[str] = None
+    project_name: Optional[str] = None
 
     artifacts: List[MeetingArtifactResponse] = []
     created_at: Optional[datetime] = None
