@@ -665,15 +665,10 @@ import { GatewayChecklistComponent } from '../../shared/components/gateway-check
         </div>
         } @else {
           <app-confirmation-screen
-            title="EAC Dossier Submitted!"
-            message="The EAC prepare phase is complete. It has now been routed to the Project Investment Committee (PIC)."
-            returnLabel="Return to Inbox"
+            title="Successfully Approved"
+            message="The request has been recorded and moved to the next stage of the workflow."
+            returnLabel="Return to Pending Reviews"
             returnRoute="/team-inbox">
-            @if (isAdmin()) {
-              <button type="button" class="btn flex items-center gap-2" (click)="adminOverridePic()" style="background: #00875A; color: #FFFFFF; border: none; font-weight: 600; padding: 12px 28px; border-radius: 10px; cursor: pointer;">
-                <span class="material-icons text-sm">rocket_launch</span> Admin Override: PIC Prepare
-              </button>
-            }
           </app-confirmation-screen>
         }
       </div>
@@ -1539,40 +1534,7 @@ export class PrepareEacComponent {
     }
   }
 
-  adminOverridePic(): void {
-    const formData = this.eacForm.value;
-    // Mock the PIC creation via PIC service so the inbox updates cleanly
-    this.picRequestService.addRequest({
-      id: 'TSK-' + Math.floor(1000 + Math.random() * 9000),
-      projectId: this.projectId(),
-      projectNumber: '',
-      projectName: formData.projectName || 'Data Automation Initiative',
-      projectData: {
-        name: formData.projectName,
-        dept: formData.requestingDepartment,
-        problemStatement: formData.problemStatement,
-        scope: formData.desiredOutcome
-      },
-      type: 'Prepare for PIC',
-      priority: 'High',
-      submittedBy: formData.requestorName || 'Gurrammaneesh User',
-      submittedDate: 'Today, ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      status: 'pending'
-    });
 
-    this.router.navigate(['/prepare-pic'], {
-      state: {
-        projectData: {
-          name: formData.projectName,
-          dept: formData.requestingDepartment,
-          problemStatement: formData.problemStatement,
-          scope: formData.desiredOutcome
-        },
-        projectId: this.projectId(),
-        fromAdminOverride: true
-      }
-    });
-  }
 
   autofillAI() {
     // Mock GenAI filling features
