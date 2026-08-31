@@ -132,10 +132,13 @@ Meeting Center link step).
 | `cargo run` — full binary build | ✅ compiles, **zero errors/warnings from any POC file** |
 | All 3 migrations against real Postgres 16 | ✅ applied on a fresh volume after merging `origin/V1` |
 | `seed_demo_users` + backend boots & serves | ✅ all 7 demo users seeded, `listening addr=0.0.0.0:8000` |
-| `frontend` `tsc --noEmit` | ✅ clean (whole project) |
+| `frontend` `npm run build` (`tsc --noEmit` + `vite build`) | ✅ clean (whole project); no dangling import from V1's `workspace.css` deletion |
 | Live HTTP smoke test of `/teams-poc/*` | ✅ schedule → ingest-transcript → get/list all 200; VTT parsed and persisted; status machine `scheduled→processing→failed` exercised |
 | Live `/auth/login` + `/auth/me` | ✅ 200; `role` returns lowercase (`admin`, `project_manager`) matching `frontend/src/lib/types.ts` |
+| Live `POST /projects` + `GET /projects` + `GET /dashboard` | ✅ 200; create accepts lowercase `priority`/`risk_level` (as the frontend sends), response serializes `status:"active"`, `priority:"high"`, `risk_level:"very_high"`, `current_owner_role:"security"` — write + read paths against the real Postgres enum columns |
 | LLM extraction step (OpenAI) | ⚠️ returns `status:"failed"` with a captured `error_message` — `backend/.env` has a placeholder `OPENAI_API_KEY`. Set a real key to get summary/decisions/BPMN. Not a code issue; failure path is graceful (still 200). |
+
+**Compiled but never exercised** (V1 code with no callers yet): `services::workflow_engine::EligibilityEngine` and the `workflow_stage_definitions` entity — these show up as dead-code warnings in `cargo check`. SeaORM entity↔schema mismatches are runtime, not compile-time, so V1's new `phase_name` / `prerequisites` / `conditions` columns are unverified (but unreachable).
 
 ### Fixes made to unbreak the V1 build (not POC logic)
 - **`backend/Cargo.lock`** — `async-graphql` was pinned `=7.0.11` but its
@@ -157,7 +160,12 @@ Merging it in and finishing the alignment fixed the rest:
   labels are `'A'..'S','CAB'`.
 - This also fixed an always-false role check in
   `project_service::submit_decision` (`current_owner_role` is stored lowercase,
-  but `role.as_str()` used to return `"BTA"` etc.).
+  but `role.as_str()` used to return `"BTA"` etc.), and made project creation
+  from the real frontend work (it sends `priority:"high"`; the entities used to
+  deserialize only `"HIGH"`).
+- Added the missing `'in_delivery'` label to `CREATE TYPE project_status`
+  (commit `4050ab2`) — `ProjectStatus::InDelivery` had no DB label. Latent
+  (no caller today) but needed for the alignment to be genuinely complete.
 - The DB was recreated on a fresh volume (`docker compose down -v`) so V1's new
   `DROP TYPE … CASCADE` / `CREATE TYPE` block and `workflow_stage_definitions`
   column changes actually applied.
