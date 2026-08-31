@@ -124,6 +124,42 @@ arrives for an unknown meeting, a new `teams_auto` row is created unlinked — i
 the real app a human would link it to a `GOV-…` request (same as today's manual
 Meeting Center link step).
 
+## Verification status (as built on this branch)
+
+| Check | Result |
+|---|---|
+| `cargo check --workspace` | ✅ passes (needed the `async-graphql` lockfile pin below) |
+| `cargo run` — full binary build | ✅ compiles, **zero errors/warnings from any POC file** |
+| All 3 migrations against real Postgres 16 | ✅ applied; `poc_meetings` table verified column-by-column |
+| `frontend` `tsc --noEmit` | ✅ clean for POC files |
+| Live HTTP smoke test of `/teams-poc/*` | ⛔ blocked — see "Pre-existing V1 blockers" |
+
+### Fixes made to unbreak the V1 build (not POC logic)
+- **`backend/Cargo.lock`** — `async-graphql` was pinned `=7.0.11` but its
+  `-derive/-parser/-value` sub-crates had floated to `7.2.1`, which fails to
+  compile (`MetaType::Scalar` field mismatch). Pinned all three to `7.0.11`.
+  *(This is why the frontend `AuthContext.tsx` carries the "backend is currently
+  down compiling" note.)*
+- **`docker-compose.yml`** — image `postgres:16-alpine` → `pgvector/pgvector:pg16`;
+  the init migration does `CREATE EXTENSION vector`.
+
+### Pre-existing V1 blockers (NOT introduced here, NOT POC scope)
+The V1 backend still cannot boot after migrations because of an unfinished enum
+data layer:
+- `src/entities/sea_orm_active_enums.rs` declares `enum_name = "userrole"` /
+  `string_value = "ADMIN"` (no underscore, uppercase), but
+  `migration/src/m20260101_000001_init_schema.rs` creates the types as
+  `user_role` with **lowercase** values (`'admin'`, `'project_manager'`, …).
+- `seed_demo_users` therefore fails with `type "userrole" does not exist` (and
+  would then fail on the value casing).
+- `#[serde(rename_all = "SCREAMING_SNAKE_CASE")]` on those enums also disagrees
+  with the frontend's lowercase role strings in `frontend/src/lib/types.ts`.
+
+Aligning the enum layer (names + values + serde) is a V1 task with API-contract
+implications and was left to the V1 owners. Once the backend boots, the
+`/teams-poc/*` endpoints need no further work — they don't touch the enum
+tables (the `poc_meetings` table is all `VARCHAR`/`JSONB`).
+
 ## Not in the POC (needed before production)
 
 - Auth on the `/teams-poc/*` endpoints (V1 frontend is still on mock auth).

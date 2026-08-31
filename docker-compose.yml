@@ -1,6 +1,8 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    # pgvector image (drop-in for postgres:16) — the init migration does
+    # CREATE EXTENSION vector for the knowledge-base RAG tables.
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: governance_db
