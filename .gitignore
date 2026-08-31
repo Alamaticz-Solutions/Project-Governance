@@ -4,3 +4,6 @@ backend/__pycache__/
 .env
 .DS_Store
 Test/
+*.zip
+scratch/
+env
