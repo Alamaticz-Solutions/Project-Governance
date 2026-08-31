@@ -11,6 +11,7 @@ import { TeamInboxPage } from "../features/team-inbox/TeamInboxPage";
 import { NotificationsPage } from "../features/notifications/NotificationsPage";
 import { PlaceholderPage } from "../features/static-pages/PlaceholderPage";
 import { MeetingCenterPage } from "../features/meeting-center/MeetingCenterPage";
+import { TeamsPocPage } from "../features/teams-poc/TeamsPocPage";
 import { ProjectWorkspacePage } from "../features/workspace/ProjectWorkspacePage";
 
 function GuestOnly({ children }: { children: React.ReactNode }) {
@@ -49,6 +50,7 @@ function AppRoutes() {
           element={<PlaceholderPage title="Analytics" description="Portfolio analytics are coming soon." />}
         />
         <Route path="/meeting-center" element={<MeetingCenterPage />} />
+        <Route path="/teams-poc" element={<TeamsPocPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

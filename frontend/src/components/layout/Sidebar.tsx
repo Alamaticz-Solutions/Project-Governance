@@ -9,6 +9,7 @@ const NAV_MAIN = [
 const NAV_GOVERNANCE = [
   { label: 'Pending Reviews', icon: 'pending_actions', route: '/team-inbox' },
   { label: 'Meeting Center', icon: 'groups', route: '/meeting-center' },
+  { label: 'Teams + VTT (POC)', icon: 'smart_toy', route: '/teams-poc' },
   { label: 'Analytics', icon: 'insights', route: '/analytics' },
 ];
 

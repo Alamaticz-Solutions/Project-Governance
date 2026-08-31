@@ -2,6 +2,7 @@ pub use sea_orm_migration::prelude::*;
 
 mod m20260101_000001_init_schema;
 mod m20260101_000002_gate_submissions;
+mod m20260101_000003_teams_poc;
 
 pub struct Migrator;
 
@@ -11,6 +12,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20260101_000001_init_schema::Migration),
             Box::new(m20260101_000002_gate_submissions::Migration),
+            Box::new(m20260101_000003_teams_poc::Migration),
         ]
     }
 }

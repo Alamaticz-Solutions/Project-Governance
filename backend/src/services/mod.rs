@@ -10,3 +10,5 @@ pub mod support;
 pub mod workspace_service;
 pub mod meeting_agent_service;
 pub mod s3_service;
+pub mod graph_service;
+pub mod poc_meeting_service;
