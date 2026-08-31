@@ -7,6 +7,16 @@ const UP_SQL: &str = r#"
 -- ══════════════════════════════════════════════════════════════════
 -- ENUM TYPES
 -- ══════════════════════════════════════════════════════════════════
+DROP TYPE IF EXISTS gate_code CASCADE;
+DROP TYPE IF EXISTS notification_type CASCADE;
+DROP TYPE IF EXISTS approval_decision CASCADE;
+DROP TYPE IF EXISTS task_status CASCADE;
+DROP TYPE IF EXISTS workflow_stage_status CASCADE;
+DROP TYPE IF EXISTS project_risk CASCADE;
+DROP TYPE IF EXISTS project_priority CASCADE;
+DROP TYPE IF EXISTS project_status CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;
+
 CREATE TYPE user_role AS ENUM (
     'admin','project_manager','bta','epmo','finance','vendor_screening',
     'analysis_team','eac','cab','security','taf','trc','pic','viewer'
@@ -21,7 +31,7 @@ CREATE TYPE project_priority AS ENUM ('critical','high','medium','low');
 CREATE TYPE project_risk AS ENUM ('very_high','high','medium','low');
 
 CREATE TYPE workflow_stage_status AS ENUM (
-    'pending','active','completed','skipped','blocked'
+    'locked','eligible','in_progress','pending_approval','completed','skipped','rejected','changes_requested'
 );
 
 CREATE TYPE task_status AS ENUM (
@@ -165,8 +175,10 @@ CREATE TABLE workflow_stage_definitions (
     stage_code          VARCHAR(50) NOT NULL,
     sequence_order      INTEGER NOT NULL,
     description         TEXT,
+    phase_name          VARCHAR(100) NOT NULL,
     assigned_roles      JSONB,
-    required_gates      JSONB,
+    prerequisites       JSONB,
+    conditions          JSONB,
     parallel_execution  BOOLEAN DEFAULT false,
     auto_advance        BOOLEAN DEFAULT false,
     sla_days            INTEGER,
@@ -192,7 +204,7 @@ CREATE TABLE workflow_stages (
     stage_name            VARCHAR(200) NOT NULL,
     stage_code            VARCHAR(50) NOT NULL,
     sequence_order        INTEGER NOT NULL,
-    status                workflow_stage_status NOT NULL DEFAULT 'pending',
+    status                workflow_stage_status NOT NULL DEFAULT 'locked',
     started_at            TIMESTAMPTZ,
     completed_at          TIMESTAMPTZ,
     due_date              TIMESTAMPTZ,

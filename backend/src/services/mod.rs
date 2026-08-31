@@ -10,3 +10,4 @@ pub mod support;
 pub mod workspace_service;
 pub mod meeting_agent_service;
 pub mod s3_service;
+pub mod workflow_engine;

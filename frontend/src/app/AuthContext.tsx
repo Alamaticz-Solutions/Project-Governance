@@ -1,9 +1,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { authApi } from "../lib/api";
 import { clearAuth, getStoredUser, storeAuth } from "../lib/authStorage";
 import type { User, UserRole } from "../lib/types";
-import { auth } from "../lib/firebase";
 
 interface AuthContextValue {
   user: User | null;
@@ -23,27 +21,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isAuthenticated: user !== null,
       login: async (email, password) => {
-        // Temporarily use Firebase to authenticate
-        await signInWithEmailAndPassword(auth, email, password);
-        
-        // MOCK BACKEND: Because the backend is currently down compiling, we bypass it.
-        const mockTokens = {
-          access_token: "mock-token",
-          refresh_token: "mock-refresh",
-          token_type: "bearer",
-          user: {
-            id: "1",
-            email: email,
-            username: "testuser",
-            full_name: "Firebase User",
-            role: "admin" as UserRole,
-            is_active: true,
-            is_verified: true,
-            created_at: new Date().toISOString()
-          }
-        };
-        storeAuth(mockTokens);
-        setUser(mockTokens.user);
+        const tokens = await authApi.login(email, password);
+        storeAuth(tokens);
+        setUser(tokens.user);
       },
       logout: () => {
         clearAuth();
