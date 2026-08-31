@@ -1,5 +1,6 @@
 mod auth;
 mod config;
+pub mod domain;
 mod dto;
 mod entities;
 mod error;
