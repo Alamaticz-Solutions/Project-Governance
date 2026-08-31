@@ -130,9 +130,12 @@ Meeting Center link step).
 |---|---|
 | `cargo check --workspace` | ✅ passes (needed the `async-graphql` lockfile pin below) |
 | `cargo run` — full binary build | ✅ compiles, **zero errors/warnings from any POC file** |
-| All 3 migrations against real Postgres 16 | ✅ applied; `poc_meetings` table verified column-by-column |
-| `frontend` `tsc --noEmit` | ✅ clean for POC files |
-| Live HTTP smoke test of `/teams-poc/*` | ⛔ blocked — see "Pre-existing V1 blockers" |
+| All 3 migrations against real Postgres 16 | ✅ applied on a fresh volume after merging `origin/V1` |
+| `seed_demo_users` + backend boots & serves | ✅ all 7 demo users seeded, `listening addr=0.0.0.0:8000` |
+| `frontend` `tsc --noEmit` | ✅ clean (whole project) |
+| Live HTTP smoke test of `/teams-poc/*` | ✅ schedule → ingest-transcript → get/list all 200; VTT parsed and persisted; status machine `scheduled→processing→failed` exercised |
+| Live `/auth/login` + `/auth/me` | ✅ 200; `role` returns lowercase (`admin`, `project_manager`) matching `frontend/src/lib/types.ts` |
+| LLM extraction step (OpenAI) | ⚠️ returns `status:"failed"` with a captured `error_message` — `backend/.env` has a placeholder `OPENAI_API_KEY`. Set a real key to get summary/decisions/BPMN. Not a code issue; failure path is graceful (still 200). |
 
 ### Fixes made to unbreak the V1 build (not POC logic)
 - **`backend/Cargo.lock`** — `async-graphql` was pinned `=7.0.11` but its
@@ -143,22 +146,24 @@ Meeting Center link step).
 - **`docker-compose.yml`** — image `postgres:16-alpine` → `pgvector/pgvector:pg16`;
   the init migration does `CREATE EXTENSION vector`.
 
-### Pre-existing V1 blockers (NOT introduced here, NOT POC scope)
-The V1 backend still cannot boot after migrations because of an unfinished enum
-data layer:
-- `src/entities/sea_orm_active_enums.rs` declares `enum_name = "userrole"` /
-  `string_value = "ADMIN"` (no underscore, uppercase), but
-  `migration/src/m20260101_000001_init_schema.rs` creates the types as
-  `user_role` with **lowercase** values (`'admin'`, `'project_manager'`, …).
-- `seed_demo_users` therefore fails with `type "userrole" does not exist` (and
-  would then fail on the value casing).
-- `#[serde(rename_all = "SCREAMING_SNAKE_CASE")]` on those enums also disagrees
-  with the frontend's lowercase role strings in `frontend/src/lib/types.ts`.
+### Pre-existing V1 enum layer — RESOLVED (merge `72333a4`)
+`origin/V1`'s `97aa4b3` fixed the `enum_name` half (`userrole` → `user_role`).
+Merging it in and finishing the alignment fixed the rest:
+- `src/entities/sea_orm_active_enums.rs` — `string_value`, `as_str()`,
+  `from_str_opt()` and `#[serde(rename_all)]` are now lowercase `snake_case`,
+  matching the `CREATE TYPE … AS ENUM` labels in
+  `m20260101_000001_init_schema.rs` and the `UserRole` union in
+  `frontend/src/lib/types.ts`. `GateCode` stays uppercase — its Postgres
+  labels are `'A'..'S','CAB'`.
+- This also fixed an always-false role check in
+  `project_service::submit_decision` (`current_owner_role` is stored lowercase,
+  but `role.as_str()` used to return `"BTA"` etc.).
+- The DB was recreated on a fresh volume (`docker compose down -v`) so V1's new
+  `DROP TYPE … CASCADE` / `CREATE TYPE` block and `workflow_stage_definitions`
+  column changes actually applied.
 
-Aligning the enum layer (names + values + serde) is a V1 task with API-contract
-implications and was left to the V1 owners. Once the backend boots, the
-`/teams-poc/*` endpoints need no further work — they don't touch the enum
-tables (the `poc_meetings` table is all `VARCHAR`/`JSONB`).
+The `/teams-poc/*` endpoints needed no changes — the `poc_meetings` table is
+all `VARCHAR`/`JSONB` and touches none of the enum tables.
 
 ## Not in the POC (needed before production)
 
