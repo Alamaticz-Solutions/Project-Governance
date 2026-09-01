@@ -21,6 +21,9 @@ deliberately avoided — see `TEAMS_GRAPH_API_MICROSOFT_ADMIN_HANDOFF.md`):
    summary, etc.) against every transcript.
 6. Let individual users define **custom skills** — their own prompt/logic
    run against the transcript, for their eyes only.
+7. Offer a **Teams-style org directory picker** when adding attendees —
+   type-ahead search across the organization (and external contacts),
+   instead of typing raw email addresses.
 
 ## 1. Any meeting, organizer or attendee, from Teams or the app
 
@@ -79,6 +82,40 @@ questions that matter:
   surface) and awareness that unrestricted user-authored prompts against
   transcript content is a light prompt-injection surface, even internally.
 
+## 7. Org directory / external people picker (Teams-style attendee search)
+
+**Feasible — Microsoft even ships a ready-made component for it**
+(Microsoft Graph Toolkit's `mgt-people-picker`, the same typeahead UI Teams
+itself uses), but it rides on the same architectural fork as #1, not a
+standalone small feature.
+
+**Option A — real org directory search.** Needs Microsoft Graph:
+
+- `People.Read` / `People.Read.All` or `User.Read.All` (delegated) to
+  search `/users` or `/me/people`.
+- Requires the person using this app to actually **sign in with their
+  Microsoft/Entra identity** — the app has no Microsoft-identity login
+  today (its auth is a separate local/mock system, unrelated to Teams
+  identity). This is a prerequisite, not a detail.
+- Same admin-consent + app-registration story as the rest of this
+  document — not a small add-on, it's downstream of the same rollout
+  decision as #1.
+- **External people, even under Option A**: there is no directory of
+  "everyone outside the org" — that doesn't exist anywhere. What's
+  actually searchable is (a) guest users already added to the tenant's
+  Azure AD, or (b) the signed-in user's own Outlook "frequently
+  contacted" people (personal interaction history, delegated, not
+  org-wide). A genuinely new external contact still has to be typed by
+  email, same as today.
+
+**Option B — lightweight, no Graph.** Pick from this app's own registered
+users (the Governance Portal already has a `users` table and a working
+`/users` list endpoint) instead of a free-text box. Buildable immediately:
+no Graph, no admin consent, no new auth. Limitation: only offers people who
+already have an account in *this app*, not the whole Teams org; external
+attendees remain free-typed email (already supported today via the
+attendees feature).
+
 ## Open questions (change the actual design)
 
 1. **Scope of "every user"** — literally every person in the M365 tenant
@@ -97,13 +134,19 @@ questions that matter:
    just the risks"), a menu of structured extraction fields to toggle, or
    literal user-supplied code? Determines how much guardrail/sandboxing
    work is actually needed versus "another prompt template."
+5. **Attendee picker — Option A or B?** A real org-wide typeahead
+   (Option A) only makes sense once the Graph/admin-consent rollout is
+   decided; until then, Option B (pick from this app's own registered
+   users, external still free-typed) is available today with no new
+   dependencies. Worth building B now regardless of the answer on #1?
 
 ## Bottom line
 
 Nothing here is blocked. Per-user private action items, the delivery
-channels, and skill extensibility are all buildable on the current
-architecture with normal engineering effort. The one item that changes
-the project's shape is #1: covering *any* meeting a user is involved in,
-not just app-scheduled ones, requires the Graph app-registration + admin
-consent route this POC intentionally avoided — worth deciding deliberately
-before committing engineering time, not backing into it feature-by-feature.
+channels, skill extensibility, and an in-app-only attendee picker (Option B
+above) are all buildable on the current architecture with normal
+engineering effort. The one decision that changes the project's shape is
+#1: covering *any* meeting a user is involved in, not just app-scheduled
+ones — and a real Teams-style org directory picker (#7, Option A) rides on
+that same decision. Worth deciding deliberately before committing
+engineering time, not backing into it feature-by-feature.
