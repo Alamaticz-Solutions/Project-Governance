@@ -1,13 +1,11 @@
 services:
   postgres:
-    # pgvector image (drop-in for postgres:16) — the init migration does
-    # CREATE EXTENSION vector for the knowledge-base RAG tables.
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: governance_db
     ports:
-      - "5432:5432"
+      - "5440:5432"
     volumes:
       - governance_pg_data:/var/lib/postgresql/data
     healthcheck:

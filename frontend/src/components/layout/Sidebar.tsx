@@ -10,7 +10,6 @@ export function Sidebar() {
   const navGovernance = [
     { label: "Pending Reviews", icon: "pending_actions", route: "/team-inbox", badge: 4 },
     { label: "Meeting Center", icon: "groups", route: "/meeting-center" },
-    { label: "Teams + VTT (POC)", icon: "smart_toy", route: "/teams-poc" },
     { label: "Analytics", icon: "insights", route: "/analytics" },
   ];
 

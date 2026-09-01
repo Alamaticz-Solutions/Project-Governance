@@ -188,14 +188,9 @@ pub async fn create_project(
         has_phi_data: Set(Some(payload.has_phi_data)),
         is_clinical: Set(Some(payload.is_clinical)),
         is_hipaa_applicable: Set(Some(payload.is_hipaa_applicable)),
-        current_stage: Set(Some(crate::services::workspace_service::STAGE_ORDER[0].to_string())),
+        current_stage: Set(Some("EPMO Review".to_string())),
         current_status: Set(Some("Pending".to_string())),
-        current_owner_role: Set(Some(
-            crate::services::workspace_service::stage_owner_role(
-                crate::services::workspace_service::STAGE_ORDER[0],
-            )
-            .to_string(),
-        )),
+        current_owner_role: Set(Some("epmo".to_string())),
         workflow_status: Set(Some("Intake complete".to_string())),
         submitted_at: Set(Some(now.into())),
         created_at: Set(now.into()),
@@ -225,6 +220,23 @@ pub async fn create_project(
         ..Default::default()
     };
     intake_submission.insert(db).await?;
+
+    // Fix: Insert the actual first approval task so it appears in the Pending Reviews inbox!
+    insert_next_approval(db, project.id, "EPMO Review", UserRole::Epmo, 1).await?;
+
+    notify_users_with_role(
+        db,
+        UserRole::Epmo,
+        project.id,
+        NotificationType::ApprovalRequired,
+        "New Project Intake Submitted",
+        &format!(
+            "Project '{}' has been submitted and needs initial EPMO Review.",
+            project.project_name
+        ),
+        "/team-inbox",
+    )
+    .await?;
 
     notify_users_with_role(
         db,
@@ -857,8 +869,8 @@ async fn complete_pic_to_trc(
     Ok(())
 }
 
-async fn insert_next_approval(
-    txn: &sea_orm::DatabaseTransaction,
+async fn insert_next_approval<C: sea_orm::ConnectionTrait>(
+    txn: &C,
     project_id: Uuid,
     stage: &str,
     role: UserRole,

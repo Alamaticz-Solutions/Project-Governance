@@ -30,21 +30,6 @@ pub struct AppConfig {
 
     pub server_host: String,
     pub server_port: u16,
-
-    // --- Teams meeting + VTT POC (Power Automate route) ---
-    /// URL of the Power Automate flow's "When a HTTP request is received"
-    /// trigger. The portal POSTs `{subject, start_time, end_time,
-    /// organizer_email}`; the flow creates the Teams meeting and returns
-    /// `{join_url, meeting_ref}`. Blank → the portal issues local-stub links.
-    pub power_automate_schedule_url: String,
-    /// Shared secret required on `POST /teams-poc/ingest` (the endpoint a
-    /// Power Automate transcript flow calls), sent as the `x-api-key` header.
-    /// Blank → that endpoint is unauthenticated (fine for localhost-only).
-    pub ingest_api_key: String,
-    /// When true, `POST /teams-poc/ingest` rejects (409) a transcript whose
-    /// `meeting_ref` does not match an existing row — i.e. only meetings
-    /// scheduled through the portal are ever processed. Default false.
-    pub ingest_reject_unknown: bool,
 }
 
 fn env_or(key: &str, default: &str) -> String {
@@ -97,21 +82,6 @@ impl AppConfig {
 
             server_host: env_or("SERVER_HOST", "0.0.0.0"),
             server_port: env_or("API_PORT", "8000").parse().unwrap_or(8000),
-
-            power_automate_schedule_url: env_or("POWER_AUTOMATE_SCHEDULE_URL", ""),
-            ingest_api_key: env_or("INGEST_API_KEY", ""),
-            ingest_reject_unknown: env_or("INGEST_REJECT_UNKNOWN", "false")
-                .parse()
-                .unwrap_or(false),
         }
-    }
-}
-
-impl AppConfig {
-    /// True when a Power Automate scheduling flow URL is configured. When
-    /// false, the POC issues local-stub join links so the VTT-ingest flow is
-    /// still demoable without any Microsoft setup.
-    pub fn schedule_via_flow(&self) -> bool {
-        !self.power_automate_schedule_url.is_empty()
     }
 }

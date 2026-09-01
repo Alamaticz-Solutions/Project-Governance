@@ -23,7 +23,7 @@ CREATE TYPE user_role AS ENUM (
 );
 
 CREATE TYPE project_status AS ENUM (
-    'draft','active','on_hold','completed','cancelled','archived','in_delivery'
+    'draft','active','on_hold','completed','cancelled','archived'
 );
 
 CREATE TYPE project_priority AS ENUM ('critical','high','medium','low');

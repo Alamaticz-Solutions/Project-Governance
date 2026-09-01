@@ -105,3 +105,63 @@ impl EligibilityEngine {
         }
     }
 }
+
+use sea_orm::{DatabaseConnection, EntityTrait, Set, ActiveModelTrait};
+use crate::entities::{workflow_stages, sea_orm_active_enums::WorkflowStageStatus};
+use uuid::Uuid;
+
+pub struct TransitionService;
+
+impl TransitionService {
+    pub async fn start_gate(db: &DatabaseConnection, gate_id: Uuid) -> anyhow::Result<()> {
+        let gate = workflow_stages::Entity::find_by_id(gate_id)
+            .one(db)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Gate not found"))?;
+
+        let mut active_gate: workflow_stages::ActiveModel = gate.into();
+        active_gate.status = Set(WorkflowStageStatus::InProgress);
+        active_gate.started_at = Set(Some(chrono::Utc::now().into()));
+        active_gate.update(db).await?;
+        Ok(())
+    }
+
+    pub async fn submit_gate(db: &DatabaseConnection, gate_id: Uuid, _data: Value) -> anyhow::Result<()> {
+        let gate = workflow_stages::Entity::find_by_id(gate_id)
+            .one(db)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Gate not found"))?;
+
+        let mut active_gate: workflow_stages::ActiveModel = gate.into();
+        active_gate.status = Set(WorkflowStageStatus::PendingApproval);
+        active_gate.update(db).await?;
+        Ok(())
+    }
+
+    pub async fn approve_gate(db: &DatabaseConnection, gate_id: Uuid) -> anyhow::Result<()> {
+        let gate = workflow_stages::Entity::find_by_id(gate_id)
+            .one(db)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Gate not found"))?;
+
+        let mut active_gate: workflow_stages::ActiveModel = gate.into();
+        active_gate.status = Set(WorkflowStageStatus::Completed);
+        active_gate.completed_at = Set(Some(chrono::Utc::now().into()));
+        active_gate.update(db).await?;
+        Ok(())
+    }
+
+    pub async fn skip_gate(db: &DatabaseConnection, gate_id: Uuid, reason: String) -> anyhow::Result<()> {
+        let gate = workflow_stages::Entity::find_by_id(gate_id)
+            .one(db)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Gate not found"))?;
+
+        let mut active_gate: workflow_stages::ActiveModel = gate.into();
+        active_gate.status = Set(WorkflowStageStatus::Skipped);
+        active_gate.notes = Set(Some(reason));
+        active_gate.completed_at = Set(Some(chrono::Utc::now().into()));
+        active_gate.update(db).await?;
+        Ok(())
+    }
+}

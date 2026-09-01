@@ -7,4 +7,3 @@ pub mod projects;
 pub mod users;
 pub mod workspace;
 pub mod graphql;
-pub mod teams_poc;

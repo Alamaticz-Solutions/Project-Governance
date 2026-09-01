@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::{
     auth::password::hash_password,
-    entities::{sea_orm_active_enums::UserRole, users},
+    entities::{sea_orm_active_enums::UserRole, users, workflow_definitions, workflow_stage_definitions},
 };
 
 const DEMO_PASSWORD: &str = "Demo1234!";
@@ -56,5 +56,84 @@ pub async fn seed_demo_users(db: &DatabaseConnection) -> anyhow::Result<()> {
         tracing::info!(email, "seeded demo user");
     }
 
+    Ok(())
+}
+
+pub async fn seed_workflow_definitions(db: &DatabaseConnection) -> anyhow::Result<()> {
+    // Check if the workflow already exists
+    let existing = workflow_definitions::Entity::find()
+        .filter(workflow_definitions::Column::Name.eq("Standard Project Lifecycle v2"))
+        .one(db)
+        .await?;
+
+    if existing.is_some() {
+        tracing::info!("Workflow definition already seeded.");
+        return Ok(());
+    }
+
+    let workflow_id = Uuid::new_v4();
+    let workflow = workflow_definitions::ActiveModel {
+        id: Set(workflow_id),
+        name: Set("Standard Project Lifecycle v2".to_string()),
+        version: Set(Some(1)),
+        description: Set(Some("The 5-phase DAG process for project governance".to_string())),
+        is_active: Set(Some(true)),
+        ..Default::default()
+    };
+    workflow.insert(db).await?;
+
+    let phases = vec![
+        ("Intake-BTA", "INTAKE_BTA", 1, "BTA Intake review", None),
+        ("Intake-EPMO", "INTAKE_EPMO", 1, "EPMO Intake review", None),
+        
+        ("BTA-Meeting", "BTA_MEETING", 2, "BTA Meeting alignment", Some(serde_json::json!({"gates": ["INTAKE_BTA"]}))),
+        ("PM", "PM_ASSIGN", 2, "Project Manager assignment", Some(serde_json::json!({"gates": ["INTAKE_EPMO"]}))),
+        
+        ("VCR", "VCR_REVIEW", 3, "Vendor Compliance Review", Some(serde_json::json!({"gates": ["BTA_MEETING", "PM_ASSIGN"]}))),
+        
+        ("VRA", "VRA_REVIEW", 4, "Vendor Risk Assessment", Some(serde_json::json!({"gates": ["VCR_REVIEW"]}))),
+        ("EAC", "EAC_REVIEW", 4, "Enterprise Architecture Committee", Some(serde_json::json!({"gates": ["VCR_REVIEW"]}))),
+        ("PIC", "PIC_REVIEW", 4, "Project Investment Committee", Some(serde_json::json!({"gates": ["VCR_REVIEW"]}))),
+        
+        ("Intake-TRC", "INTAKE_TRC", 5, "TRC Intake", Some(serde_json::json!({"gates": ["VRA_REVIEW", "EAC_REVIEW", "PIC_REVIEW"]}))),
+        ("Intake-SRA", "INTAKE_SRA", 5, "SRA Intake", Some(serde_json::json!({"gates": ["VRA_REVIEW", "EAC_REVIEW", "PIC_REVIEW"]}))),
+        
+        ("TRC", "TRC_REVIEW", 6, "Technical Review Committee", Some(serde_json::json!({"gates": ["INTAKE_TRC"]}))),
+        ("SRA", "SRA_REVIEW", 6, "Security Risk Assessment", Some(serde_json::json!({"gates": ["INTAKE_SRA"]}))),
+        
+        ("APM", "APM_REVIEW", 7, "Application Portfolio Management", Some(serde_json::json!({"gates": ["TRC_REVIEW", "SRA_REVIEW"]}))),
+        
+        ("Intake-ST", "INTAKE_ST", 8, "Service Transition Intake", Some(serde_json::json!({"gates": ["APM_REVIEW"]}))),
+        
+        ("ST-Runbook", "ST_RUNBOOK", 9, "Service Transition Runbook", Some(serde_json::json!({"gates": ["INTAKE_ST"]}))),
+        ("TechRB", "TECH_RB", 9, "Technical Runbook", Some(serde_json::json!({"gates": ["INTAKE_ST"]}))),
+        ("Vendor ST", "VENDOR_ST", 9, "Vendor Service Transition", Some(serde_json::json!({"gates": ["INTAKE_ST"]}))),
+        
+        ("CAB-CT", "CAB_CT", 10, "Change Advisory Board - CT", Some(serde_json::json!({"gates": ["ST_RUNBOOK", "TECH_RB", "VENDOR_ST"]}))),
+        ("CAB-ER", "CAB_ER", 11, "Change Advisory Board - ER", Some(serde_json::json!({"gates": ["CAB_CT"]}))),
+    ];
+
+    for (name, code, order, desc, prereqs) in phases {
+        let stage = workflow_stage_definitions::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            workflow_id: Set(workflow_id),
+            stage_name: Set(name.to_string()),
+            stage_code: Set(code.to_string()),
+            sequence_order: Set(order),
+            description: Set(Some(desc.to_string())),
+            phase_name: Set(name.to_string()), // phase_name is same as stage_name for these high-level gates
+            assigned_roles: Set(Some(serde_json::json!(["admin"]))),
+            prerequisites: Set(prereqs),
+            conditions: Set(Some(serde_json::json!({"rules": []}))), // eligible by default once prereqs met
+            parallel_execution: Set(Some(false)),
+            auto_advance: Set(Some(false)),
+            sla_days: Set(Some(5)),
+            checklist_template: Set(Some(serde_json::json!([]))),
+            ..Default::default()
+        };
+        stage.insert(db).await?;
+    }
+
+    tracing::info!("Seeded 5-phase workflow definitions");
     Ok(())
 }

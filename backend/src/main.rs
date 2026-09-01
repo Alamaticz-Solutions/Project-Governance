@@ -34,6 +34,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("migrations applied");
 
     seed::seed_demo_users(&db).await?;
+    seed::seed_workflow_definitions(&db).await?;
 
     let schema = graphql::build_schema();
     let s3 = crate::services::s3_service::S3Service::new(&config).await;

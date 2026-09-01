@@ -22,10 +22,18 @@ pub async fn notify_users_with_role<C: ConnectionTrait>(
     message: &str,
     action_url: &str,
 ) -> Result<(), sea_orm::DbErr> {
-    let recipients = users::Entity::find()
-        .filter(users::Column::Role.eq(role))
+    let mut recipients = users::Entity::find()
+        .filter(users::Column::Role.eq(role.clone()))
         .all(db)
         .await?;
+
+    if role != UserRole::Admin {
+        let admins = users::Entity::find()
+            .filter(users::Column::Role.eq(UserRole::Admin))
+            .all(db)
+            .await?;
+        recipients.extend(admins);
+    }
 
     for recipient in recipients {
         notify_user(

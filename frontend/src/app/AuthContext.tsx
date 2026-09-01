@@ -29,7 +29,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearAuth();
         setUser(null);
       },
-      hasRole: (roles) => (user ? roles.includes(user.role) : false),
+      hasRole: (roles) => {
+        if (!user || !user.role) return false;
+        return roles.map(r => r.toLowerCase()).includes(user.role.toLowerCase());
+      },
     }),
     [user]
   );

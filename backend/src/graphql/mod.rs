@@ -1,5 +1,6 @@
 pub mod query;
 pub mod mutation;
+pub mod workflow_types;
 
 use async_graphql::{EmptySubscription, Schema};
 use query::QueryRoot;

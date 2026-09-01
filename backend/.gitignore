@@ -1,5 +1,3 @@
 /target
 /target_cli
 **/*.rs.bk
-
-.env*.bak

@@ -47,6 +47,9 @@ export interface Project {
   project_name: string;
   business_unit: string;
   department?: string | null;
+  requestor_name?: string | null;
+  request_type?: string | null;
+  strategic_alignment?: string | null;
   sponsor_name?: string | null;
   sponsor_email?: string | null;
   description?: string | null;

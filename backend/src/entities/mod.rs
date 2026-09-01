@@ -13,7 +13,6 @@ pub mod email_queue;
 pub mod gate_reviews;
 pub mod gate_submissions;
 pub mod notifications;
-pub mod poc_meetings;
 pub mod project_approvals;
 pub mod project_stakeholders;
 pub mod projects;

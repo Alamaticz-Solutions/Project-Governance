@@ -1,6 +1,8 @@
 use async_graphql::{Context, Object, SimpleObject};
 use crate::services::meeting_agent_service::{self, ActionItem, AgendaItem};
+use crate::services::workflow_engine::TransitionService;
 use crate::state::AppState;
+use uuid::Uuid;
 
 pub struct MutationRoot;
 
@@ -81,5 +83,42 @@ impl MutationRoot {
             process_name: extraction.process_name,
             bpmn_xml,
         })
+    }
+
+    async fn start_gate(
+        &self,
+        ctx: &Context<'_>,
+        gate_id: Uuid,
+    ) -> async_graphql::Result<bool> {
+        let state = ctx.data::<AppState>().unwrap();
+        TransitionService::start_gate(&state.db, gate_id)
+            .await
+            .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+        Ok(true)
+    }
+
+    async fn approve_gate(
+        &self,
+        ctx: &Context<'_>,
+        gate_id: Uuid,
+    ) -> async_graphql::Result<bool> {
+        let state = ctx.data::<AppState>().unwrap();
+        TransitionService::approve_gate(&state.db, gate_id)
+            .await
+            .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+        Ok(true)
+    }
+
+    async fn skip_gate(
+        &self,
+        ctx: &Context<'_>,
+        gate_id: Uuid,
+        reason: String,
+    ) -> async_graphql::Result<bool> {
+        let state = ctx.data::<AppState>().unwrap();
+        TransitionService::skip_gate(&state.db, gate_id, reason)
+            .await
+            .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+        Ok(true)
     }
 }

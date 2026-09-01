@@ -68,24 +68,7 @@ pub fn build_router(state: AppState) -> Router {
             "/users",
             get(handlers::users::list_users).post(handlers::users::create_user),
         )
-        .route("/graphql", post(handlers::graphql::graphql_handler))
-        // ── Teams meeting + VTT POC (intentionally unauthenticated) ──────────
-        .route(
-            "/teams-poc/meetings",
-            get(handlers::teams_poc::list_meetings).post(handlers::teams_poc::schedule_meeting),
-        )
-        .route(
-            "/teams-poc/meetings/:id",
-            get(handlers::teams_poc::get_meeting),
-        )
-        .route(
-            "/teams-poc/meetings/:id/ingest-transcript",
-            post(handlers::teams_poc::ingest_transcript),
-        )
-        .route(
-            "/teams-poc/ingest",
-            post(handlers::teams_poc::ingest_by_ref),
-        );
+        .route("/graphql", post(handlers::graphql::graphql_handler));
 
     Router::new()
         .route("/", get(root))
