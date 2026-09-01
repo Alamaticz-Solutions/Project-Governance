@@ -134,10 +134,15 @@ connection in as yourself).
   the meeting `id`, or the join URL itself. It just has to match what Flow B
   will send.)
 
+The **Response** body must be valid JSON with at least `join_url`. If the flow
+errors, returns non-2xx, or returns anything that isn't parseable JSON, the
+backend still saves the meeting row — with `error_message` set instead of a join
+link — and returns `200` to the UI. It never fails the schedule request.
+
 Test: in the portal's **Meeting Center** page, **Schedule Meeting**. The row should
 show `source: flow_scheduled` and a real **Join link**. If it shows an
-`error_message`, open the flow run history — the message is the flow's response
-verbatim.
+`error_message`, read that first (it's the flow's response verbatim) — then open
+the flow run history if you need the step-by-step.
 
 ---
 
