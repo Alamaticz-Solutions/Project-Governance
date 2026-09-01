@@ -8,11 +8,16 @@ from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import (
     Column, String, Text, Boolean, Integer, Float, DateTime,
-    ForeignKey, Enum as SAEnum, JSON, Index, UniqueConstraint, event
+    ForeignKey, Enum as _SAEnum, JSON, Index, UniqueConstraint, event
 )
+from sqlalchemy.orm import relationship, validates
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
 from app.db.database import Base
+
+
+def SAEnum(*args, **kwargs):
+    kwargs.setdefault('values_callable', lambda obj: [str(e.value) for e in obj])
+    return _SAEnum(*args, **kwargs)
 
 
 def utcnow():
