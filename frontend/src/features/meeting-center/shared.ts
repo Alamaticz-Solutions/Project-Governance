@@ -34,6 +34,14 @@ export const SOURCE_LABEL: Record<PocMeeting["source"], string> = {
   manual_ingest: "Manual ingest",
 };
 
+/** A short, human-friendly code derived from the meeting's own id — for
+ * display only. The raw `external_ref` (Teams/Outlook's opaque internal
+ * item id) is still available via tooltip for anyone who needs it to
+ * correlate with a Power Automate run. */
+export function friendlyMeetingCode(id: string): string {
+  return `MTG-${id.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+}
+
 /** Splits a comma/semicolon/newline-separated string of email addresses into
  * a deduped, trimmed list. Accepts internal or external addresses — the
  * Teams meeting invite (a normal Outlook calendar invite under the hood)

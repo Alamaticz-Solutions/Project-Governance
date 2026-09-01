@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "reac
 import { useNavigate, useParams } from "react-router";
 import { ApiError } from "../../lib/apiClient";
 import { teamsPocApi, type PocMeeting } from "../../lib/teamsPocApi";
-import { fmtDateTime, isCancellable, SOURCE_LABEL, STATUS_DOT, STATUS_STYLE } from "./shared";
+import { fmtDateTime, friendlyMeetingCode, isCancellable, SOURCE_LABEL, STATUS_DOT, STATUS_STYLE } from "./shared";
 
 const SAMPLE_VTT = `WEBVTT
 
@@ -181,12 +181,13 @@ export function MeetingDetailPage() {
               <span className="flex items-center gap-1">
                 <span className="material-icons text-[14px]">bolt</span> {SOURCE_LABEL[meeting.source]}
               </span>
-              {meeting.external_ref && (
-                <span className="flex items-center gap-1" title={meeting.external_ref}>
-                  <span className="material-icons text-[14px]">tag</span>
-                  {meeting.external_ref.slice(0, 24)}…
-                </span>
-              )}
+              <span
+                className="flex items-center gap-1"
+                title={meeting.external_ref ? `Teams/Outlook reference: ${meeting.external_ref}` : "No external reference yet"}
+              >
+                <span className="material-icons text-[14px]">tag</span>
+                {friendlyMeetingCode(meeting.id)}
+              </span>
             </div>
             {meeting.status === "cancelled" ? (
               <div className="mt-3 rounded-lg border border-slate-500/30 bg-slate-500/10 px-3 py-2 text-sm text-slate-300 flex items-center gap-2 max-w-md">
