@@ -7,3 +7,5 @@ Test/
 *.zip
 scratch/
 env
+logs/
+.claude/
