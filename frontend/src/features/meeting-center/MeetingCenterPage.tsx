@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { useNavigate } from "react-router";
 import { ApiError } from "../../lib/apiClient";
 import { teamsPocApi, type PocMeeting } from "../../lib/teamsPocApi";
-import { fmtDateTime, isCancellable, SOURCE_LABEL, STATUS_DOT, STATUS_STYLE } from "./shared";
+import { fmtDateTime, isCancellable, parseEmailList, SOURCE_LABEL, STATUS_DOT, STATUS_STYLE } from "./shared";
 
 export function MeetingCenterPage() {
   const navigate = useNavigate();
@@ -19,6 +19,7 @@ export function MeetingCenterPage() {
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("11:00");
   const [organizerEmail, setOrganizerEmail] = useState("");
+  const [attendeesInput, setAttendeesInput] = useState("");
   const [scheduling, setScheduling] = useState(false);
 
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -75,6 +76,7 @@ export function MeetingCenterPage() {
         start_time: new Date(`${date}T${startTime}:00`).toISOString(),
         end_time: new Date(`${date}T${endTime}:00`).toISOString(),
         organizer_email: organizerEmail || undefined,
+        attendees: parseEmailList(attendeesInput),
       });
       setShowSchedule(false);
       await refresh();
@@ -246,6 +248,20 @@ export function MeetingCenterPage() {
               onChange={(e) => setOrganizerEmail(e.target.value)}
               placeholder="forwarded to the flow; shown on the record"
             />
+          </label>
+          <label className="block text-xs font-semibold text-slate-400 md:col-span-2">
+            Attendees (optional)
+            <textarea
+              className="mt-1 w-full h-16 bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+              value={attendeesInput}
+              onChange={(e) => setAttendeesInput(e.target.value)}
+              placeholder="comma, semicolon, or newline separated — internal or external emails both work, e.g. jane@yourcompany.com, partner@othercompany.com"
+            />
+            {parseEmailList(attendeesInput).length > 0 && (
+              <span className="mt-1 block text-[11px] text-slate-500">
+                {parseEmailList(attendeesInput).length} attendee(s) will get a Teams invite email.
+              </span>
+            )}
           </label>
           <div className="md:col-span-2">
             <button

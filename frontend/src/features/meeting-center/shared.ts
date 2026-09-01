@@ -34,6 +34,22 @@ export const SOURCE_LABEL: Record<PocMeeting["source"], string> = {
   manual_ingest: "Manual ingest",
 };
 
+/** Splits a comma/semicolon/newline-separated string of email addresses into
+ * a deduped, trimmed list. Accepts internal or external addresses — the
+ * Teams meeting invite (a normal Outlook calendar invite under the hood)
+ * supports both. */
+export function parseEmailList(raw: string): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of raw.split(/[,;\n]/)) {
+    const email = part.trim();
+    if (!email || seen.has(email.toLowerCase())) continue;
+    seen.add(email.toLowerCase());
+    out.push(email);
+  }
+  return out;
+}
+
 /** Cancelling is only allowed while the meeting is still `scheduled` and its
  * start time hasn't passed yet (mirrors the backend's own check). */
 export function isCancellable(m: PocMeeting): boolean {

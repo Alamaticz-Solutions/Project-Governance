@@ -37,12 +37,17 @@ pub async fn schedule_meeting_via_flow(
     start_iso: &str,
     end_iso: &str,
     organizer_email: Option<&str>,
+    attendees: &[String],
 ) -> AppResult<ScheduledMeeting> {
     let payload = serde_json::json!({
         "subject": subject,
         "start_time": start_iso,
         "end_time": end_iso,
         "organizer_email": organizer_email.unwrap_or_default(),
+        // Email addresses (internal or external) for the flow's Required
+        // Attendees field. Bind this array directly to that field in the
+        // "Create a Teams meeting" action — no per-item loop needed.
+        "attendees": attendees,
     });
 
     let resp = match http

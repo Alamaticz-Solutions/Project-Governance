@@ -18,6 +18,7 @@ export interface PocMeeting {
   start_time: string | null;
   end_time: string | null;
   organizer_email: string | null;
+  attendees: string[];
   external_ref: string | null;
   join_url: string | null;
   transcript_text: string | null;
@@ -42,6 +43,7 @@ export const teamsPocApi = {
     start_time: string;
     end_time: string;
     organizer_email?: string;
+    attendees?: string[];
   }) => apiRequest<PocMeeting>("/teams-poc/meetings", { method: "POST", body: payload }),
   ingestTranscript: (id: string, vttText: string) =>
     apiRequest<PocMeeting>(`/teams-poc/meetings/${id}/ingest-transcript`, {

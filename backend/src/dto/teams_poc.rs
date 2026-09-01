@@ -12,6 +12,11 @@ pub struct ScheduleMeetingRequest {
     pub end_time: String,
     /// Stored on the record; also forwarded to the Power Automate scheduling flow.
     pub organizer_email: Option<String>,
+    /// Email addresses (internal or external) to invite. Forwarded to the
+    /// flow's Required Attendees field; each gets the native Outlook meeting
+    /// invite automatically.
+    #[serde(default)]
+    pub attendees: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -45,6 +50,7 @@ pub struct MeetingResponse {
     pub start_time: Option<String>,
     pub end_time: Option<String>,
     pub organizer_email: Option<String>,
+    pub attendees: Value,
     pub external_ref: Option<String>,
     pub join_url: Option<String>,
     pub transcript_text: Option<String>,
@@ -71,6 +77,7 @@ impl From<poc_meetings::Model> for MeetingResponse {
             start_time: m.start_time.map(|d| d.to_rfc3339()),
             end_time: m.end_time.map(|d| d.to_rfc3339()),
             organizer_email: m.organizer_email,
+            attendees: m.attendees,
             external_ref: m.external_ref,
             join_url: m.join_url,
             transcript_text: m.transcript_text,

@@ -77,6 +77,7 @@ pub async fn schedule_meeting(
             &req.start_time,
             &req.end_time,
             req.organizer_email.as_deref(),
+            &req.attendees,
         )
         .await?;
         (
@@ -104,6 +105,7 @@ pub async fn schedule_meeting(
         start_time: Set(parse_dt(&req.start_time)),
         end_time: Set(parse_dt(&req.end_time)),
         organizer_email: Set(req.organizer_email.clone().filter(|s| !s.is_empty())),
+        attendees: Set(json!(req.attendees)),
         external_ref: Set(external_ref),
         join_url: Set(join_url),
         transcript_vtt: Set(None),
@@ -264,6 +266,7 @@ pub async fn ingest_by_ref(
                 start_time: Set(req.start_time.as_deref().and_then(parse_dt)),
                 end_time: Set(req.end_time.as_deref().and_then(parse_dt)),
                 organizer_email: Set(req.organizer_email.clone().filter(|s| !s.is_empty())),
+                attendees: Set(json!([])),
                 external_ref: Set(Some(meeting_ref.to_string())),
                 join_url: Set(None),
                 transcript_vtt: Set(None),

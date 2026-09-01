@@ -203,6 +203,19 @@ export function MeetingDetailPage() {
                 <span className="material-icons text-[16px]">videocam</span> Join link
               </a>
             ) : null}
+            {meeting.attendees.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="material-icons text-[14px] text-slate-500">group</span>
+                {meeting.attendees.map((email) => (
+                  <span
+                    key={email}
+                    className="text-[11px] font-medium text-slate-300 bg-slate-800 border border-white/10 rounded-full px-2.5 py-0.5"
+                  >
+                    {email}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex flex-col items-end gap-3 shrink-0">
             <span
