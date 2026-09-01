@@ -30,6 +30,19 @@ pub struct AppConfig {
 
     pub server_host: String,
     pub server_port: u16,
+
+    // --- Teams meeting + VTT (Power Automate route) ---
+    /// Power Automate flow "When a HTTP request is received" trigger URL. The
+    /// portal POSTs `{subject, start_time, end_time, organizer_email}`; the flow
+    /// creates the Teams meeting and returns `{join_url, meeting_ref}`. Blank →
+    /// the portal issues local-stub join links.
+    pub power_automate_schedule_url: String,
+    /// Shared secret required on `POST /teams-poc/ingest`, sent as `x-api-key`.
+    /// Blank → that endpoint is unauthenticated.
+    pub ingest_api_key: String,
+    /// When true, `POST /teams-poc/ingest` rejects a transcript whose
+    /// `meeting_ref` does not match an existing row.
+    pub ingest_reject_unknown: bool,
 }
 
 fn env_or(key: &str, default: &str) -> String {
@@ -82,6 +95,19 @@ impl AppConfig {
 
             server_host: env_or("SERVER_HOST", "0.0.0.0"),
             server_port: env_or("API_PORT", "8000").parse().unwrap_or(8000),
+
+            power_automate_schedule_url: env_or("POWER_AUTOMATE_SCHEDULE_URL", ""),
+            ingest_api_key: env_or("INGEST_API_KEY", ""),
+            ingest_reject_unknown: env_or("INGEST_REJECT_UNKNOWN", "false")
+                .parse()
+                .unwrap_or(false),
         }
+    }
+}
+
+impl AppConfig {
+    /// True when a Power Automate scheduling flow URL is configured.
+    pub fn schedule_via_flow(&self) -> bool {
+        !self.power_automate_schedule_url.is_empty()
     }
 }
