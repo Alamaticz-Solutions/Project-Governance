@@ -43,6 +43,13 @@ const STATUS_STYLE: Record<PocMeeting["status"], string> = {
   failed: "bg-rose-500/20 text-rose-300 border-rose-400/30",
 };
 
+const SOURCE_LABEL: Record<PocMeeting["source"], string> = {
+  local_stub: "Local stub",
+  flow_scheduled: "Scheduled via Flow",
+  flow_ingest: "Ingested via Flow",
+  manual_ingest: "Manual ingest",
+};
+
 export function MeetingCenterPage() {
   const [meetings, setMeetings] = useState<PocMeeting[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -63,6 +70,7 @@ export function MeetingCenterPage() {
   // transcript ingest
   const [vtt, setVtt] = useState(SAMPLE_VTT);
   const [ingesting, setIngesting] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const active = useMemo(
     () => meetings.find((m) => m.id === activeId) ?? null,
@@ -133,6 +141,26 @@ export function MeetingCenterPage() {
       setError(err instanceof ApiError ? err.message : "Failed to ingest transcript");
     } finally {
       setIngesting(false);
+    }
+  }
+
+  async function removeMeeting(id: string, subject: string) {
+    if (!window.confirm(`Remove "${subject}"? This deletes the meeting record and any AI results. This does not cancel the meeting in Teams.`)) {
+      return;
+    }
+    setRemovingId(id);
+    setError(null);
+    try {
+      await teamsPocApi.remove(id);
+      setMeetings((prev) => {
+        const next = prev.filter((m) => m.id !== id);
+        setActiveId((cur) => (cur === id ? next[0]?.id ?? null : cur));
+        return next;
+      });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to remove meeting");
+    } finally {
+      setRemovingId(null);
     }
   }
 
@@ -270,17 +298,31 @@ export function MeetingCenterPage() {
               <div className="space-y-3">
                 {meetings.map((meeting) => {
                   const isActive = activeId === meeting.id;
+                  const isRemoving = removingId === meeting.id;
                   return (
                     <div
                       key={meeting.id}
                       onClick={() => setActiveId(meeting.id)}
-                      className={`p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${
+                      className={`group relative p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${
                         isActive
                           ? "bg-indigo-500/20 border-indigo-400/50"
                           : "bg-slate-800 border-white/5 hover:border-indigo-400/30"
-                      }`}
+                      } ${isRemoving ? "opacity-40 pointer-events-none" : ""}`}
                     >
-                      <div className="flex justify-between items-start mb-2 gap-2">
+                      <button
+                        type="button"
+                        title={meeting.status === "scheduled" ? "Cancel meeting" : "Remove meeting"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void removeMeeting(meeting.id, meeting.subject);
+                        }}
+                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-slate-500 hover:text-rose-400 p-1 rounded-md hover:bg-rose-500/10"
+                      >
+                        <span className="material-icons text-[16px]">
+                          {meeting.status === "scheduled" ? "event_busy" : "delete_outline"}
+                        </span>
+                      </button>
+                      <div className="flex justify-between items-start mb-2 gap-2 pr-6">
                         <span
                           className={`text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded border ${STATUS_STYLE[meeting.status]}`}
                         >
@@ -290,10 +332,10 @@ export function MeetingCenterPage() {
                           {fmtDateTime(meeting.start_time ?? meeting.created_at)}
                         </span>
                       </div>
-                      <h4 className="font-bold text-white text-sm mb-1 leading-snug line-clamp-2">
+                      <h4 className="font-bold text-white text-sm mb-1 leading-snug line-clamp-2 pr-4" title={meeting.subject}>
                         {meeting.subject}
                       </h4>
-                      <p className="text-xs text-slate-400">{meeting.source}</p>
+                      <p className="text-xs text-slate-400">{SOURCE_LABEL[meeting.source]}</p>
                     </div>
                   );
                 })}
@@ -318,10 +360,10 @@ export function MeetingCenterPage() {
                       {fmtDateTime(active.start_time)}
                     </span>
                     <span className="flex items-center gap-1">
-                      <span className="material-icons text-[14px]">bolt</span> {active.source}
+                      <span className="material-icons text-[14px]">bolt</span> {SOURCE_LABEL[active.source]}
                     </span>
                     {active.external_ref && (
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-1" title={active.external_ref}>
                         <span className="material-icons text-[14px]">tag</span>
                         {active.external_ref.slice(0, 24)}…
                       </span>
@@ -338,11 +380,24 @@ export function MeetingCenterPage() {
                     </a>
                   )}
                 </div>
-                <span
-                  className={`text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded border ${STATUS_STYLE[active.status]}`}
-                >
-                  {active.status}
-                </span>
+                <div className="flex flex-col items-end gap-2">
+                  <span
+                    className={`text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded border ${STATUS_STYLE[active.status]}`}
+                  >
+                    {active.status}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={removingId === active.id}
+                    onClick={() => void removeMeeting(active.id, active.subject)}
+                    className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-rose-400 disabled:opacity-40 transition-colors"
+                  >
+                    <span className="material-icons text-[15px]">
+                      {active.status === "scheduled" ? "event_busy" : "delete_outline"}
+                    </span>
+                    {active.status === "scheduled" ? "Cancel" : "Remove"}
+                  </button>
+                </div>
               </div>
               {active.error_message && (
                 <p className="text-sm text-rose-300 bg-rose-500/10 border border-rose-400/20 rounded-lg px-3 py-2">

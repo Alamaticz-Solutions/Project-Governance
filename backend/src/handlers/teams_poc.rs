@@ -13,7 +13,7 @@
 
 use axum::{
     extract::{Path, State},
-    http::HeaderMap,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use sea_orm::{
@@ -146,6 +146,24 @@ pub async fn get_meeting(
     Ok(Json(row.into()))
 }
 
+// ── DELETE /teams-poc/meetings/:id ──────────────────────────────────────────
+// Cancels/removes a meeting record (any status) from the portal. This only
+// deletes the local POC row — it does not cancel the underlying Teams
+// meeting, which is out of scope for this proof of concept.
+pub async fn delete_meeting(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<StatusCode> {
+    let row = poc_meetings::Entity::find_by_id(id)
+        .one(&state.db)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Meeting not found".to_string()))?;
+    poc_meetings::Entity::delete_by_id(row.id)
+        .exec(&state.db)
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 // ── POST /teams-poc/meetings/:id/ingest-transcript ──────────────────────────
 // By row id — used by the portal UI (paste / upload) and by a flow that
 // scheduled the meeting through the portal (it has the id).
@@ -200,11 +218,10 @@ pub async fn ingest_by_ref(
             let id = Uuid::new_v4();
             poc_meetings::ActiveModel {
                 id: Set(id),
-                subject: Set(req
-                    .subject
-                    .clone()
-                    .filter(|s| !s.is_empty())
-                    .unwrap_or_else(|| format!("Ingested Teams meeting {meeting_ref}"))),
+                subject: Set(req.subject.clone().filter(|s| !s.is_empty()).unwrap_or_else(|| {
+                    let short_ref: String = meeting_ref.chars().take(10).collect();
+                    format!("Ingested Teams meeting ({short_ref}…)")
+                })),
                 source: Set("flow_ingest".to_string()),
                 status: Set("scheduled".to_string()),
                 start_time: Set(req.start_time.as_deref().and_then(parse_dt)),

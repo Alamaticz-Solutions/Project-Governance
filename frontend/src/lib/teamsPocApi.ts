@@ -48,4 +48,6 @@ export const teamsPocApi = {
       method: "POST",
       body: { vtt_text: vttText },
     }),
+  remove: (id: string) =>
+    apiRequest<void>(`/teams-poc/meetings/${id}`, { method: "DELETE" }),
 };
