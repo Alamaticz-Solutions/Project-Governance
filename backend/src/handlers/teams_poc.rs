@@ -146,10 +146,47 @@ pub async fn get_meeting(
     Ok(Json(row.into()))
 }
 
+// ── POST /teams-poc/meetings/:id/cancel ─────────────────────────────────────
+// Only allowed while status is `scheduled` and the meeting's start time
+// hasn't passed yet. Marks the row `cancelled` and clears `join_url` so the
+// link can no longer be used — the row itself is kept (use DELETE to remove
+// it). This only affects the local POC record; it does not cancel the
+// underlying Teams meeting/Power Automate flow.
+pub async fn cancel_meeting(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<MeetingResponse>> {
+    let row = poc_meetings::Entity::find_by_id(id)
+        .one(&state.db)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Meeting not found".to_string()))?;
+
+    if row.status != "scheduled" {
+        return Err(AppError::BadRequest(format!(
+            "Cannot cancel a meeting in '{}' status.",
+            row.status
+        )));
+    }
+    if let Some(start) = row.start_time {
+        if start <= now() {
+            return Err(AppError::BadRequest(
+                "Cannot cancel — the scheduled start time has already passed.".to_string(),
+            ));
+        }
+    }
+
+    let mut model: poc_meetings::ActiveModel = row.into();
+    model.status = Set("cancelled".to_string());
+    model.join_url = Set(None);
+    model.updated_at = Set(Some(now()));
+    let updated = model.update(&state.db).await?;
+    Ok(Json(updated.into()))
+}
+
 // ── DELETE /teams-poc/meetings/:id ──────────────────────────────────────────
-// Cancels/removes a meeting record (any status) from the portal. This only
-// deletes the local POC row — it does not cancel the underlying Teams
-// meeting, which is out of scope for this proof of concept.
+// Removes a meeting record (any status) from the portal. This only deletes
+// the local POC row — it does not cancel the underlying Teams meeting, which
+// is out of scope for this proof of concept.
 pub async fn delete_meeting(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,

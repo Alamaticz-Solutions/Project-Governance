@@ -14,7 +14,7 @@ export interface PocMeeting {
   id: string;
   subject: string;
   source: "local_stub" | "flow_scheduled" | "flow_ingest" | "manual_ingest";
-  status: "scheduled" | "processing" | "completed" | "failed";
+  status: "scheduled" | "processing" | "completed" | "failed" | "cancelled";
   start_time: string | null;
   end_time: string | null;
   organizer_email: string | null;
@@ -50,4 +50,6 @@ export const teamsPocApi = {
     }),
   remove: (id: string) =>
     apiRequest<void>(`/teams-poc/meetings/${id}`, { method: "DELETE" }),
+  cancel: (id: string) =>
+    apiRequest<PocMeeting>(`/teams-poc/meetings/${id}/cancel`, { method: "POST" }),
 };

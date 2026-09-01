@@ -79,6 +79,10 @@ pub fn build_router(state: AppState) -> Router {
             get(handlers::teams_poc::get_meeting).delete(handlers::teams_poc::delete_meeting),
         )
         .route(
+            "/teams-poc/meetings/:id/cancel",
+            post(handlers::teams_poc::cancel_meeting),
+        )
+        .route(
             "/teams-poc/meetings/:id/ingest-transcript",
             post(handlers::teams_poc::ingest_transcript),
         )
