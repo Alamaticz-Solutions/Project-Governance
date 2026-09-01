@@ -177,7 +177,7 @@ export function ProjectListPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((p, idx) => {
+                  {filtered.map((p) => {
                     const progress = p.status === 'completed' ? 100 : (p.status === 'active' ? 45 : 10);
                     const progressGrad = progress < 30 ? 'linear-gradient(90deg,#EF4444,#DC2626)' : progress < 70 ? 'linear-gradient(90deg,#4F46E5,#7C3AED)' : 'linear-gradient(90deg,#059669,#047857)';
                     const pStyle = getPriorityStyle(p.priority);

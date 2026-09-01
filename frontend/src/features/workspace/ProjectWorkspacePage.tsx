@@ -7,7 +7,7 @@ import { FinanceReviewForm } from "./forms/FinanceReviewForm";
 import { EacReviewForm } from "./forms/EacReviewForm";
 import { PicReviewForm } from "./forms/PicReviewForm";
 import { ConfirmationScreen } from "../../shared/components/ConfirmationScreen";
-import { MeetingDetail, MeetingCard } from "../../shared/components/MeetingDetail";
+import type { MeetingCard } from "../../shared/components/MeetingDetail";
 
 export function ProjectWorkspacePage() {
   const { id } = useParams();

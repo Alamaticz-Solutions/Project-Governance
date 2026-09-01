@@ -19,9 +19,11 @@ dedicated account" and "only our meetings?" answers. The Graph alternative
 (`TEAMS_GRAPH_API_MICROSOFT_ADMIN_HANDOFF.md`) is retained but its backend code
 was removed.
 
-It is deliberately **self-contained**: a standalone `poc_meetings` table, a
-`/teams-poc/*` route group, and one React page (`/teams-poc`). Nothing in the
-governance schema is touched.
+It is deliberately **self-contained** on the backend: a standalone
+`poc_meetings` table and a `/teams-poc/*` route group. Nothing in the
+governance schema is touched. On the frontend the capability lives in the
+existing **Meeting Center** page (`/meeting-center`) — there is no separate
+POC page.
 
 ## What was added
 
@@ -41,8 +43,7 @@ governance schema is touched.
 | File | Purpose |
 |---|---|
 | `src/lib/teamsPocApi.ts` | typed API client |
-| `src/features/teams-poc/TeamsPocPage.tsx` | the POC page |
-| `src/app/App.tsx`, `src/components/layout/Sidebar.tsx` | route + nav entry |
+| `src/features/meeting-center/MeetingCenterPage.tsx` | schedule form, meeting list, VTT ingest, AI results — wired to `teamsPocApi` (Dev's dark design kept) |
 
 ## Endpoints (all under `/api/v1`, unauthenticated except where noted)
 
@@ -68,8 +69,8 @@ cargo run
 cd ../frontend && npm i && npm run dev
 ```
 
-Open `http://localhost:5173/teams-poc`:
-- **Schedule a meeting** → placeholder `teams.microsoft.com/l/meetup-join/POC-…` link.
+Open `http://localhost:5173/meeting-center`:
+- **Schedule Meeting** → placeholder `teams.microsoft.com/l/meetup-join/POC-…` link.
 - Paste / upload a `.vtt` (a sample is pre-filled) → **Process transcript** →
   summary, decisions, action items, agenda, BPMN status render.
 

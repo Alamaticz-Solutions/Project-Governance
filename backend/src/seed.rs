@@ -1,5 +1,8 @@
 use chrono::Utc;
-use sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
+    QueryFilter,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -60,15 +63,27 @@ pub async fn seed_demo_users(db: &DatabaseConnection) -> anyhow::Result<()> {
 }
 
 pub async fn seed_workflow_definitions(db: &DatabaseConnection) -> anyhow::Result<()> {
-    // Check if the workflow already exists
+    // Check if the workflow already exists — and that it actually has its
+    // stage rows. A previous run could have inserted the parent definition
+    // and then failed partway through the (non-transactional) stage loop,
+    // leaving a headless definition that would otherwise be skipped forever.
     let existing = workflow_definitions::Entity::find()
         .filter(workflow_definitions::Column::Name.eq("Standard Project Lifecycle v2"))
         .one(db)
         .await?;
 
-    if existing.is_some() {
-        tracing::info!("Workflow definition already seeded.");
-        return Ok(());
+    if let Some(wf) = existing {
+        let stage_count = workflow_stage_definitions::Entity::find()
+            .filter(workflow_stage_definitions::Column::WorkflowId.eq(wf.id))
+            .count(db)
+            .await?;
+        if stage_count > 0 {
+            tracing::info!("Workflow definition already seeded.");
+            return Ok(());
+        }
+        tracing::warn!("Found a workflow definition with no stages — re-seeding.");
+        // FK is ON DELETE CASCADE, so this also clears any partial stages.
+        workflow_definitions::Entity::delete_by_id(wf.id).exec(db).await?;
     }
 
     let workflow_id = Uuid::new_v4();

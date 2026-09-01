@@ -11,12 +11,8 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
-    // Relaxed: origin/Dev ships several half-wired feature scaffolds
-    // (EacReviewForm risk section, MeetingDetail) with unused locals that
-    // otherwise fail `tsc --noEmit` in `npm run build`. Flip back to true
-    // once those are finished or removed.
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {

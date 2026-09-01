@@ -134,7 +134,7 @@ connection in as yourself).
   the meeting `id`, or the join URL itself. It just has to match what Flow B
   will send.)
 
-Test: in the portal `/teams-poc` page, **Schedule a meeting**. The row should
+Test: in the portal's **Meeting Center** page, **Schedule Meeting**. The row should
 show `source: flow_scheduled` and a real **Join link**. If it shows an
 `error_message`, open the flow run history — the message is the flow's response
 verbatim.
