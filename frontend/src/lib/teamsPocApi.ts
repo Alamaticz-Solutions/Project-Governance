@@ -13,12 +13,12 @@ export interface PocAgendaItem {
 export interface PocMeeting {
   id: string;
   subject: string;
-  source: "local_stub" | "graph_scheduled" | "teams_auto" | "manual_ingest";
+  source: "local_stub" | "flow_scheduled" | "flow_ingest" | "manual_ingest";
   status: "scheduled" | "processing" | "completed" | "failed";
   start_time: string | null;
   end_time: string | null;
   organizer_email: string | null;
-  graph_online_meeting_id: string | null;
+  external_ref: string | null;
   join_url: string | null;
   transcript_text: string | null;
   summary: string | null;
@@ -41,7 +41,6 @@ export const teamsPocApi = {
     subject: string;
     start_time: string;
     end_time: string;
-    organizer_id?: string;
     organizer_email?: string;
   }) => apiRequest<PocMeeting>("/teams-poc/meetings", { method: "POST", body: payload }),
   ingestTranscript: (id: string, vttText: string) =>
@@ -49,6 +48,4 @@ export const teamsPocApi = {
       method: "POST",
       body: { vtt_text: vttText },
     }),
-  renewSubscription: () =>
-    apiRequest<{ subscription: unknown }>("/teams-poc/subscriptions/renew", { method: "POST" }),
 };

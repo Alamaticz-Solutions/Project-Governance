@@ -83,12 +83,8 @@ pub fn build_router(state: AppState) -> Router {
             post(handlers::teams_poc::ingest_transcript),
         )
         .route(
-            "/teams-poc/subscriptions/renew",
-            post(handlers::teams_poc::renew_subscription),
-        )
-        .route(
-            "/teams-poc/webhooks/graph/transcripts",
-            post(handlers::teams_poc::graph_webhook),
+            "/teams-poc/ingest",
+            post(handlers::teams_poc::ingest_by_ref),
         );
 
     Router::new()

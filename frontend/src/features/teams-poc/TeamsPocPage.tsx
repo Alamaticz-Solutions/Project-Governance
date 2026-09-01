@@ -54,10 +54,8 @@ export function TeamsPocPage() {
   const [vtt, setVtt] = useState(SAMPLE_VTT);
   const [ingesting, setIngesting] = useState(false);
 
-  const [subResult, setSubResult] = useState<string | null>(null);
-
   const active = useMemo(() => meetings.find((m) => m.id === activeId) ?? null, [meetings, activeId]);
-  const graphMode = meetings.some((m) => m.source === "graph_scheduled" || m.source === "teams_auto");
+  const flowMode = meetings.some((m) => m.source === "flow_scheduled" || m.source === "flow_ingest");
 
   const refresh = useCallback(async () => {
     try {
@@ -134,16 +132,6 @@ export function TeamsPocPage() {
     e.target.value = "";
   }
 
-  async function renewSubscription() {
-    setSubResult(null);
-    try {
-      await teamsPocApi.renewSubscription();
-      setSubResult("Subscription created / renewed. Graph will POST transcript notifications to GRAPH_NOTIFICATION_URL.");
-    } catch (err) {
-      setSubResult(err instanceof ApiError ? err.message : "Failed to renew subscription");
-    }
-  }
-
   return (
     <div className="animate-fade-in">
       <div className="flex items-start justify-between mb-6">
@@ -153,36 +141,24 @@ export function TeamsPocPage() {
             Teams Meeting + VTT — POC
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Schedule a Teams meeting, then run a transcript end-to-end through the AI extraction pipeline.
+            Schedule a Teams meeting via Power Automate, then run its transcript end-to-end through the AI extraction pipeline.
           </p>
         </div>
-        <button
-          onClick={renewSubscription}
-          className="px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-slate-200 flex items-center gap-1.5"
-        >
-          <span className="material-icons text-[16px]">sync</span>
-          Renew Graph subscription
-        </button>
       </div>
 
       <div
         className={`mb-6 rounded-lg border px-4 py-3 text-sm ${
-          graphMode
+          flowMode
             ? "border-emerald-200 bg-emerald-50 text-emerald-800"
             : "border-amber-200 bg-amber-50 text-amber-800"
         }`}
       >
-        <strong>{graphMode ? "Graph mode" : "Local-stub mode"}.</strong>{" "}
-        {graphMode
-          ? "Meetings are created in Teams via Microsoft Graph; transcripts can auto-ingest via change notifications."
-          : "GRAPH_* env vars are unset — meetings get a placeholder join link. Paste or upload a .vtt below to run the full pipeline manually (this is also exactly what a Power Automate flow would POST)."}
+        <strong>{flowMode ? "Flow mode" : "Local-stub mode"}.</strong>{" "}
+        {flowMode
+          ? "Meetings are created in Teams by a Power Automate flow; transcripts arrive via POST /teams-poc/ingest."
+          : "POWER_AUTOMATE_SCHEDULE_URL is unset — meetings get a placeholder join link. Paste or upload a .vtt below to run the full pipeline manually (this is also exactly what a Power Automate flow would POST)."}
       </div>
 
-      {subResult && (
-        <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-          {subResult}
-        </div>
-      )}
       {error && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       )}
@@ -239,7 +215,7 @@ export function TeamsPocPage() {
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
                 value={organizerEmail}
                 onChange={(e) => setOrganizerEmail(e.target.value)}
-                placeholder="defaults to GRAPH_DEFAULT_ORGANIZER_EMAIL"
+                placeholder="shown on the meeting record; forwarded to the flow"
               />
             </label>
             <button
@@ -299,7 +275,7 @@ export function TeamsPocPage() {
                     <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-3">
                       <span>{active.source}</span>
                       {active.start_time && <span>{new Date(active.start_time).toLocaleString()}</span>}
-                      {active.graph_online_meeting_id && <span>Graph id: {active.graph_online_meeting_id.slice(0, 20)}…</span>}
+                      {active.external_ref && <span>Ref: {active.external_ref.slice(0, 24)}…</span>}
                     </div>
                     {active.join_url && (
                       <a

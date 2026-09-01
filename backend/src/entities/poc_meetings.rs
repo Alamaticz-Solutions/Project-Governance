@@ -10,7 +10,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub subject: String,
-    /// `local_stub` | `graph_scheduled` | `teams_auto` | `manual_ingest`
+    /// `local_stub` | `flow_scheduled` | `flow_ingest` | `manual_ingest`
     pub source: String,
     /// `scheduled` | `processing` | `completed` | `failed`
     pub status: String,
@@ -19,9 +19,9 @@ pub struct Model {
     pub end_time: Option<DateTimeWithTimeZone>,
     pub organizer_email: Option<String>,
 
-    pub graph_online_meeting_id: Option<String>,
-    pub graph_organizer_id: Option<String>,
-    pub graph_transcript_id: Option<String>,
+    /// Correlation key from the scheduling flow (Teams online-meeting id, join
+    /// URL, or any stable string) so a later transcript POST maps to this row.
+    pub external_ref: Option<String>,
     pub join_url: Option<String>,
 
     pub transcript_vtt: Option<String>,

@@ -1,28 +1,34 @@
-//! Teams meeting + VTT POC endpoints.
+//! Teams meeting + VTT POC endpoints — **Power Automate route** (no Graph).
 //!
-//! NOTE: these endpoints are intentionally **unauthenticated** for the POC —
-//! the V1 frontend currently runs on mock auth, and the Graph webhook is
-//! called by Microsoft (no bearer token). Wire `CurrentUser` back in when the
-//! POC is folded into the real app.
+//! * Scheduling: the portal POSTs to a Power Automate flow (`schedule_via_flow`)
+//!   which creates the Teams meeting and returns a join URL. Without a flow URL
+//!   configured, a local-stub link is issued so the pipeline is still demoable.
+//! * Transcript ingest: `POST /teams-poc/meetings/:id/ingest-transcript` (by
+//!   row id, used by the portal UI) and `POST /teams-poc/ingest` (by
+//!   `meeting_ref`, the endpoint a Power Automate transcript flow calls —
+//!   guarded by `INGEST_API_KEY` when set).
+//!
+//! These endpoints are otherwise unauthenticated (the V1 frontend is on mock
+//! auth). Wire `CurrentUser` back in when the POC folds into the real app.
 
 use axum::{
-    extract::{Path, Query, State},
-    http::StatusCode,
-    response::IntoResponse,
+    extract::{Path, State},
+    http::HeaderMap,
     Json,
 };
 use sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter, QueryOrder,
 };
-use serde_json::{json, Value};
-use std::collections::HashMap;
+use serde_json::json;
 use uuid::Uuid;
 
 use crate::{
-    dto::teams_poc::{IngestTranscriptRequest, MeetingResponse, ScheduleMeetingRequest},
+    dto::teams_poc::{
+        IngestByRefRequest, IngestTranscriptRequest, MeetingResponse, ScheduleMeetingRequest,
+    },
     entities::poc_meetings,
     error::{AppError, AppResult},
-    services::{graph_service, poc_meeting_service},
+    services::{poc_meeting_service, power_automate_service},
     state::AppState,
 };
 
@@ -34,6 +40,27 @@ fn now() -> chrono::DateTime<chrono::FixedOffset> {
     chrono::Utc::now().into()
 }
 
+/// Enforces `INGEST_API_KEY` (via the `x-api-key` header) when it is configured.
+/// A blank key means the endpoint is open — fine for a localhost-only backend.
+fn check_ingest_key(state: &AppState, headers: &HeaderMap) -> AppResult<()> {
+    let expected = state.config.ingest_api_key.trim();
+    if expected.is_empty() {
+        return Ok(());
+    }
+    let provided = headers
+        .get("x-api-key")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or_default()
+        .trim();
+    if provided == expected {
+        Ok(())
+    } else {
+        Err(AppError::Unauthorized(
+            "Missing or invalid x-api-key header.".to_string(),
+        ))
+    }
+}
+
 // ── POST /teams-poc/meetings ────────────────────────────────────────────────
 pub async fn schedule_meeting(
     State(state): State<AppState>,
@@ -42,42 +69,30 @@ pub async fn schedule_meeting(
     let id = Uuid::new_v4();
     let cfg = &state.config;
 
-    let (source, graph_meeting_id, graph_organizer_id, join_url) = if cfg.graph_configured() {
-        let organizer = req
-            .organizer_id
-            .clone()
-            .filter(|s| !s.is_empty())
-            .unwrap_or_else(|| cfg.graph_default_organizer_id.clone());
-        if organizer.is_empty() {
-            return Err(AppError::BadRequest(
-                "No organizer_id provided and GRAPH_DEFAULT_ORGANIZER_ID is unset.".to_string(),
-            ));
-        }
-        let created = graph_service::create_teams_meeting(
+    let (source, external_ref, join_url, error_message) = if cfg.schedule_via_flow() {
+        let scheduled = power_automate_service::schedule_meeting_via_flow(
             &state.http,
             cfg,
             &req.subject,
             &req.start_time,
             &req.end_time,
-            &organizer,
+            req.organizer_email.as_deref(),
         )
         .await?;
         (
-            "graph_scheduled".to_string(),
-            Some(created.online_meeting_id),
-            Some(created.organizer_id),
-            Some(created.join_url),
+            "flow_scheduled".to_string(),
+            scheduled.meeting_ref,
+            scheduled.join_url,
+            scheduled.error,
         )
     } else {
-        // No Azure tenant wired — still create a demoable meeting so the
-        // manual VTT-ingest flow can be exercised end to end.
+        // No scheduling flow wired — still create a demoable meeting so the
+        // VTT-ingest flow can be exercised end to end.
         (
             "local_stub".to_string(),
+            Some(id.to_string()),
+            Some(format!("https://teams.microsoft.com/l/meetup-join/POC-{id}")),
             None,
-            None,
-            Some(format!(
-                "https://teams.microsoft.com/l/meetup-join/POC-{id}"
-            )),
         )
     };
 
@@ -88,13 +103,8 @@ pub async fn schedule_meeting(
         status: Set("scheduled".to_string()),
         start_time: Set(parse_dt(&req.start_time)),
         end_time: Set(parse_dt(&req.end_time)),
-        organizer_email: Set(req
-            .organizer_email
-            .clone()
-            .or_else(|| Some(cfg.graph_default_organizer_email.clone()).filter(|s| !s.is_empty()))),
-        graph_online_meeting_id: Set(graph_meeting_id),
-        graph_organizer_id: Set(graph_organizer_id),
-        graph_transcript_id: Set(None),
+        organizer_email: Set(req.organizer_email.clone().filter(|s| !s.is_empty())),
+        external_ref: Set(external_ref),
         join_url: Set(join_url),
         transcript_vtt: Set(None),
         transcript_text: Set(None),
@@ -106,7 +116,7 @@ pub async fn schedule_meeting(
         process_name: Set(None),
         bpmn_xml: Set(None),
         bpmn_status: Set(None),
-        error_message: Set(None),
+        error_message: Set(error_message),
         created_at: Set(now()),
         updated_at: Set(None),
     };
@@ -137,121 +147,70 @@ pub async fn get_meeting(
 }
 
 // ── POST /teams-poc/meetings/:id/ingest-transcript ──────────────────────────
+// By row id — used by the portal UI (paste / upload) and by a flow that
+// scheduled the meeting through the portal (it has the id).
 pub async fn ingest_transcript(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(req): Json<IngestTranscriptRequest>,
 ) -> AppResult<Json<MeetingResponse>> {
-    let updated = poc_meeting_service::process_transcript(
-        &state.db,
-        &state.http,
-        &state.config,
-        id,
-        req.vtt_text,
-    )
-    .await?;
+    let updated =
+        poc_meeting_service::process_transcript(&state.db, &state.http, &state.config, id, req.vtt_text)
+            .await?;
     Ok(Json(updated.into()))
 }
 
-// ── POST /teams-poc/subscriptions/renew ─────────────────────────────────────
-pub async fn renew_subscription(State(state): State<AppState>) -> AppResult<Json<Value>> {
-    let body = graph_service::create_transcript_subscription(&state.http, &state.config).await?;
-    Ok(Json(json!({ "subscription": body })))
-}
-
-// ── POST /teams-poc/webhooks/graph/transcripts ─────────────────────────────
-// Handles both the Graph validation handshake (`?validationToken=...`, echo as
-// text/plain) and real `created` notifications.
-pub async fn graph_webhook(
+// ── POST /teams-poc/ingest ─────────────────────────────────────────────────
+// The endpoint a Power Automate transcript flow calls. Correlates by
+// `meeting_ref`; creates a row if none matches (unless INGEST_REJECT_UNKNOWN).
+// Idempotent: a ref already `processing`/`completed` is returned as-is rather
+// than reprocessed (so a flow retry after a slow response is harmless).
+pub async fn ingest_by_ref(
     State(state): State<AppState>,
-    Query(params): Query<HashMap<String, String>>,
-    body: String,
-) -> impl IntoResponse {
-    if let Some(token) = params.get("validationToken") {
-        return (StatusCode::OK, token.clone()).into_response();
+    headers: HeaderMap,
+    Json(req): Json<IngestByRefRequest>,
+) -> AppResult<Json<MeetingResponse>> {
+    check_ingest_key(&state, &headers)?;
+
+    let meeting_ref = req.meeting_ref.trim();
+    if meeting_ref.is_empty() {
+        return Err(AppError::BadRequest("meeting_ref is required.".to_string()));
     }
 
-    let payload: Value = match serde_json::from_str(&body) {
-        Ok(v) => v,
-        Err(_) => return (StatusCode::BAD_REQUEST, "invalid body").into_response(),
-    };
-
-    // Return 202 fast; process each notification. (POC does it inline — prod
-    // should enqueue.)
-    if let Some(items) = payload["value"].as_array() {
-        for item in items {
-            if item["clientState"].as_str() != Some(state.config.graph_webhook_client_state.as_str())
-            {
-                tracing::warn!("Graph webhook: clientState mismatch, ignoring notification");
-                continue;
-            }
-            if let Err(e) = handle_notification(&state, item).await {
-                tracing::error!(error = %e, "Graph webhook: failed to process notification");
-            }
-        }
-    }
-
-    (StatusCode::ACCEPTED, "").into_response()
-}
-
-async fn handle_notification(state: &AppState, item: &Value) -> AppResult<()> {
-    // resource looks like:
-    //   users/{organizerId}/onlineMeetings('{meetingId}')/transcripts('{transcriptId}')
-    let resource = item["resource"].as_str().unwrap_or_default();
-    let organizer_id = between(resource, "users/", "/onlineMeetings").unwrap_or_default();
-    let meeting_id = between(resource, "onlineMeetings('", "')").unwrap_or_default();
-    let transcript_id = between(resource, "transcripts('", "')").unwrap_or_default();
-
-    if organizer_id.is_empty() || meeting_id.is_empty() {
-        return Err(AppError::BadRequest(format!(
-            "Could not parse resource path: {resource}"
-        )));
-    }
-
-    let transcript_id = if transcript_id.is_empty() {
-        graph_service::latest_transcript_id(&state.http, &state.config, &organizer_id, &meeting_id)
-            .await?
-            .ok_or_else(|| AppError::NotFound("No transcript found for meeting".to_string()))?
-    } else {
-        transcript_id
-    };
-
-    let vtt = graph_service::fetch_transcript_vtt(
-        &state.http,
-        &state.config,
-        &organizer_id,
-        &meeting_id,
-        &transcript_id,
-    )
-    .await?;
-
-    // Correlate to an existing POC meeting, else create one (unlinked — a
-    // human would link it to a governance request in the real app).
     let existing = poc_meetings::Entity::find()
-        .filter(poc_meetings::Column::GraphOnlineMeetingId.eq(meeting_id.clone()))
+        .filter(poc_meetings::Column::ExternalRef.eq(meeting_ref))
         .one(&state.db)
         .await?;
 
     let row_id = match existing {
         Some(m) => {
-            let mut am: poc_meetings::ActiveModel = m.into();
-            am.graph_transcript_id = Set(Some(transcript_id.clone()));
-            am.updated_at = Set(Some(now()));
-            am.update(&state.db).await?.id
+            if matches!(m.status.as_str(), "processing" | "completed") {
+                // Already handled — flow retry / duplicate notification.
+                return Ok(Json(m.into()));
+            }
+            m.id
         }
         None => {
+            if state.config.ingest_reject_unknown {
+                return Err(AppError::NotFound(format!(
+                    "No meeting scheduled through the portal matches meeting_ref '{meeting_ref}' \
+                     (INGEST_REJECT_UNKNOWN is on)."
+                )));
+            }
             let id = Uuid::new_v4();
             poc_meetings::ActiveModel {
                 id: Set(id),
-                subject: Set(format!("Auto-ingested Teams meeting {meeting_id}")),
-                source: Set("teams_auto".to_string()),
+                subject: Set(req
+                    .subject
+                    .clone()
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or_else(|| format!("Ingested Teams meeting {meeting_ref}"))),
+                source: Set("flow_ingest".to_string()),
                 status: Set("scheduled".to_string()),
-                start_time: Set(None),
-                end_time: Set(None),
-                organizer_email: Set(None),
-                graph_online_meeting_id: Set(Some(meeting_id.clone())),
-                graph_organizer_id: Set(Some(organizer_id.clone())),
-                graph_transcript_id: Set(Some(transcript_id.clone())),
+                start_time: Set(req.start_time.as_deref().and_then(parse_dt)),
+                end_time: Set(req.end_time.as_deref().and_then(parse_dt)),
+                organizer_email: Set(req.organizer_email.clone().filter(|s| !s.is_empty())),
+                external_ref: Set(Some(meeting_ref.to_string())),
                 join_url: Set(None),
                 transcript_vtt: Set(None),
                 transcript_text: Set(None),
@@ -273,13 +232,13 @@ async fn handle_notification(state: &AppState, item: &Value) -> AppResult<()> {
         }
     };
 
-    poc_meeting_service::process_transcript(&state.db, &state.http, &state.config, row_id, vtt)
-        .await?;
-    Ok(())
-}
-
-fn between(haystack: &str, start: &str, end: &str) -> Option<String> {
-    let s = haystack.find(start)? + start.len();
-    let e = haystack[s..].find(end)? + s;
-    Some(haystack[s..e].to_string())
+    let updated = poc_meeting_service::process_transcript(
+        &state.db,
+        &state.http,
+        &state.config,
+        row_id,
+        req.vtt_text,
+    )
+    .await?;
+    Ok(Json(updated.into()))
 }

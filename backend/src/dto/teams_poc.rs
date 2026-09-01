@@ -10,8 +10,7 @@ pub struct ScheduleMeetingRequest {
     /// ISO-8601 (e.g. `2026-09-01T10:00:00Z`)
     pub start_time: String,
     pub end_time: String,
-    /// Overrides `GRAPH_DEFAULT_ORGANIZER_ID` when set.
-    pub organizer_id: Option<String>,
+    /// Stored on the record; also forwarded to the Power Automate scheduling flow.
     pub organizer_email: Option<String>,
 }
 
@@ -19,6 +18,22 @@ pub struct ScheduleMeetingRequest {
 pub struct IngestTranscriptRequest {
     /// Raw WebVTT (or plain text) transcript content.
     pub vtt_text: String,
+}
+
+/// Body for `POST /teams-poc/ingest` — the endpoint a Power Automate transcript
+/// flow calls. Correlates to an existing row by `meeting_ref`; if none matches
+/// it creates one (unless `INGEST_REJECT_UNKNOWN=true`).
+#[derive(Debug, Deserialize)]
+pub struct IngestByRefRequest {
+    /// The same value the scheduling flow returned as `meeting_ref` (Teams
+    /// online-meeting id, join URL, iCalUId — any stable key).
+    pub meeting_ref: String,
+    pub vtt_text: String,
+    /// Optional metadata used only when a new row has to be created.
+    pub subject: Option<String>,
+    pub start_time: Option<String>,
+    pub end_time: Option<String>,
+    pub organizer_email: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -30,7 +45,7 @@ pub struct MeetingResponse {
     pub start_time: Option<String>,
     pub end_time: Option<String>,
     pub organizer_email: Option<String>,
-    pub graph_online_meeting_id: Option<String>,
+    pub external_ref: Option<String>,
     pub join_url: Option<String>,
     pub transcript_text: Option<String>,
     pub summary: Option<String>,
@@ -56,7 +71,7 @@ impl From<poc_meetings::Model> for MeetingResponse {
             start_time: m.start_time.map(|d| d.to_rfc3339()),
             end_time: m.end_time.map(|d| d.to_rfc3339()),
             organizer_email: m.organizer_email,
-            graph_online_meeting_id: m.graph_online_meeting_id,
+            external_ref: m.external_ref,
             join_url: m.join_url,
             transcript_text: m.transcript_text,
             summary: m.summary,

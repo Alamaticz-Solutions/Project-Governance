@@ -1,3 +1,13 @@
+> ⚠️ **NOT THE CHOSEN ROUTE.** The POC now uses **Power Automate** for both
+> scheduling and transcript ingest — see `TEAMS_POWER_AUTOMATE_SETUP.md`. That
+> needs only one tenant-wide toggle, no app registration, and can run from a
+> personal account. This Graph document is retained as the alternative worth
+> revisiting if multi-organizer scheduling or a fully code-owned pipeline is
+> needed later. The backend code for this route has been removed (see
+> `git log -- backend/src/services/graph_service.rs`).
+
+---
+
 # Microsoft Teams + Graph API — Setup Handoff for the Microsoft 365 / Teams Administrator
 
 **Audience:** Microsoft 365 Global Administrator (or Cloud Application Administrator) **+** Teams Administrator.
