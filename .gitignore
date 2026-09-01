@@ -1,0 +1,9 @@
+venv/
+backend/__pycache__/
+*.pyc
+.env
+.DS_Store
+Test/
+*.zip
+scratch/
+env
