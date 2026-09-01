@@ -24,11 +24,18 @@ export function MeetingCenterPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
+  const [statusFilter, setStatusFilter] = useState<PocMeeting["status"] | "all">("all");
+
   const stats = useMemo(() => {
     const s = { total: meetings.length, scheduled: 0, processing: 0, completed: 0, failed: 0, cancelled: 0 };
     for (const m of meetings) s[m.status] += 1;
     return s;
   }, [meetings]);
+
+  const filteredMeetings = useMemo(
+    () => (statusFilter === "all" ? meetings : meetings.filter((m) => m.status === statusFilter)),
+    [meetings, statusFilter],
+  );
 
   const refresh = useCallback(async () => {
     try {
@@ -140,23 +147,46 @@ export function MeetingCenterPage() {
         </button>
       </div>
 
-      {/* Dashboard stat tiles */}
+      {/* Dashboard stat tiles — click to filter the grid below */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         {(
           [
-            ["total", "Total", "text-white"],
-            ["scheduled", "Scheduled", "text-slate-300"],
-            ["processing", "Processing", "text-amber-300"],
-            ["completed", "Completed", "text-emerald-300"],
-            ["failed", "Failed", "text-rose-300"],
+            ["total", "all", "Total", "text-white"],
+            ["scheduled", "scheduled", "Scheduled", "text-slate-300"],
+            ["processing", "processing", "Processing", "text-amber-300"],
+            ["completed", "completed", "Completed", "text-emerald-300"],
+            ["failed", "failed", "Failed", "text-rose-300"],
           ] as const
-        ).map(([key, label, color]) => (
-          <div key={key} className="bg-[#1e293b] rounded-xl border border-white/10 px-4 py-3">
-            <div className={`text-2xl font-extrabold ${color}`}>{stats[key]}</div>
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mt-0.5">{label}</div>
-          </div>
-        ))}
+        ).map(([key, filterValue, label, color]) => {
+          const isActive = statusFilter === filterValue;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setStatusFilter((cur) => (cur === filterValue ? "all" : filterValue))}
+              className={`text-left bg-[#1e293b] rounded-xl border px-4 py-3 transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                isActive ? "border-indigo-400/60 ring-1 ring-indigo-400/40" : "border-white/10 hover:border-indigo-400/30"
+              }`}
+            >
+              <div className={`text-2xl font-extrabold ${color}`}>{stats[key]}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mt-0.5">{label}</div>
+            </button>
+          );
+        })}
       </div>
+
+      {statusFilter !== "all" && (
+        <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-slate-400">
+          Filtering by <span className="text-white capitalize">{statusFilter}</span>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("all")}
+            className="text-blue-400 hover:underline"
+          >
+            Clear filter
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 rounded-lg border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
@@ -236,9 +266,18 @@ export function MeetingCenterPage() {
         <div className="bg-[#1e293b] rounded-2xl border border-white/10 p-10 text-center">
           <p className="text-sm text-slate-500">No meetings yet. Use "Schedule Meeting" to create one.</p>
         </div>
+      ) : filteredMeetings.length === 0 ? (
+        <div className="bg-[#1e293b] rounded-2xl border border-white/10 p-10 text-center">
+          <p className="text-sm text-slate-500">
+            No <span className="capitalize">{statusFilter}</span> meetings.{" "}
+            <button type="button" onClick={() => setStatusFilter("all")} className="text-blue-400 hover:underline">
+              Show all
+            </button>
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {meetings.map((meeting) => {
+          {filteredMeetings.map((meeting) => {
             const isRemoving = removingId === meeting.id;
             const isCancelling = cancellingId === meeting.id;
             const cancellable = isCancellable(meeting);
