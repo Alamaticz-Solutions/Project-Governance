@@ -68,13 +68,25 @@ export function MeetingCenterPage() {
 
   async function schedule(e: FormEvent) {
     e.preventDefault();
+
+    const start = new Date(`${date}T${startTime}:00`);
+    const end = new Date(`${date}T${endTime}:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      setError("Enter a valid date, start time, and end time.");
+      return;
+    }
+    if (end <= start) {
+      setError("End time must be after start time.");
+      return;
+    }
+
     setScheduling(true);
     setError(null);
     try {
       const created = await teamsPocApi.schedule({
         subject,
-        start_time: new Date(`${date}T${startTime}:00`).toISOString(),
-        end_time: new Date(`${date}T${endTime}:00`).toISOString(),
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
         organizer_email: organizerEmail || undefined,
         attendees: parseEmailList(attendeesInput),
       });
@@ -228,6 +240,7 @@ export function MeetingCenterPage() {
                 className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
+                required
               />
             </label>
             <label className="block text-xs font-semibold text-slate-400 flex-1">
@@ -237,6 +250,7 @@ export function MeetingCenterPage() {
                 className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
+                required
               />
             </label>
           </div>

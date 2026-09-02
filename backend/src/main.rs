@@ -13,6 +13,7 @@ mod state;
 mod graphql;
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use config::AppConfig;
 use migration::MigratorTrait;
@@ -36,13 +37,25 @@ async fn main() -> anyhow::Result<()> {
     seed::seed_demo_users(&db).await?;
     seed::seed_workflow_definitions(&db).await?;
 
+    // Recover POC meetings left stuck in `processing` by a prior crash/restart.
+    crate::services::poc_meeting_service::spawn_stuck_meeting_reaper(db.clone());
+
     let schema = graphql::build_schema();
     let s3 = crate::services::s3_service::S3Service::new(&config).await;
+
+    // Shared outbound HTTP client. Bounded so a hung upstream (OpenAI, the
+    // Power Automate flow) can never pin a request forever; individual call
+    // sites tighten this further where a shorter bound is appropriate.
+    let http = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(300))
+        .build()
+        .expect("failed to build HTTP client");
 
     let state = AppState {
         db,
         config: Arc::new(config.clone()),
-        http: reqwest::Client::new(),
+        http,
         schema,
         s3: Arc::new(s3),
     };

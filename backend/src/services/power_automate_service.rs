@@ -14,9 +14,17 @@
 //! `meeting_ref` is optional but recommended — it lets a later transcript
 //! POST correlate back to this row.
 
+use std::time::Duration;
+
 use serde_json::Value;
 
 use crate::{config::AppConfig, error::AppResult};
+
+/// Upper bound on the outbound call to the Power Automate flow. The Teams
+/// connector's "Create a Teams meeting" action can legitimately take a while,
+/// but a throttled/hung flow must not block the portal's schedule request
+/// indefinitely — a timeout here surfaces as a stored `error` the user retries.
+const FLOW_CALL_TIMEOUT_SECS: u64 = 30;
 
 pub struct ScheduledMeeting {
     pub join_url: Option<String>,
@@ -53,15 +61,23 @@ pub async fn schedule_meeting_via_flow(
     let resp = match http
         .post(&config.power_automate_schedule_url)
         .json(&payload)
+        .timeout(Duration::from_secs(FLOW_CALL_TIMEOUT_SECS))
         .send()
         .await
     {
         Ok(r) => r,
         Err(e) => {
+            let reason = if e.is_timeout() {
+                format!(
+                    "Power Automate scheduling flow did not respond within {FLOW_CALL_TIMEOUT_SECS}s"
+                )
+            } else {
+                format!("Could not reach the Power Automate scheduling flow: {e}")
+            };
             return Ok(ScheduledMeeting {
                 join_url: None,
                 meeting_ref: None,
-                error: Some(format!("Could not reach the Power Automate scheduling flow: {e}")),
+                error: Some(reason),
             });
         }
     };

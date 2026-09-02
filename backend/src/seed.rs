@@ -72,7 +72,14 @@ pub async fn seed_workflow_definitions(db: &DatabaseConnection) -> anyhow::Resul
         .one(db)
         .await?;
 
-    if let Some(wf) = existing {
+    // Reuse the existing definition row if there is one (adding only the
+    // missing stage rows) rather than deleting and recreating it. A delete
+    // would assume every FK to `workflow_definitions` cascades —
+    // `workflow_stage_definitions.workflow_id` does, but
+    // `workflow_instances.definition_id` does not, so on any DB where an
+    // instance already references this definition the delete raises a FK
+    // violation and aborts startup.
+    let workflow_id = if let Some(wf) = existing {
         let stage_count = workflow_stage_definitions::Entity::find()
             .filter(workflow_stage_definitions::Column::WorkflowId.eq(wf.id))
             .count(db)
@@ -81,21 +88,21 @@ pub async fn seed_workflow_definitions(db: &DatabaseConnection) -> anyhow::Resul
             tracing::info!("Workflow definition already seeded.");
             return Ok(());
         }
-        tracing::warn!("Found a workflow definition with no stages — re-seeding.");
-        // FK is ON DELETE CASCADE, so this also clears any partial stages.
-        workflow_definitions::Entity::delete_by_id(wf.id).exec(db).await?;
-    }
-
-    let workflow_id = Uuid::new_v4();
-    let workflow = workflow_definitions::ActiveModel {
-        id: Set(workflow_id),
-        name: Set("Standard Project Lifecycle v2".to_string()),
-        version: Set(Some(1)),
-        description: Set(Some("The 5-phase DAG process for project governance".to_string())),
-        is_active: Set(Some(true)),
-        ..Default::default()
+        tracing::warn!("Found a workflow definition with no stages — adding its stage rows.");
+        wf.id
+    } else {
+        let workflow_id = Uuid::new_v4();
+        let workflow = workflow_definitions::ActiveModel {
+            id: Set(workflow_id),
+            name: Set("Standard Project Lifecycle v2".to_string()),
+            version: Set(Some(1)),
+            description: Set(Some("The 5-phase DAG process for project governance".to_string())),
+            is_active: Set(Some(true)),
+            ..Default::default()
+        };
+        workflow.insert(db).await?;
+        workflow_id
     };
-    workflow.insert(db).await?;
 
     let phases = vec![
         ("Intake-BTA", "INTAKE_BTA", 1, "BTA Intake review", None),

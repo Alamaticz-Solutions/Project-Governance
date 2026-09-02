@@ -36,6 +36,26 @@ fn parse_dt(s: &str) -> Option<chrono::DateTime<chrono::FixedOffset>> {
     chrono::DateTime::parse_from_rfc3339(s).ok()
 }
 
+/// Parse a required RFC 3339 timestamp, turning a malformed value into a 400
+/// instead of silently storing NULL.
+fn require_dt(field: &str, s: &str) -> AppResult<chrono::DateTime<chrono::FixedOffset>> {
+    parse_dt(s).ok_or_else(|| {
+        AppError::BadRequest(format!("{field} is not a valid RFC 3339 timestamp: '{s}'"))
+    })
+}
+
+/// Parse an optional RFC 3339 timestamp. Absent/blank → `None` (allowed); a
+/// present-but-malformed value → 400 (the caller sent us bad data).
+fn optional_dt(
+    field: &str,
+    s: Option<&str>,
+) -> AppResult<Option<chrono::DateTime<chrono::FixedOffset>>> {
+    match s.map(str::trim).filter(|s| !s.is_empty()) {
+        Some(s) => Ok(Some(require_dt(field, s)?)),
+        None => Ok(None),
+    }
+}
+
 fn now() -> chrono::DateTime<chrono::FixedOffset> {
     chrono::Utc::now().into()
 }
@@ -68,6 +88,16 @@ pub async fn schedule_meeting(
 ) -> AppResult<Json<MeetingResponse>> {
     let id = Uuid::new_v4();
     let cfg = &state.config;
+
+    // Validate up front — don't create a Teams meeting for a bad request, and
+    // never persist an unparseable timestamp as NULL.
+    let start_dt = require_dt("start_time", &req.start_time)?;
+    let end_dt = require_dt("end_time", &req.end_time)?;
+    if end_dt <= start_dt {
+        return Err(AppError::BadRequest(
+            "end_time must be after start_time.".to_string(),
+        ));
+    }
 
     let (source, external_ref, join_url, error_message) = if cfg.schedule_via_flow() {
         let scheduled = power_automate_service::schedule_meeting_via_flow(
@@ -102,8 +132,8 @@ pub async fn schedule_meeting(
         subject: Set(req.subject.clone()),
         source: Set(source),
         status: Set("scheduled".to_string()),
-        start_time: Set(parse_dt(&req.start_time)),
-        end_time: Set(parse_dt(&req.end_time)),
+        start_time: Set(Some(start_dt)),
+        end_time: Set(Some(end_dt)),
         organizer_email: Set(req.organizer_email.clone().filter(|s| !s.is_empty())),
         attendees: Set(json!(req.attendees)),
         external_ref: Set(external_ref),
@@ -254,6 +284,16 @@ pub async fn ingest_by_ref(
                      (INGEST_REJECT_UNKNOWN is on)."
                 )));
             }
+            let start_time = optional_dt("start_time", req.start_time.as_deref())?;
+            let end_time = optional_dt("end_time", req.end_time.as_deref())?;
+            if let (Some(s), Some(e)) = (start_time, end_time) {
+                if e <= s {
+                    return Err(AppError::BadRequest(
+                        "end_time must be after start_time.".to_string(),
+                    ));
+                }
+            }
+
             let id = Uuid::new_v4();
             poc_meetings::ActiveModel {
                 id: Set(id),
@@ -263,8 +303,8 @@ pub async fn ingest_by_ref(
                 })),
                 source: Set("flow_ingest".to_string()),
                 status: Set("scheduled".to_string()),
-                start_time: Set(req.start_time.as_deref().and_then(parse_dt)),
-                end_time: Set(req.end_time.as_deref().and_then(parse_dt)),
+                start_time: Set(start_time),
+                end_time: Set(end_time),
                 organizer_email: Set(req.organizer_email.clone().filter(|s| !s.is_empty())),
                 attendees: Set(json!([])),
                 external_ref: Set(Some(meeting_ref.to_string())),
