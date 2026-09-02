@@ -149,7 +149,7 @@ export function MeetingCenterPage() {
             Enterprise Meeting Center
           </h1>
           <p className="text-sm font-medium text-slate-400 mt-1">
-            Schedule Teams meetings via Power Automate and run their transcripts through the AI pipeline.
+            Schedule Microsoft Teams meetings and run their transcripts through the AI pipeline.
           </p>
         </div>
         <button
@@ -260,7 +260,7 @@ export function MeetingCenterPage() {
               className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
               value={organizerEmail}
               onChange={(e) => setOrganizerEmail(e.target.value)}
-              placeholder="forwarded to the flow; shown on the record"
+              placeholder="display-only; the real organizer is the configured service mailbox"
             />
           </label>
           <label className="block text-xs font-semibold text-slate-400 md:col-span-2">

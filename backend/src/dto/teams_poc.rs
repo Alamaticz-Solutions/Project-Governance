@@ -10,11 +10,13 @@ pub struct ScheduleMeetingRequest {
     /// ISO-8601 (e.g. `2026-09-01T10:00:00Z`)
     pub start_time: String,
     pub end_time: String,
-    /// Stored on the record; also forwarded to the Power Automate scheduling flow.
+    /// Display-only metadata on the record. The real organizer is the
+    /// configured `GRAPH_ORGANIZER_USER_ID` mailbox; when omitted the record
+    /// shows that.
     pub organizer_email: Option<String>,
-    /// Email addresses (internal or external) to invite. Forwarded to the
-    /// flow's Required Attendees field; each gets the native Outlook meeting
-    /// invite automatically.
+    /// Email addresses (internal or external) to invite. Sent as required
+    /// attendees on the Graph calendar event; each gets the native Outlook
+    /// meeting invitation automatically.
     #[serde(default)]
     pub attendees: Vec<String>,
 }
@@ -23,22 +25,6 @@ pub struct ScheduleMeetingRequest {
 pub struct IngestTranscriptRequest {
     /// Raw WebVTT (or plain text) transcript content.
     pub vtt_text: String,
-}
-
-/// Body for `POST /teams-poc/ingest` — the endpoint a Power Automate transcript
-/// flow calls. Correlates to an existing row by `meeting_ref`; if none matches
-/// it creates one (unless `INGEST_REJECT_UNKNOWN=true`).
-#[derive(Debug, Deserialize)]
-pub struct IngestByRefRequest {
-    /// The same value the scheduling flow returned as `meeting_ref` (Teams
-    /// online-meeting id, join URL, iCalUId — any stable key).
-    pub meeting_ref: String,
-    pub vtt_text: String,
-    /// Optional metadata used only when a new row has to be created.
-    pub subject: Option<String>,
-    pub start_time: Option<String>,
-    pub end_time: Option<String>,
-    pub organizer_email: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

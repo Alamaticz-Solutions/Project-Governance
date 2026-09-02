@@ -31,18 +31,25 @@ pub struct AppConfig {
     pub server_host: String,
     pub server_port: u16,
 
-    // --- Teams meeting + VTT (Power Automate route) ---
-    /// Power Automate flow "When a HTTP request is received" trigger URL. The
-    /// portal POSTs `{subject, start_time, end_time, organizer_email}`; the flow
-    /// creates the Teams meeting and returns `{join_url, meeting_ref}`. Blank →
-    /// the portal issues local-stub join links.
-    pub power_automate_schedule_url: String,
-    /// Shared secret required on `POST /teams-poc/ingest`, sent as `x-api-key`.
-    /// Blank → that endpoint is unauthenticated.
-    pub ingest_api_key: String,
-    /// When true, `POST /teams-poc/ingest` rejects a transcript whose
-    /// `meeting_ref` does not match an existing row.
-    pub ingest_reject_unknown: bool,
+    // --- Microsoft Graph (Teams meetings + transcripts) ---
+    /// Entra tenant (directory) id.
+    pub graph_tenant_id: String,
+    /// Entra application (client) id of the registered portal app.
+    pub graph_client_id: String,
+    /// Client secret for the app registration. Secret store / `.env` only.
+    pub graph_client_secret: String,
+    /// Entra object id of the mailbox that hosts every portal-scheduled
+    /// meeting (the meeting organizer).
+    pub graph_organizer_user_id: String,
+    /// Public HTTPS base URL this backend is reachable at, for Graph change
+    /// notifications (dev: the ngrok URL; deployed: the Render URL).
+    pub graph_notification_base_url: String,
+    /// Shared secret echoed back in every Graph notification; mismatches are
+    /// dropped.
+    pub graph_notification_client_state: String,
+    /// Requested lifetime, in minutes, for the transcript subscription
+    /// (`communications/onlineMeetings/getAllTranscripts` allows ≤ ~4230).
+    pub graph_subscription_minutes: i64,
 }
 
 fn env_or(key: &str, default: &str) -> String {
@@ -100,18 +107,38 @@ impl AppConfig {
                 .parse()
                 .unwrap_or(8000),
 
-            power_automate_schedule_url: env_or("POWER_AUTOMATE_SCHEDULE_URL", ""),
-            ingest_api_key: env_or("INGEST_API_KEY", ""),
-            ingest_reject_unknown: env_or("INGEST_REJECT_UNKNOWN", "false")
+            graph_tenant_id: env_or("GRAPH_TENANT_ID", ""),
+            graph_client_id: env_or("GRAPH_CLIENT_ID", ""),
+            graph_client_secret: env_or("GRAPH_CLIENT_SECRET", ""),
+            graph_organizer_user_id: env_or("GRAPH_ORGANIZER_USER_ID", ""),
+            graph_notification_base_url: env_or("GRAPH_NOTIFICATION_BASE_URL", "")
+                .trim_end_matches('/')
+                .to_string(),
+            graph_notification_client_state: env_or("GRAPH_NOTIFICATION_CLIENT_STATE", ""),
+            graph_subscription_minutes: env_or("GRAPH_SUBSCRIPTION_MINUTES", "4230")
                 .parse()
-                .unwrap_or(false),
+                .unwrap_or(4230),
         }
     }
 }
 
 impl AppConfig {
-    /// True when a Power Automate scheduling flow URL is configured.
-    pub fn schedule_via_flow(&self) -> bool {
-        !self.power_automate_schedule_url.is_empty()
+    /// True when enough Microsoft Graph config is present to schedule meetings
+    /// and read transcripts via Graph. When false the portal falls back to
+    /// issuing local-stub join links so the pipeline stays demoable offline.
+    pub fn graph_enabled(&self) -> bool {
+        !self.graph_tenant_id.is_empty()
+            && !self.graph_client_id.is_empty()
+            && !self.graph_client_secret.is_empty()
+            && !self.graph_organizer_user_id.is_empty()
+    }
+
+    /// True when Graph change-notification subscriptions can be set up — needs
+    /// a publicly reachable callback URL and a client-state secret on top of
+    /// [`graph_enabled`](Self::graph_enabled).
+    pub fn graph_notifications_enabled(&self) -> bool {
+        self.graph_enabled()
+            && !self.graph_notification_base_url.is_empty()
+            && !self.graph_notification_client_state.is_empty()
     }
 }

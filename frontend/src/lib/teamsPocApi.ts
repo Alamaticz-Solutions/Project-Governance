@@ -13,7 +13,14 @@ export interface PocAgendaItem {
 export interface PocMeeting {
   id: string;
   subject: string;
-  source: "local_stub" | "flow_scheduled" | "flow_ingest" | "manual_ingest";
+  source:
+    | "local_stub"
+    | "graph_scheduled"
+    | "graph_ingest"
+    | "manual_ingest"
+    // legacy rows scheduled via the retired Power Automate flow
+    | "flow_scheduled"
+    | "flow_ingest";
   status: "scheduled" | "processing" | "completed" | "failed" | "cancelled";
   start_time: string | null;
   end_time: string | null;

@@ -22,10 +22,21 @@ pub struct Model {
     /// scheduling flow's Required Attendees field.
     pub attendees: Json,
 
-    /// Correlation key from the scheduling flow (Teams online-meeting id, join
-    /// URL, or any stable string) so a later transcript POST maps to this row.
+    /// Correlation key (mirrors `graph_online_meeting_id`) kept for display
+    /// continuity with earlier POC iterations.
     pub external_ref: Option<String>,
     pub join_url: Option<String>,
+
+    /// Calendar event id — used to cancel/delete the event in Graph.
+    pub graph_event_id: Option<String>,
+    /// The `MSo…` onlineMeeting id. Matches the `meetingId` carried by a
+    /// transcript change notification.
+    pub graph_online_meeting_id: Option<String>,
+    /// Entra object id of the mailbox that hosts this meeting.
+    pub graph_organizer_user_id: Option<String>,
+    /// Id of the transcript already processed for this row (idempotency aid
+    /// against duplicate notifications).
+    pub graph_transcript_id: Option<String>,
 
     pub transcript_vtt: Option<String>,
     pub transcript_text: Option<String>,

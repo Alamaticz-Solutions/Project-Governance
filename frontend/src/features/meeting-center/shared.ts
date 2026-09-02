@@ -29,15 +29,18 @@ export const STATUS_DOT: Record<PocMeeting["status"], string> = {
 
 export const SOURCE_LABEL: Record<PocMeeting["source"], string> = {
   local_stub: "Local stub",
+  graph_scheduled: "Scheduled via Teams",
+  graph_ingest: "Auto-captured transcript",
+  manual_ingest: "Manual ingest",
+  // legacy — retired Power Automate flow
   flow_scheduled: "Scheduled via Flow",
   flow_ingest: "Ingested via Flow",
-  manual_ingest: "Manual ingest",
 };
 
 /** A short, human-friendly code derived from the meeting's own id — for
- * display only. The raw `external_ref` (Teams/Outlook's opaque internal
- * item id) is still available via tooltip for anyone who needs it to
- * correlate with a Power Automate run. */
+ * display only. The raw `external_ref` (the Graph onlineMeeting id) is still
+ * available via tooltip for anyone who needs it to correlate with a Teams
+ * meeting or transcript. */
 export function friendlyMeetingCode(id: string): string {
   return `MTG-${id.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 }

@@ -28,3 +28,4 @@ pub mod workflow_instances;
 pub mod knowledge_documents;
 pub mod knowledge_chunks;
 pub mod poc_meetings;
+pub mod graph_subscriptions;
