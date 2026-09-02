@@ -117,14 +117,14 @@ pub async fn schedule_meeting_via_graph(
 }
 
 /// `GET /users/{organizer}/onlineMeetings?$filter=JoinWebUrl eq '{joinUrl}'`.
-/// Graph matches on the join URL **without** its `?context=…` query part.
+/// The filter must be the **exact** stored `joinWebUrl`, including its
+/// `?context=…` query part — stripping it yields a `BadRequest`.
 pub async fn resolve_online_meeting_id(
     graph: &GraphClient,
     organizer_id: &str,
     join_url: &str,
 ) -> AppResult<Option<String>> {
-    let base = join_url.split('?').next().unwrap_or(join_url);
-    let filter = format!("JoinWebUrl eq '{}'", base.replace('\'', "''"));
+    let filter = format!("JoinWebUrl eq '{}'", join_url.replace('\'', "''"));
     let path = format!("/users/{organizer_id}/onlineMeetings");
     let resp = graph.get_query(&path, &[("$filter", filter.as_str())]).await?;
     if !resp.status().is_success() {
