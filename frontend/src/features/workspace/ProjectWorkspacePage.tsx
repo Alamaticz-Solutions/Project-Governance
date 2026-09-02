@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router";
 import { projectsApi } from "../../lib/api";
 import { EpmoReviewForm } from "./forms/EpmoReviewForm";
@@ -14,7 +14,19 @@ export function ProjectWorkspacePage() {
   const [loading, setLoading] = useState(true);
   const [isSuccess, setIsSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState("Intake Forms");
-  
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Holds the LIVE form data from whichever review form is currently mounted
+  const activeFormDataRef = useRef<Record<string, unknown>>({});
+  const activeFormValidRef = useRef<boolean>(false);
+  const [, forceUpdate] = useState(0); // used to trigger re-render after ref changes
+
+  const handleFormChange = (data: Record<string, unknown>, isValid: boolean) => {
+    activeFormDataRef.current = data;
+    activeFormValidRef.current = isValid;
+    forceUpdate(n => n + 1);
+  };
+
   const [workspaceData, setWorkspaceData] = useState<any>({
     project_details: {
       id: id,
@@ -50,14 +62,14 @@ export function ProjectWorkspacePage() {
         date: "Aug 31, 2026",
         time: "10:00 AM - 11:30 AM",
         actions: [
-            { id: 1, text: "Verify licensing models with vendor", assignee: "Sarah Connor" },
-            { id: 2, text: "Check SLA compliance for new architecture", assignee: "Mike K." }
+          { id: 1, text: "Verify licensing models with vendor", assignee: "Sarah Connor" },
+          { id: 2, text: "Check SLA compliance for new architecture", assignee: "Mike K." }
         ],
         summary: "The committee reviewed the initial Intake Request. There was widespread agreement that the AI Agentic Implementation aligns strongly with the Q3 Objectives. We noted a dependency on the cloud infrastructure team and discussed budget constraints for year 2.",
         decisions: [
-            "Proceed with EPMO Review phase",
-            "Require Cloud Infrastructure sign-off before PIC",
-            "Set target deployment date to Q4"
+          "Proceed with EPMO Review phase",
+          "Require Cloud Infrastructure sign-off before PIC",
+          "Set target deployment date to Q4"
         ],
         containsProcessFlow: true,
         processName: "EPMO Intake Process",
@@ -132,6 +144,23 @@ export function ProjectWorkspacePage() {
     });
   }, [id]);
 
+  useEffect(() => {
+    if (activeTab === "Documents" && id) {
+      projectsApi.listDocuments(id).then((docs: any[]) => {
+        setWorkspaceData((prev: any) => ({
+          ...prev,
+          documents: docs.map((d: any) => ({
+            id: d.id,
+            name: d.filename,
+            author: "Automated Upload",
+            date: new Date(d.uploadedAt).toLocaleString(),
+            url: d.url
+          }))
+        }));
+      }).catch(console.error);
+    }
+  }, [activeTab, id]);
+
 
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,32 +188,43 @@ export function ProjectWorkspacePage() {
   };
 
   const submitAction = async (action: string) => {
+    if (action === "Approve") {
+      // Validate mandatory fields first
+      if (!activeFormValidRef.current) {
+        setSubmitError("Please complete all required fields in the form before approving.");
+        // Trigger the touched state on the EPMO form if visible
+        if ((window as any).__epmoMarkTouched) (window as any).__epmoMarkTouched();
+        return;
+      }
+    }
+    setSubmitError(null);
+
     if (window.confirm(`Are you sure you want to ${action} this proposal?`)) {
       if (action === "Approve" || action === "Reject") {
-          try {
-              const currentStage = workspaceData.workflow.current_stage;
-              // Doing a quick submit without form data since global button was clicked.
-              // A real app would get data from the Form Engine component ref if deeply integrating.
-              await projectsApi.submitDecision(
-                id!,
-                currentStage,
-                action,
-                `${currentStage} decision recorded via Global Dashboard Widget.`,
-                {}
-              );
-              
-              if (action === "Approve") {
-                  setIsSuccess(true);
-              } else {
-                  alert(`Project successfully marked as ${action}ed.`);
-                  // Optional: route back to team-inbox upon rejection
-              }
-          } catch (err: any) {
-              console.error(err);
-              alert(`Submit failed: ${err.message || "Unknown error"}`);
+        try {
+          const currentStage = workspaceData.workflow.current_stage;
+          const formData = action === "Approve" ? activeFormDataRef.current : {};
+          await projectsApi.submitDecision(
+            id!,
+            currentStage,
+            action,
+            action === "Reject"
+              ? `${currentStage} rejected via decision panel.`
+              : `${currentStage} approved with complete form data.`,
+            formData
+          );
+
+          if (action === "Approve") {
+            setIsSuccess(true);
+          } else {
+            alert(`Project successfully marked as ${action}ed.`);
           }
+        } catch (err: any) {
+          console.error(err);
+          alert(`Submit failed: ${err.message || "Unknown error"}`);
+        }
       } else {
-          alert(`Simulation Fallback: Recorded ${action}. No direct DB transition designed for this button.`);
+        alert(`Simulation Fallback: Recorded ${action}.`);
       }
     }
   };
@@ -196,7 +236,7 @@ export function ProjectWorkspacePage() {
     const isFinance = stage === "Finance Review";
     const isEac = stage === "EAC Review" || stage === "Prepare for EAC";
     const isPic = stage === "PIC Team" || stage === "Prepare for PIC";
-    
+
     let titlePrefix = isEpmo ? "EPMO" : (isBta ? "BTA" : (isFinance ? "Finance" : (isEac ? "EAC" : (isPic ? "PIC" : ""))));
     let nextStageStr = isEpmo ? "BTA Review" : (isBta ? "Finance Review" : (isFinance ? "Prepare for EAC" : (isEac ? "PIC Team" : (isPic ? "Completed" : ""))));
 
@@ -204,11 +244,11 @@ export function ProjectWorkspacePage() {
       <div
         className="min-h-[calc(100vh-64px)] w-full flex items-center justify-center p-6 bg-[#0f172a]"
       >
-         <ConfirmationScreen 
-            title={`${titlePrefix} Review Submitted!`} 
-            message="Your review has been successfully submitted." 
-            subMessage={`The project will now flow to the ${nextStageStr} stage in the pipeline.`}
-         />
+        <ConfirmationScreen
+          title={`${titlePrefix} Review Submitted!`}
+          message="Your review has been successfully submitted."
+          subMessage={`The project will now flow to the ${nextStageStr} stage in the pipeline.`}
+        />
       </div>
     );
   }
@@ -219,7 +259,7 @@ export function ProjectWorkspacePage() {
       style={{ background: "#0f172a", color: "#f8fafc" }}
     >
       <div className="absolute inset-0 z-0 pointer-events-none" style={{ background: "linear-gradient(to bottom right, #0f172a, #1e1b4b, #0f172a)" }}></div>
-      
+
       {loading ? (
         <div className="relative z-10 flex flex-1 items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-4">
@@ -238,16 +278,16 @@ export function ProjectWorkspacePage() {
           </div>
         </div>
       ) : (
-          <div className="relative z-10 max-w-[1600px] w-full mx-auto flex flex-col gap-6">
+        <div className="relative z-10 max-w-[1600px] w-full mx-auto flex flex-col gap-6">
           {/* ══ Main Workspace (Top Column) ══ */}
           <div className="w-full flex-col flex gap-4 min-w-0">
             {/* ── Premium Header Card ── */}
             <div
               className="rounded-2xl relative overflow-hidden"
               style={{
-                background: "rgba(30, 41, 59, 0.5)", 
-                backdropFilter: "blur(12px)", 
-                border: "1px solid rgba(255, 255, 255, 0.1)", 
+                background: "rgba(30, 41, 59, 0.5)",
+                backdropFilter: "blur(12px)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
                 boxShadow: "0 4px 24px rgba(0,0,0,0.2)"
               }}
             >
@@ -387,15 +427,15 @@ export function ProjectWorkspacePage() {
             <div className="animate-fade-in w-full min-h-[400px]">
               {activeTab === "Intake Forms" && (
                 workspaceData.workflow.current_stage === "EPMO Review" ? (
-                  <EpmoReviewForm projectId={id || ""} onSuccess={() => setIsSuccess(true)} />
+                  <EpmoReviewForm projectId={id || ""} onFormChange={handleFormChange} />
                 ) : workspaceData.workflow.current_stage === "BTA Review" ? (
-                  <BtaReviewForm projectId={id || ""} onSuccess={() => setIsSuccess(true)} />
+                  <BtaReviewForm projectId={id || ""} onFormChange={handleFormChange} />
                 ) : workspaceData.workflow.current_stage === "Finance Review" ? (
-                  <FinanceReviewForm projectId={id || ""} onSuccess={() => setIsSuccess(true)} />
+                  <FinanceReviewForm projectId={id || ""} onFormChange={handleFormChange} />
                 ) : (workspaceData.workflow.current_stage === "EAC Review" || workspaceData.workflow.current_stage === "Prepare for EAC") ? (
-                  <EacReviewForm projectId={id || ""} onSuccess={() => setIsSuccess(true)} />
+                  <EacReviewForm projectId={id || ""} onFormChange={handleFormChange} />
                 ) : (workspaceData.workflow.current_stage === "PIC Team" || workspaceData.workflow.current_stage === "Prepare for PIC") ? (
-                  <PicReviewForm projectId={id || ""} onSuccess={() => setIsSuccess(true)} />
+                  <PicReviewForm projectId={id || ""} onFormChange={handleFormChange} />
                 ) : (
                   <div className="p-10 text-center bg-[#1E293B] rounded-2xl border border-[rgba(255,255,255,0.08)]">
                     <span className="material-icons text-6xl text-slate-500 mb-4">description</span>
@@ -407,37 +447,45 @@ export function ProjectWorkspacePage() {
 
               {activeTab === "Documents" && (
                 <div className="p-10 text-center rounded-2xl border border-[rgba(255,255,255,0.05)] bg-[rgba(30,41,59,0.5)] flex flex-col items-center justify-center min-h-[300px]">
-                   <div style={{ background: "rgba(79,70,229,0.1)" }} className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 border border-[rgba(79,70,229,0.2)]">
-                      <span className="material-icons text-3xl" style={{ color: "#818CF8" }}>folder</span>
-                   </div>
-                   <h3 className="text-lg font-bold text-white mb-2">No documents uploaded yet</h3>
-                   <p className="text-sm text-slate-400 mb-6 max-w-md">Upload documents to attach them to this review.</p>
-                   <label className="cursor-pointer px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all shadow-lg hover:shadow-indigo-500/20" style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)" }}>
-                      Upload File
-                      <input type="file" multiple className="hidden" onChange={handleFileUpload} />
-                   </label>
-                   
-                   {workspaceData.documents.length > 0 && (
-                     <div className="w-full mt-10 text-left">
-                        <h4 className="text-white font-bold mb-4">Project Documents</h4>
-                        <div className="grid gap-3">
-                           {workspaceData.documents.map((doc: any, i: number) => (
-                              <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-[rgba(15,23,42,0.6)] border border-[rgba(255,255,255,0.05)]">
-                                <div className="flex items-center gap-3">
-                                   <span className="material-icons text-slate-400">insert_drive_file</span>
-                                   <div>
-                                     <p className="text-white text-sm font-bold">{doc.name}</p>
-                                     <p className="text-xs text-slate-400">Uploaded by {doc.author} • {doc.date}</p>
-                                   </div>
-                                </div>
-                                <button onClick={() => deleteDocument(i)} className="text-slate-400 hover:text-red-400 transition-colors">
-                                  <span className="material-icons text-[20px]">delete_outline</span>
-                                </button>
+                  <div style={{ background: "rgba(79,70,229,0.1)" }} className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 border border-[rgba(79,70,229,0.2)]">
+                    <span className="material-icons text-3xl" style={{ color: "#818CF8" }}>folder</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">No documents uploaded yet</h3>
+                  <p className="text-sm text-slate-400 mb-6 max-w-md">Upload documents to attach them to this review.</p>
+                  <label className="cursor-pointer px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all shadow-lg hover:shadow-indigo-500/20" style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)" }}>
+                    Upload File
+                    <input type="file" multiple className="hidden" onChange={handleFileUpload} />
+                  </label>
+
+                  {workspaceData.documents.length > 0 && (
+                    <div className="w-full mt-10 text-left">
+                      <h4 className="text-white font-bold mb-4">Project Documents</h4>
+                      <div className="grid gap-3">
+                        {workspaceData.documents.map((doc: any, i: number) => (
+                          <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-[rgba(15,23,42,0.6)] border border-[rgba(255,255,255,0.05)]">
+                            <div className="flex items-center gap-3">
+                              <span className="material-icons text-slate-400">insert_drive_file</span>
+                              <div>
+                                <p className="text-white text-sm font-bold">{doc.name}</p>
+                                <p className="text-xs text-slate-400">Uploaded by {doc.author} • {doc.date}</p>
                               </div>
-                           ))}
-                        </div>
-                     </div>
-                   )}
+                            </div>
+                            <div className="flex gap-2">
+                              {doc.url && (
+                                <>
+                                  <a href={doc.url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:text-indigo-300 transition-colors px-3 py-1.5 text-xs font-bold bg-indigo-500/10 rounded-lg flex items-center gap-1"><span className="material-icons text-[14px]">preview</span> Preview</a>
+                                  <a href={doc.url} download className="text-indigo-400 hover:text-indigo-300 transition-colors px-3 py-1.5 text-xs font-bold bg-indigo-500/10 rounded-lg flex items-center gap-1"><span className="material-icons text-[14px]">download</span> Download</a>
+                                </>
+                              )}
+                              <button onClick={() => deleteDocument(i)} className="text-slate-400 hover:text-red-400 transition-colors px-2 py-1.5 flex items-center">
+                                <span className="material-icons text-[20px]">delete_outline</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -445,7 +493,7 @@ export function ProjectWorkspacePage() {
                 <div className="rounded-2xl border border-[rgba(255,255,255,0.05)] bg-[rgba(30,41,59,0.5)] p-6">
                   <h3 className="text-white font-extrabold text-lg mb-1">Discussion Thread</h3>
                   <p className="text-slate-400 text-xs mb-6 font-semibold">{workspaceData.comments.length} messages in this review</p>
-                  
+
                   <div className="flex flex-col gap-6 mb-6">
                     {workspaceData.comments.map((comment: any, i: number) => (
                       <div key={i} className="flex gap-4">
@@ -453,134 +501,134 @@ export function ProjectWorkspacePage() {
                           {comment.initials}
                         </div>
                         <div className="flex-1">
-                           <div className="flex items-baseline gap-2 mb-1">
-                              <span className="text-white text-[13px] font-bold">{comment.author}</span>
-                              <span className="text-slate-500 text-[11px]">{comment.date}</span>
-                           </div>
-                           <div className="bg-[rgba(15,23,42,0.6)] border border-[rgba(255,255,255,0.05)] rounded-2xl rounded-tl-none p-4 text-sm text-slate-300">
-                              {comment.text}
-                           </div>
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <span className="text-white text-[13px] font-bold">{comment.author}</span>
+                            <span className="text-slate-500 text-[11px]">{comment.date}</span>
+                          </div>
+                          <div className="bg-[rgba(15,23,42,0.6)] border border-[rgba(255,255,255,0.05)] rounded-2xl rounded-tl-none p-4 text-sm text-slate-300">
+                            {comment.text}
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
 
                   <div className="flex gap-4 items-start relative mt-8">
-                     <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0" style={{ background: "rgba(255,255,255,0.1)", color: "white" }}>
-                       ME
-                     </div>
-                     <div className="flex-1 relative">
-                       <input type="text" placeholder="Add a comment... (Press Enter to post)" className="w-full bg-[rgba(15,23,42,0.6)] border border-[rgba(255,255,255,0.1)] rounded-xl py-3.5 px-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#818CF8]" />
-                       <button className="absolute right-2 top-1.5 bottom-1.5 px-4 bg-[#4F46E5] hover:bg-[#4338CA] transition-colors rounded-lg text-white font-bold text-[13px]">Post</button>
-                     </div>
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0" style={{ background: "rgba(255,255,255,0.1)", color: "white" }}>
+                      ME
+                    </div>
+                    <div className="flex-1 relative">
+                      <input type="text" placeholder="Add a comment... (Press Enter to post)" className="w-full bg-[rgba(15,23,42,0.6)] border border-[rgba(255,255,255,0.1)] rounded-xl py-3.5 px-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#818CF8]" />
+                      <button className="absolute right-2 top-1.5 bottom-1.5 px-4 bg-[#4F46E5] hover:bg-[#4338CA] transition-colors rounded-lg text-white font-bold text-[13px]">Post</button>
+                    </div>
                   </div>
                 </div>
               )}
 
               {activeTab === "Overview" && (
                 <div className="rounded-2xl border border-[rgba(255,255,255,0.05)] bg-[rgba(30,41,59,0.5)] p-10 flex flex-col items-center justify-center min-h-[300px]">
-                   <span className="material-icons text-5xl text-slate-500 mb-4">dashboard</span>
-                   <h3 className="text-white font-bold text-lg mb-2">Project Overview</h3>
-                   <p className="text-slate-400 text-sm">General project details and executive summary overview.</p>
+                  <span className="material-icons text-5xl text-slate-500 mb-4">dashboard</span>
+                  <h3 className="text-white font-bold text-lg mb-2">Project Overview</h3>
+                  <p className="text-slate-400 text-sm">General project details and executive summary overview.</p>
                 </div>
               )}
 
               {activeTab === "Meeting Center" && (
                 <div className="rounded-2xl border border-[rgba(255,255,255,0.05)] bg-[rgba(30,41,59,0.5)] p-6 min-h-[400px] flex flex-col">
-                   <div className="flex justify-between items-center mb-6">
-                      <div>
-                        <h3 className="text-white font-extrabold text-lg mb-1">Meeting Center</h3>
-                        <p className="text-slate-400 text-xs font-semibold">Meetings linked to this request • {workspaceData.linkedMeetings.length} linked</p>
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h3 className="text-white font-extrabold text-lg mb-1">Meeting Center</h3>
+                      <p className="text-slate-400 text-xs font-semibold">Meetings linked to this request • {workspaceData.linkedMeetings.length} linked</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[rgba(255,255,255,0.1)] text-white text-[13px] font-bold hover:bg-[rgba(255,255,255,0.05)] transition-colors">
+                        <span className="material-icons text-[16px]">upload_file</span>
+                        Upload recording (.vtt)
+                      </button>
+                      <div className="flex rounded-xl overflow-hidden border border-[rgba(99,102,241,0.5)]">
+                        <select className="bg-[rgba(15,23,42,0.8)] text-white text-[13px] px-3 py-2 border-r border-[rgba(99,102,241,0.3)] focus:outline-none appearance-none">
+                          <option>Or link an existing meeting</option>
+                        </select>
+                        <button className="bg-[rgba(79,70,229,0.15)] text-[#818CF8] hover:bg-[rgba(79,70,229,0.25)] transition-colors px-4 py-2 text-[13px] font-bold flex items-center gap-2">
+                          <span className="material-icons text-[16px]">link</span>
+                          Link
+                        </button>
                       </div>
-                      <div className="flex gap-3">
-                         <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[rgba(255,255,255,0.1)] text-white text-[13px] font-bold hover:bg-[rgba(255,255,255,0.05)] transition-colors">
-                           <span className="material-icons text-[16px]">upload_file</span>
-                           Upload recording (.vtt)
-                         </button>
-                         <div className="flex rounded-xl overflow-hidden border border-[rgba(99,102,241,0.5)]">
-                           <select className="bg-[rgba(15,23,42,0.8)] text-white text-[13px] px-3 py-2 border-r border-[rgba(99,102,241,0.3)] focus:outline-none appearance-none">
-                             <option>Or link an existing meeting</option>
-                           </select>
-                           <button className="bg-[rgba(79,70,229,0.15)] text-[#818CF8] hover:bg-[rgba(79,70,229,0.25)] transition-colors px-4 py-2 text-[13px] font-bold flex items-center gap-2">
-                              <span className="material-icons text-[16px]">link</span>
-                              Link
-                           </button>
-                         </div>
-                      </div>
-                   </div>
+                    </div>
+                  </div>
 
-                   {workspaceData.linkedMeetings.length === 0 ? (
-                     <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-[rgba(255,255,255,0.1)] rounded-xl bg-[rgba(15,23,42,0.3)] min-h-[200px]">
-                        <div className="w-12 h-12 rounded-xl bg-[rgba(79,70,229,0.1)] border border-[rgba(79,70,229,0.2)] flex items-center justify-center mb-3">
-                           <span className="material-icons text-[#818CF8]">videocam</span>
+                  {workspaceData.linkedMeetings.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-[rgba(255,255,255,0.1)] rounded-xl bg-[rgba(15,23,42,0.3)] min-h-[200px]">
+                      <div className="w-12 h-12 rounded-xl bg-[rgba(79,70,229,0.1)] border border-[rgba(79,70,229,0.2)] flex items-center justify-center mb-3">
+                        <span className="material-icons text-[#818CF8]">videocam</span>
+                      </div>
+                      <h4 className="text-white font-bold text-sm mb-1">No meetings linked to this request yet</h4>
+                      <p className="text-slate-400 text-xs">Link an existing meeting above, or upload a new one from the global Meeting Center and link it here.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-4">
+                      {workspaceData.linkedMeetings.map((meeting: any) => (
+                        <div key={meeting.id} className="p-4 rounded-xl border border-[rgba(255,255,255,0.05)] bg-[rgba(15,23,42,0.6)] flex justify-between items-center">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-[rgba(79,70,229,0.15)] flex items-center justify-center text-[#818CF8]">
+                              <span className="material-icons">event</span>
+                            </div>
+                            <div>
+                              <h4 className="text-white font-bold text-sm">{meeting.title}</h4>
+                              <p className="text-slate-400 text-xs">{meeting.date} • {meeting.time}</p>
+                            </div>
+                          </div>
+                          <button className="px-4 py-2 rounded-lg bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-white text-[12px] font-bold transition-colors">
+                            View Details
+                          </button>
                         </div>
-                        <h4 className="text-white font-bold text-sm mb-1">No meetings linked to this request yet</h4>
-                        <p className="text-slate-400 text-xs">Link an existing meeting above, or upload a new one from the global Meeting Center and link it here.</p>
-                     </div>
-                   ) : (
-                     <div className="flex flex-col gap-4">
-                        {workspaceData.linkedMeetings.map((meeting: any) => (
-                           <div key={meeting.id} className="p-4 rounded-xl border border-[rgba(255,255,255,0.05)] bg-[rgba(15,23,42,0.6)] flex justify-between items-center">
-                              <div className="flex items-center gap-4">
-                                 <div className="w-12 h-12 rounded-xl bg-[rgba(79,70,229,0.15)] flex items-center justify-center text-[#818CF8]">
-                                    <span className="material-icons">event</span>
-                                 </div>
-                                 <div>
-                                    <h4 className="text-white font-bold text-sm">{meeting.title}</h4>
-                                    <p className="text-slate-400 text-xs">{meeting.date} • {meeting.time}</p>
-                                 </div>
-                              </div>
-                              <button className="px-4 py-2 rounded-lg bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-white text-[12px] font-bold transition-colors">
-                                View Details
-                              </button>
-                           </div>
-                        ))}
-                     </div>
-                   )}
-                   
-                   <div className="grid grid-cols-2 gap-4 mt-6 mt-auto pt-6">
-                     <div className="p-4 rounded-xl border border-[rgba(255,255,255,0.05)] bg-[rgba(15,23,42,0.4)] flex justify-between items-center cursor-pointer hover:bg-[rgba(15,23,42,0.6)] transition-colors">
-                        <div className="flex items-center gap-3">
-                          <span className="material-icons text-[#34D399]">format_quote</span>
-                          <span className="text-white font-bold text-sm">Quote index</span>
-                        </div>
-                        <span className="material-icons text-slate-500">chevron_right</span>
-                     </div>
-                     <div className="p-4 rounded-xl border border-[rgba(255,255,255,0.05)] bg-[rgba(15,23,42,0.4)] flex justify-between items-center cursor-pointer hover:bg-[rgba(15,23,42,0.6)] transition-colors">
-                        <div className="flex items-center gap-3">
-                          <span className="material-icons text-[#F59E0B]">track_changes</span>
-                          <span className="text-white font-bold text-sm">Tracker</span>
-                        </div>
-                        <span className="material-icons text-slate-500">chevron_right</span>
-                     </div>
-                   </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4 mt-6 mt-auto pt-6">
+                    <div className="p-4 rounded-xl border border-[rgba(255,255,255,0.05)] bg-[rgba(15,23,42,0.4)] flex justify-between items-center cursor-pointer hover:bg-[rgba(15,23,42,0.6)] transition-colors">
+                      <div className="flex items-center gap-3">
+                        <span className="material-icons text-[#34D399]">format_quote</span>
+                        <span className="text-white font-bold text-sm">Quote index</span>
+                      </div>
+                      <span className="material-icons text-slate-500">chevron_right</span>
+                    </div>
+                    <div className="p-4 rounded-xl border border-[rgba(255,255,255,0.05)] bg-[rgba(15,23,42,0.4)] flex justify-between items-center cursor-pointer hover:bg-[rgba(15,23,42,0.6)] transition-colors">
+                      <div className="flex items-center gap-3">
+                        <span className="material-icons text-[#F59E0B]">track_changes</span>
+                        <span className="text-white font-bold text-sm">Tracker</span>
+                      </div>
+                      <span className="material-icons text-slate-500">chevron_right</span>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {activeTab === "Audit Trail" && (
                 <div className="rounded-2xl border border-[rgba(255,255,255,0.05)] bg-[rgba(30,41,59,0.5)] p-6">
-                   <h3 className="text-white font-extrabold text-lg mb-1">Action History</h3>
-                   <p className="text-slate-400 text-xs mb-8">Immutable audit trail — tamper-evident blockchain hashes</p>
-                   
-                   <div className="relative pl-4 border-l-2 border-[#1E293B] flex flex-col gap-8">
-                     {workspaceData.audit_logs.map((log: any, i: number) => (
-                        <div key={i} className="relative">
-                           <div className="absolute -left-[25px] w-5 h-5 rounded-full border-[3px] border-[#0f172a] flex items-center justify-center top-0" style={{ background: i === 0 ? "linear-gradient(135deg, #4F46E5, #7C3AED)" : "#1E293B" }}>
-                             {i === 0 && <span className="w-1.5 h-1.5 rounded-full bg-white"></span>}
-                           </div>
-                           <div className="bg-[rgba(15,23,42,0.6)] border border-[rgba(255,255,255,0.02)] rounded-xl p-4 ml-4">
-                              <p className="text-sm text-slate-300">
-                                <span className="text-white font-bold mr-1">{log.user}</span>
-                                {log.action}
-                              </p>
-                              <div className="flex items-center gap-3 mt-2">
-                                <span className="text-[10px] font-bold text-slate-500 uppercase">{log.timestamp}</span>
-                                <span className="text-[10px] bg-[rgba(79,70,229,0.1)] text-[#818CF8] px-2 py-0.5 rounded border border-[rgba(79,70,229,0.2)] font-mono">{log.hash}</span>
-                              </div>
-                           </div>
+                  <h3 className="text-white font-extrabold text-lg mb-1">Action History</h3>
+                  <p className="text-slate-400 text-xs mb-8">Immutable audit trail — tamper-evident blockchain hashes</p>
+
+                  <div className="relative pl-4 border-l-2 border-[#1E293B] flex flex-col gap-8">
+                    {workspaceData.audit_logs.map((log: any, i: number) => (
+                      <div key={i} className="relative">
+                        <div className="absolute -left-[25px] w-5 h-5 rounded-full border-[3px] border-[#0f172a] flex items-center justify-center top-0" style={{ background: i === 0 ? "linear-gradient(135deg, #4F46E5, #7C3AED)" : "#1E293B" }}>
+                          {i === 0 && <span className="w-1.5 h-1.5 rounded-full bg-white"></span>}
                         </div>
-                     ))}
-                   </div>
+                        <div className="bg-[rgba(15,23,42,0.6)] border border-[rgba(255,255,255,0.02)] rounded-xl p-4 ml-4">
+                          <p className="text-sm text-slate-300">
+                            <span className="text-white font-bold mr-1">{log.user}</span>
+                            {log.action}
+                          </p>
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase">{log.timestamp}</span>
+                            <span className="text-[10px] bg-[rgba(79,70,229,0.1)] text-[#818CF8] px-2 py-0.5 rounded border border-[rgba(79,70,229,0.2)] font-mono">{log.hash}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -758,6 +806,14 @@ export function ProjectWorkspacePage() {
                   Need More Information
                 </button>
               </div>
+
+              {/* Validation error shown when Approve clicked without complete form */}
+              {submitError && (
+                <div className="mt-3 flex items-start gap-2 p-3 rounded-xl border border-red-500/30 bg-red-500/10">
+                  <span className="material-icons text-red-400 text-[16px] mt-0.5 shrink-0">error_outline</span>
+                  <p className="text-[12px] font-bold text-red-400 leading-snug">{submitError}</p>
+                </div>
+              )}
             </div>
 
             {/* Approval Timeline Panel */}
@@ -789,15 +845,15 @@ export function ProjectWorkspacePage() {
                       style={
                         node.status === "Approved"
                           ? {
-                              background: "linear-gradient(135deg, #059669, #047857)",
-                              boxShadow: "0 0 0 3px rgba(5,150,105,0.15), 0 2px 8px rgba(5,150,105,0.3)",
-                            }
+                            background: "linear-gradient(135deg, #059669, #047857)",
+                            boxShadow: "0 0 0 3px rgba(5,150,105,0.15), 0 2px 8px rgba(5,150,105,0.3)",
+                          }
                           : node.status === "In Progress"
-                          ? {
+                            ? {
                               background: "linear-gradient(135deg, #4F46E5, #7C3AED)",
                               boxShadow: "0 0 0 4px rgba(79,70,229,0.15), 0 2px 8px rgba(79,70,229,0.35)",
                             }
-                          : { background: "white", border: "2px solid #E2E8F0" }
+                            : { background: "white", border: "2px solid #E2E8F0" }
                       }
                     >
                       {node.status === "Approved" && (
@@ -820,8 +876,8 @@ export function ProjectWorkspacePage() {
                             node.status === "In Progress"
                               ? "#F8FAFC"
                               : node.status === "Approved"
-                              ? "#94A3B8"
-                              : "#64748B",
+                                ? "#94A3B8"
+                                : "#64748B",
                         }}
                       >
                         {node.stage}
@@ -833,8 +889,8 @@ export function ProjectWorkspacePage() {
                             node.status === "Approved"
                               ? "#059669"
                               : node.status === "In Progress"
-                              ? "#4F46E5"
-                              : "#CBD5E1",
+                                ? "#4F46E5"
+                                : "#CBD5E1",
                         }}
                       >
                         {node.status}

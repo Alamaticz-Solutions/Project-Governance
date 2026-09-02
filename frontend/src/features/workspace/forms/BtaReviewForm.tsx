@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { projectsApi } from "../../../lib/api";
+import { AIPopulationDropzone } from "../components/AIPopulationDropzone";
 
 interface BtaReviewFormProps {
   projectId: string;
   onSuccess?: () => void;
+  onFormChange?: (data: any, isValid: boolean) => void;
 }
 
-export function BtaReviewForm({ projectId, onSuccess }: BtaReviewFormProps) {
+export function BtaReviewForm({ projectId, onSuccess, onFormChange }: BtaReviewFormProps) {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [isExtracting, setIsExtracting] = useState(false);
-  const availableDocuments = 2; // Simulated available documents
 
   const sections = [
     { title: 'Project Identification', icon: 'architecture', description: 'Provide basic information about your project' },
@@ -57,8 +57,30 @@ export function BtaReviewForm({ projectId, onSuccess }: BtaReviewFormProps) {
     btaChecklist_security: 'Yes'
   });
 
+  const isValid = (f: any) => !!(f.projectName && f.requestingDepartment);
+
+  useEffect(() => {
+    onFormChange?.(form, isValid(form));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const updateForm = (key: string, value: any) => {
-    setForm((prev: any) => ({ ...prev, [key]: value }));
+    setForm((prev: any) => {
+      const next = { ...prev, [key]: value };
+      onFormChange?.(next, isValid(next));
+      return next;
+    });
+  };
+
+  const handleAIExtraction = (parsedData: Record<string, any>) => {
+    const clean = Object.fromEntries(
+      Object.entries(parsedData || {}).filter(([, v]) => v !== "" && v !== null && v !== undefined)
+    );
+    setForm((prev: any) => {
+      const next = { ...prev, ...clean };
+      onFormChange?.(next, isValid(next));
+      return next;
+    });
   };
 
   const nextSection = () => {
@@ -71,15 +93,6 @@ export function BtaReviewForm({ projectId, onSuccess }: BtaReviewFormProps) {
     if (currentSectionIndex > 0) {
       setCurrentSectionIndex((i) => i - 1);
     }
-  };
-
-  const handleExtract = () => {
-    if (isExtracting) return;
-    setIsExtracting(true);
-    setTimeout(() => {
-      setIsExtracting(false);
-      alert("AI Auto-Population Complete! Extracted constraints applied.");
-    }, 2000);
   };
 
   const submitData = async () => {
@@ -187,31 +200,7 @@ export function BtaReviewForm({ projectId, onSuccess }: BtaReviewFormProps) {
             {/* ── 1. PROJECT IDENTIFICATION ── */}
             {currentSectionIndex === 0 && (
               <>
-                <div 
-                   onClick={handleExtract}
-                   className="mb-8 rounded-xl overflow-hidden relative cursor-pointer group transition-all duration-300 border border-dashed border-indigo-300/35 hover:border-solid hover:border-indigo-400/50"
-                   style={{ background: isExtracting ? "linear-gradient(135deg, #1E1B4B, #2D1B69)" : "linear-gradient(135deg, rgba(30,41,59,0.6), rgba(49,46,90,0.4))" }}
-                >
-                  <div className="flex flex-col items-center justify-center text-center py-8 px-6 relative z-10">
-                    {isExtracting ? (
-                      <>
-                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 border border-indigo-400/30 bg-indigo-500/20">
-                          <span className="material-icons text-3xl animate-spin text-indigo-300">autorenew</span>
-                        </div>
-                        <h3 className="font-bold text-sm mb-2 text-white">Analyzing Documents...</h3>
-                        <p className="text-xs text-indigo-300/80">Using AI to extract constraints from {availableDocuments} uploaded document(s).</p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 bg-indigo-500/15 border border-indigo-400/30">
-                          <span className="material-icons text-3xl text-indigo-400">document_scanner</span>
-                        </div>
-                        <h3 className="font-bold text-sm mb-2 text-slate-100">AI Form Auto-Population</h3>
-                        <p className="text-xs text-slate-400">Click to automatically extract constraints from <span className="font-bold text-indigo-300">{availableDocuments}</span> uploaded document(s) in the workspace and fill this form.</p>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <AIPopulationDropzone projectId={projectId} team="BTA" onExtractionComplete={handleAIExtraction} />
 
                 <div className="grid grid-cols-2 gap-x-6 gap-y-5 animate-fade-in">
                   <div>

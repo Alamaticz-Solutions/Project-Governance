@@ -120,7 +120,7 @@ impl TransitionService {
             .ok_or_else(|| anyhow::anyhow!("Gate not found"))?;
 
         let mut active_gate: workflow_stages::ActiveModel = gate.into();
-        active_gate.status = Set(WorkflowStageStatus::InProgress);
+        active_gate.status = Set(WorkflowStageStatus::Active);
         active_gate.started_at = Set(Some(chrono::Utc::now().into()));
         active_gate.update(db).await?;
         Ok(())
@@ -133,7 +133,7 @@ impl TransitionService {
             .ok_or_else(|| anyhow::anyhow!("Gate not found"))?;
 
         let mut active_gate: workflow_stages::ActiveModel = gate.into();
-        active_gate.status = Set(WorkflowStageStatus::PendingApproval);
+        active_gate.status = Set(WorkflowStageStatus::Pending);
         active_gate.update(db).await?;
         Ok(())
     }

@@ -47,11 +47,11 @@ export function ProjectDetailPage() {
   const getSub = (keyword: string): GateSubmission | undefined =>
     submissions.find(s => s.stage?.toLowerCase().includes(keyword.toLowerCase()));
 
-  const epmoSub    = getSub("epmo");
-  const btaSub     = getSub("bta");
+  const epmoSub = getSub("epmo");
+  const btaSub = getSub("bta");
   const financeSub = getSub("finance");
-  const eacSub     = getSub("eac");
-  const picSub     = getSub("pic");
+  const eacSub = getSub("eac");
+  const picSub = getSub("pic");
 
   // ─── Stage-Gate pipeline ───────────────────────────────────────────
   const PIPELINE = [
@@ -70,19 +70,19 @@ export function ProjectDetailPage() {
     return false;
   };
 
-  const epmoApproved    = isPast("EPMO Review") || (epmoSub?.decision?.toLowerCase() === "approve" || epmoSub?.status === "approved");
-  const btaApproved     = isPast("BTA Review") || (btaSub?.decision?.toLowerCase() === "approve" || btaSub?.status === "approved");
+  const epmoApproved = isPast("EPMO Review") || (epmoSub?.decision?.toLowerCase() === "approve" || epmoSub?.status === "approved");
+  const btaApproved = isPast("BTA Review") || (btaSub?.decision?.toLowerCase() === "approve" || btaSub?.status === "approved");
   const financeApproved = isPast("Finance Review") || (financeSub?.decision?.toLowerCase() === "approve" || financeSub?.status === "approved");
-  const eacApproved     = isPast("EAC Review") || isPast("Prepare for EAC") || (eacSub?.decision?.toLowerCase() === "approve" || eacSub?.status === "approved");
-  const picApproved     = isPast("PIC Team") || isPast("Prepare for PIC") || (picSub?.decision?.toLowerCase() === "approve" || picSub?.status === "approved");
+  const eacApproved = isPast("EAC Review") || isPast("Prepare for EAC") || (eacSub?.decision?.toLowerCase() === "approve" || eacSub?.status === "approved");
+  const picApproved = isPast("PIC Team") || isPast("Prepare for PIC") || (picSub?.decision?.toLowerCase() === "approve" || picSub?.status === "approved");
 
   const tabs = [
-    { name: "Intake Request", icon: "article",      visible: true,           badge: null },
-    { name: "EPMO Review",    icon: "fact_check",   visible: epmoApproved,   badge: "Approved" },
-    { name: "BTA Review",     icon: "architecture", visible: btaApproved,    badge: "Approved" },
-    { name: "Finance Review", icon: "payments",     visible: financeApproved, badge: "Approved" },
-    { name: "EAC Review",     icon: "gavel",        visible: eacApproved,    badge: "Approved" },
-    { name: "PIC Team",       icon: "stars",        visible: picApproved,    badge: "Complete" },
+    { name: "Intake Request", icon: "article", visible: true, badge: null },
+    { name: "EPMO Review", icon: "fact_check", visible: epmoApproved, badge: "Approved" },
+    { name: "BTA Review", icon: "architecture", visible: btaApproved, badge: "Approved" },
+    { name: "Finance Review", icon: "payments", visible: financeApproved, badge: "Approved" },
+    { name: "EAC Review", icon: "gavel", visible: eacApproved, badge: "Approved" },
+    { name: "PIC Team", icon: "stars", visible: picApproved, badge: "Complete" },
   ].filter(t => t.visible);
 
   const d = (sub: GateSubmission | undefined, key: string): string =>
@@ -126,19 +126,19 @@ export function ProjectDetailPage() {
           <div className="px-8 pb-6">
             <div className="flex items-center flex-wrap gap-0">
               {[
-                { label: "Intake",  done: true,          active: false },
-                { label: "EPMO",    done: epmoApproved,    active: currentStage === "EPMO Review" },
-                { label: "BTA",     done: btaApproved,     active: currentStage === "BTA Review" },
+                { label: "Intake", done: true, active: false },
+                { label: "EPMO", done: epmoApproved, active: currentStage === "EPMO Review" },
+                { label: "BTA", done: btaApproved, active: currentStage === "BTA Review" },
                 { label: "Finance", done: financeApproved, active: currentStage === "Finance Review" },
-                { label: "EAC",     done: eacApproved,     active: currentStage.includes("EAC") },
-                { label: "PIC",     done: picApproved,     active: currentStage.includes("PIC") },
+                { label: "EAC", done: eacApproved, active: currentStage.includes("EAC") },
+                { label: "PIC", done: picApproved, active: currentStage.includes("PIC") },
               ].map((step, idx, arr) => (
                 <div key={step.label} className="flex items-center">
                   <div className="flex flex-col items-center">
                     <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold"
                       style={step.done ? { background: "linear-gradient(135deg,#059669,#047857)", boxShadow: "0 0 0 2px rgba(5,150,105,0.25)", color: "white" }
                         : step.active ? { background: "linear-gradient(135deg,#4F46E5,#7C3AED)", boxShadow: "0 0 0 3px rgba(79,70,229,0.3)", color: "white" }
-                        : { background: "rgba(30,41,59,0.8)", border: "2px solid rgba(100,116,139,0.4)", color: "#475569" }}>
+                          : { background: "rgba(30,41,59,0.8)", border: "2px solid rgba(100,116,139,0.4)", color: "#475569" }}>
                       {step.done ? <span className="material-icons text-[14px]">check</span> : idx + 1}
                     </div>
                     <span className="text-[9px] font-bold mt-1 whitespace-nowrap" style={{ color: step.done ? "#6EE7B7" : step.active ? "#A5B4FC" : "#475569" }}>
@@ -355,7 +355,7 @@ export function ProjectDetailPage() {
                     <table className="w-full text-xs whitespace-nowrap">
                       <thead>
                         <tr className="bg-white/5 text-slate-400">
-                          {["Cost Item","Justification","Category","Type","FY24","FY25","FY26","FY27"].map(h => (
+                          {["Cost Item", "Justification", "Category", "Type", "FY24", "FY25", "FY26", "FY27"].map(h => (
                             <th key={h} className="text-left px-3 py-2 font-bold border-b border-white/10">{h}</th>
                           ))}
                         </tr>
@@ -413,305 +413,307 @@ export function ProjectDetailPage() {
               <Banner team="EAC Review" msg="Enterprise Architecture Council completed their 10-screen dossier review." />
 
               <Section title="1. Project Overview & Identification" icon="article">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <F l="Project Name" v={d(eacSub, "projectName")} />
-                  <F l="Project Type" v={d(eacSub, "projectType")} />
-                  <F l="Requestor Name" v={d(eacSub, "requestorName")} />
-                  <F l="Project Status" v={d(eacSub, "projectStatus")} />
-                  <F l="Primary BTA" v={d(eacSub, "primaryBTA")} />
-                </div>
-                <LF l="Target Business Department" v={d(eacSub, "targetBusinessDepartment")} />
-              </Section>
-
-              <Section title="2. Business Justification" icon="lightbulb">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <LF l="Problem / Opportunity Statement" v={d(eacSub, "problemStatement")} />
-                  <LF l="Strategic Alignment" v={d(eacSub, "strategicAlignment")} />
-                  <LF l="EA Principles Alignment" v={d(eacSub, "eaPrinciplesAlignment")} />
-                </div>
-              </Section>
-
-              <Section title="3. Key Stakeholders" icon="groups">
-                {Array.isArray(eacSub?.data?.stakeholders) && (eacSub!.data.stakeholders as any[]).length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {(eacSub!.data.stakeholders as any[]).map((sh: any, i: number) => (
-                      <span key={i} className="bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 px-3 py-1.5 rounded-lg text-xs font-semibold">
-                        {sh.name || sh}{sh.role ? ` — ${sh.role}` : ""}
-                      </span>
-                    ))}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <F l="Project Name" v={d(eacSub, "projectName")} />
+                    <F l="Project Type" v={d(eacSub, "projectType")} />
+                    <F l="Requestor Name" v={d(eacSub, "requestorName")} />
+                    <F l="Project Status" v={d(eacSub, "projectStatus")} />
+                    <F l="Primary BTA" v={d(eacSub, "primaryBTA")} />
                   </div>
-                ) : <p className="text-slate-500 italic text-sm">No stakeholders documented.</p>}
-              </Section>
+                  <LF l="Target Business Department" v={d(eacSub, "targetBusinessDepartment")} />
+                </Section>
 
-              <Section title="4. Current State Analysis" icon="analytics">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <LF l="Current State Architecture" v={d(eacSub, "currentStateArchitecture")} />
-                  <LF l="Current State Pain Points" v={d(eacSub, "currentStatePainPoints")} />
-                  <LF l="Current Systems" v={d(eacSub, "currentStateSystems")} />
-                </div>
-              </Section>
-
-              <Section title="5. Proposed Solution" icon="dns">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <LF l="Solution Overview" v={d(eacSub, "solutionOverview")} />
-                  <LF l="Tech Stack" v={d(eacSub, "techStack")} />
-                  <LF l="Data Strategy" v={d(eacSub, "dataStrategy")} />
-                  <LF l="Security Strategy" v={d(eacSub, "securityStrategy")} />
-                  <LF l="Integration Strategy" v={d(eacSub, "integrationStrategy")} />
-                  <LF l="Infrastructure Requirements" v={d(eacSub, "infrastructureRequirements")} />
-                </div>
-              </Section>
-
-              <Section title="6. Risk & Compliance" icon="gpp_maybe">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <LF l="Compliance Standards" v={d(eacSub, "complianceStandards")} />
-                  <LF l="How Addresses Compliance" v={d(eacSub, "howAddressesCompliance")} />
-                </div>
-                {Array.isArray(eacSub?.data?.risksList) && (eacSub!.data.risksList as any[]).length > 0 && (
-                  <div className="mt-4 rounded-xl overflow-hidden border border-white/10">
-                    <table className="w-full text-xs">
-                      <thead><tr className="bg-white/5 text-slate-400">
-                        {["Risk","Mitigation","Likelihood","Impact","Owner"].map(h => <th key={h} className="text-left px-3 py-2 font-bold border-b border-white/10">{h}</th>)}
-                      </tr></thead>
-                      <tbody>
-                        {(eacSub!.data.risksList as any[]).map((r: any, i: number) => (
-                          <tr key={i} className="border-b border-white/5"><td className="px-3 py-2 text-slate-200">{r.description}</td><td className="px-3 py-2 text-slate-400">{r.mitigation}</td><td className="px-3 py-2 text-amber-400">{r.likelihood}</td><td className="px-3 py-2 text-red-400">{r.impact}</td><td className="px-3 py-2 text-slate-300">{r.owner}</td></tr>
-                        ))}
-                      </tbody>
-                    </table>
+                <Section title="2. Business Justification" icon="lightbulb">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <LF l="Problem / Opportunity Statement" v={d(eacSub, "problemStatement")} />
+                    <LF l="Strategic Alignment" v={d(eacSub, "strategicAlignment")} />
+                    <LF l="EA Principles Alignment" v={d(eacSub, "eaPrinciplesAlignment")} />
                   </div>
-                )}
-              </Section>
+                </Section>
 
-              <Section title="7. Timeline & Resources" icon="calendar_month">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <F l="Start Date" v={d(eacSub, "startDate")} />
-                  <F l="End Date" v={d(eacSub, "endDate")} />
-                  <F l="Estimated Budget" v={d(eacSub, "estimatedBudget")} />
-                  <F l="Funding Source" v={d(eacSub, "fundingSource")} />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                  <LF l="Budget Breakdown" v={d(eacSub, "budgetBreakdown")} />
-                  <LF l="Human Resources" v={d(eacSub, "humanResources")} />
-                </div>
-              </Section>
+                <Section title="3. Key Stakeholders" icon="groups">
+                  {Array.isArray(eacSub?.data?.stakeholders) && (eacSub!.data.stakeholders as any[]).length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {(eacSub!.data.stakeholders as any[]).map((sh: any, i: number) => (
+                        <span key={i} className="bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                          {sh.name || sh}{sh.role ? ` — ${sh.role}` : ""}
+                        </span>
+                      ))}
+                    </div>
+                  ) : <p className="text-slate-500 italic text-sm">No stakeholders documented.</p>}
+                </Section>
 
-              <Section title="8. Business Impact" icon="trending_up">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <LF l="Operational Impact" v={d(eacSub, "impactOperations")} />
-                  <LF l="Revenue Impact" v={d(eacSub, "impactRevenue")} />
-                  <LF l="Cost Savings" v={d(eacSub, "impactSavings")} />
-                  <LF l="Customer Impact" v={d(eacSub, "impactCustomer")} />
-                  <LF l="Competitive Impact" v={d(eacSub, "impactCompetitive")} />
-                  <LF l="Project Rationale" v={d(eacSub, "rationale")} />
-                </div>
-              </Section>
+                <Section title="4. Current State Analysis" icon="analytics">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <LF l="Current State Architecture" v={d(eacSub, "currentStateArchitecture")} />
+                    <LF l="Current State Pain Points" v={d(eacSub, "currentStatePainPoints")} />
+                    <LF l="Current Systems" v={d(eacSub, "currentStateSystems")} />
+                  </div>
+                </Section>
 
-              <Section title="9. Feasibility & Readiness" icon="rocket_launch">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <LF l="Scalability Plan" v={d(eacSub, "scalability")} />
-                  <LF l="Future Readiness" v={d(eacSub, "futureReadiness")} />
-                  <LF l="Project Feasibility Statement" v={d(eacSub, "feasibilityStatement")} />
-                  <LF l="IT Capabilities Alignment" v={d(eacSub, "itCapabilitiesAlignment")} />
-                  <LF l="New Skills Required" v={d(eacSub, "newSkillsRequired")} />
-                </div>
-              </Section>
+                <Section title="5. Proposed Solution" icon="dns">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <LF l="Solution Overview" v={d(eacSub, "solutionOverview")} />
+                    <LF l="Tech Stack" v={d(eacSub, "techStack")} />
+                    <LF l="Data Strategy" v={d(eacSub, "dataStrategy")} />
+                    <LF l="Security Strategy" v={d(eacSub, "securityStrategy")} />
+                    <LF l="Integration Strategy" v={d(eacSub, "integrationStrategy")} />
+                    <LF l="Infrastructure Requirements" v={d(eacSub, "infrastructureRequirements")} />
+                  </div>
+                </Section>
 
-              <Section title="10. EAC Gate Checklist" icon="fact_check">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <CheckItem label="Architecture Verified by EAC Committee?" value={d(eacSub, "eacChecklist_verified")} />
-                </div>
-              </Section>
+                <Section title="6. Risk & Compliance" icon="gpp_maybe">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <LF l="Compliance Standards" v={d(eacSub, "complianceStandards")} />
+                    <LF l="How Addresses Compliance" v={d(eacSub, "howAddressesCompliance")} />
+                  </div>
+                  {Array.isArray(eacSub?.data?.risksList) && (eacSub!.data.risksList as any[]).length > 0 && (
+                    <div className="mt-4 rounded-xl overflow-hidden border border-white/10">
+                      <table className="w-full text-xs">
+                        <thead><tr className="bg-white/5 text-slate-400">
+                          {["Risk", "Mitigation", "Likelihood", "Impact", "Owner"].map(h => <th key={h} className="text-left px-3 py-2 font-bold border-b border-white/10">{h}</th>)}
+                        </tr></thead>
+                        <tbody>
+                          {(eacSub!.data.risksList as any[]).map((r: any, i: number) => (
+                            <tr key={i} className="border-b border-white/5"><td className="px-3 py-2 text-slate-200">{r.description}</td><td className="px-3 py-2 text-slate-400">{r.mitigation}</td><td className="px-3 py-2 text-amber-400">{r.likelihood}</td><td className="px-3 py-2 text-red-400">{r.impact}</td><td className="px-3 py-2 text-slate-300">{r.owner}</td></tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Section>
 
-              <Meta sub={eacSub} />
-            </div>
-          )}
+                <Section title="7. Timeline & Resources" icon="calendar_month">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <F l="Start Date" v={d(eacSub, "startDate")} />
+                    <F l="End Date" v={d(eacSub, "endDate")} />
+                    <F l="Estimated Budget" v={d(eacSub, "estimatedBudget")} />
+                    <F l="Funding Source" v={d(eacSub, "fundingSource")} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <LF l="Budget Breakdown" v={d(eacSub, "budgetBreakdown")} />
+                    <LF l="Human Resources" v={d(eacSub, "humanResources")} />
+                  </div>
+                </Section>
 
-          {/* ═══════════════ PIC TEAM ═══════════════ */}
-          {activeTab === "PIC Team" && (
-            <div className="animate-fade-in space-y-8">
-              <SH title="PIC Team Review" sub={ts(picSub)} icon="stars" />
-              <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
-                <span className="material-icons text-emerald-400 text-xl">emoji_events</span>
-                <div>
-                  <p className="text-sm font-bold text-emerald-400">PIC Team — Workflow Complete</p>
-                  <p className="text-xs text-slate-400">This project has completed all governance stages and received final PIC approval.</p>
-                </div>
+                <Section title="8. Business Impact" icon="trending_up">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <LF l="Operational Impact" v={d(eacSub, "impactOperations")} />
+                    <LF l="Revenue Impact" v={d(eacSub, "impactRevenue")} />
+                    <LF l="Cost Savings" v={d(eacSub, "impactSavings")} />
+                    <LF l="Customer Impact" v={d(eacSub, "impactCustomer")} />
+                    <LF l="Competitive Impact" v={d(eacSub, "impactCompetitive")} />
+                    <LF l="Project Rationale" v={d(eacSub, "rationale")} />
+                  </div>
+                </Section>
+
+                <Section title="9. Feasibility & Readiness" icon="rocket_launch">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <LF l="Scalability Plan" v={d(eacSub, "scalability")} />
+                    <LF l="Future Readiness" v={d(eacSub, "futureReadiness")} />
+                    <LF l="Project Feasibility Statement" v={d(eacSub, "feasibilityStatement")} />
+                    <LF l="IT Capabilities Alignment" v={d(eacSub, "itCapabilitiesAlignment")} />
+                    <LF l="New Skills Required" v={d(eacSub, "newSkillsRequired")} />
+                  </div>
+                </Section>
+
+                <Section title="10. EAC Gate Checklist" icon="fact_check">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <CheckItem label="Architecture Verified by EAC Committee?" value={d(eacSub, "eacChecklist_verified")} />
+                  </div>
+                </Section>
+
+                <Meta sub={eacSub} />
               </div>
-
-              <Section title="1. Core Project Definition" icon="article">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <LF l="Problem / Opportunity Statement" v={d(picSub, "problemStatement")} />
-                  <LF l="Scope of Project (High Level)" v={d(picSub, "scope")} />
-                </div>
-              </Section>
-
-              <Section title="2. Vendor Recommendation" icon="storefront">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <F l="Primary Recommended Vendor" v={d(picSub, "vendorName")} />
-                  <LF l="Justification for Recommended Vendor" v={d(picSub, "vendorJustification")} />
-                  <LF l="Specific Benefits of Recommended Vendor" v={d(picSub, "vendorBenefits")} />
-                </div>
-              </Section>
-
-              <Section title="3. Project Evaluation & Benefit" icon="trending_up">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <F l="Primary Benefit Category" v={d(picSub, "benefitCategory")} />
-                  <F l="Annual Value Year 1" v={d(picSub, "annualValueY1")} />
-                  <F l="Annual Value Year 2" v={d(picSub, "annualValueY2")} />
-                  <LF l="Benefit Calculation Methodology" v={d(picSub, "benefitMethodology")} />
-                </div>
-              </Section>
-
-              <Section title="4. Cost Plan & ROI" icon="savings">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <F l="Total CapEx" v={d(picSub, "capex")} />
-                  <F l="Net Present Value (NPV)" v={d(picSub, "npv")} />
-                  <F l="Internal Rate of Return (IRR)" v={d(picSub, "irr")} />
-                  <F l="Payback Period (Months)" v={d(picSub, "paybackMonths")} />
-                </div>
-              </Section>
-
-              <Section title="5. Project Execution & Ask" icon="engineering">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <LF l="Milestone Target Dates" v={d(picSub, "milestones")} />
-                  <LF l="Resource Ask (FTE Requirements)" v={d(picSub, "resourceAsk")} />
-                </div>
-              </Section>
-
-              <Section title="6. Supporting Information" icon="attach_file">
-                <LF l="Preparation Comments" v={d(picSub, "comments")} />
-              </Section>
-
-              <Section title="7. PIC Approval Checklist" icon="fact_check">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <CheckItem label="Financial Dossier Attached & Verified?" value={d(picSub, "picChecklist_verified")} />
-                </div>
-              </Section>
-
-              <Meta sub={picSub} />
-            </div>
           )}
 
+              {/* ═══════════════ PIC TEAM ═══════════════ */}
+              {activeTab === "PIC Team" && (
+                <div className="animate-fade-in space-y-8">
+                  <SH title="PIC Team Review" sub={ts(picSub)} icon="stars" />
+                  <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                    <span className="material-icons text-emerald-400 text-xl">emoji_events</span>
+                    <div>
+                      <p className="text-sm font-bold text-emerald-400">PIC Team — Workflow Complete</p>
+                      <p className="text-xs text-slate-400">This project has completed all governance stages and received final PIC approval.</p>
+                    </div>
+                  </div>
+
+                  <Section title="1. Core Project Definition" icon="article">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <LF l="Problem / Opportunity Statement" v={d(picSub, "problemStatement")} />
+                      <LF l="Scope of Project (High Level)" v={d(picSub, "scope")} />
+                    </div>
+                  </Section>
+
+                  <Section title="2. Vendor Recommendation" icon="storefront">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <F l="Primary Recommended Vendor" v={d(picSub, "vendorName")} />
+                      <LF l="Justification for Recommended Vendor" v={d(picSub, "vendorJustification")} />
+                      <LF l="Specific Benefits of Recommended Vendor" v={d(picSub, "vendorBenefits")} />
+                    </div>
+                  </Section>
+
+                  <Section title="3. Project Evaluation & Benefit" icon="trending_up">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <F l="Primary Benefit Category" v={d(picSub, "benefitCategory")} />
+                      <F l="Annual Value Year 1" v={d(picSub, "annualValueY1")} />
+                      <F l="Annual Value Year 2" v={d(picSub, "annualValueY2")} />
+                      <LF l="Benefit Calculation Methodology" v={d(picSub, "benefitMethodology")} />
+                    </div>
+                  </Section>
+
+                  <Section title="4. Cost Plan & ROI" icon="savings">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <F l="Total CapEx" v={d(picSub, "capex")} />
+                      <F l="Net Present Value (NPV)" v={d(picSub, "npv")} />
+                      <F l="Internal Rate of Return (IRR)" v={d(picSub, "irr")} />
+                      <F l="Payback Period (Months)" v={d(picSub, "paybackMonths")} />
+                    </div>
+                  </Section>
+
+                  <Section title="5. Project Execution & Ask" icon="engineering">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <LF l="Milestone Target Dates" v={d(picSub, "milestones")} />
+                      <LF l="Resource Ask (FTE Requirements)" v={d(picSub, "resourceAsk")} />
+                    </div>
+                  </Section>
+
+                  <Section title="6. Supporting Information" icon="attach_file">
+                    <LF l="Preparation Comments" v={d(picSub, "comments")} />
+                  </Section>
+
+                  <Section title="7. PIC Approval Checklist" icon="fact_check">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <CheckItem label="Financial Dossier Attached & Verified?" value={d(picSub, "picChecklist_verified")} />
+                    </div>
+                  </Section>
+
+                  <Meta sub={picSub} />
+                </div>
+              )}
+
+            </div>
+      </div>
+      </div>
+      );
+}
+
+      // ─── Helper Components ─────────────────────────────────────────────────────────
+
+      function MetaItem({icon, value}: {icon: string; value: string }) {
+  return (
+      <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400">
+        <span className="material-icons text-[14px]">{icon}</span>
+        <span className="text-slate-300">{value}</span>
+      </div>
+      );
+}
+
+      function SH({title, sub, icon}: {title: string; sub: string; icon: string }) {
+  return (
+      <div className="flex items-center gap-4 pb-4 border-b border-slate-700/50">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(79,70,229,0.15)", border: "1px solid rgba(79,70,229,0.25)" }}>
+          <span className="material-icons text-indigo-400">{icon}</span>
+        </div>
+        <div>
+          <h2 className="text-lg font-extrabold text-white">{title}</h2>
+          <p className="text-xs text-slate-400 mt-0.5">{sub}</p>
         </div>
       </div>
-    </div>
-  );
+      );
 }
 
-// ─── Helper Components ─────────────────────────────────────────────────────────
-
-function MetaItem({ icon, value }: { icon: string; value: string }) {
-  return (
-    <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400">
-      <span className="material-icons text-[14px]">{icon}</span>
-      <span className="text-slate-300">{value}</span>
-    </div>
-  );
-}
-
-function SH({ title, sub, icon }: { title: string; sub: string; icon: string }) {
-  return (
-    <div className="flex items-center gap-4 pb-4 border-b border-slate-700/50">
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(79,70,229,0.15)", border: "1px solid rgba(79,70,229,0.25)" }}>
-        <span className="material-icons text-indigo-400">{icon}</span>
-      </div>
-      <div>
-        <h2 className="text-lg font-extrabold text-white">{title}</h2>
-        <p className="text-xs text-slate-400 mt-0.5">{sub}</p>
-      </div>
-    </div>
-  );
-}
-
-function ts(sub: GateSubmission | undefined): string {
+      function ts(sub: GateSubmission | undefined): string {
   const dt = sub?.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : "—";
-  return `Reviewed on ${dt} · Decision: ${sub?.decision || "—"}`;
+      return `Reviewed on ${dt} · Decision: ${sub?.decision || "—"}`;
 }
 
-function Banner({ team, msg }: { team: string; msg: string }) {
+      function Banner({team, msg}: {team: string; msg: string }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
-      <span className="material-icons text-emerald-400 text-xl">verified</span>
-      <div>
-        <p className="text-sm font-bold text-emerald-400">{team} — Approved</p>
-        <p className="text-xs text-slate-400">{msg}</p>
+      <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+        <span className="material-icons text-emerald-400 text-xl">verified</span>
+        <div>
+          <p className="text-sm font-bold text-emerald-400">{team} — Approved</p>
+          <p className="text-xs text-slate-400">{msg}</p>
+        </div>
       </div>
-    </div>
-  );
+      );
 }
 
-function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+      function Section({title, icon, children}: {title: string; icon: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl p-6 space-y-4" style={{ background: "rgba(15,23,42,0.4)", border: "1px solid rgba(255,255,255,0.06)" }}>
-      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-700/40">
-        <span className="material-icons text-indigo-400 text-[18px]">{icon}</span>
-        <h3 className="text-sm font-bold text-slate-200">{title}</h3>
+      <div className="rounded-xl p-6 space-y-4" style={{ background: "rgba(15,23,42,0.4)", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-700/40">
+          <span className="material-icons text-indigo-400 text-[18px]">{icon}</span>
+          <h3 className="text-sm font-bold text-slate-200">{title}</h3>
+        </div>
+        {children}
       </div>
-      {children}
-    </div>
-  );
+      );
 }
 
-function Card({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+      function Card({title, icon, children}: {title: string; icon: string; children: React.ReactNode }) {
   return (
-    <div className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5">
-      <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-700/50 text-slate-300">
-        <span className="material-icons text-lg">{icon}</span>
-        <h4 className="font-bold text-sm">{title}</h4>
+      <div className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-700/50 text-slate-300">
+          <span className="material-icons text-lg">{icon}</span>
+          <h4 className="font-bold text-sm">{title}</h4>
+        </div>
+        <div className="space-y-3">{children}</div>
       </div>
-      <div className="space-y-3">{children}</div>
-    </div>
-  );
+      );
 }
 
-function Meta({ sub }: { sub: GateSubmission | undefined }) {
+      function Meta({sub}: {sub: GateSubmission | undefined }) {
   if (!sub) return null;
-  return (
-    <div className="flex items-center gap-4 pt-4 border-t border-slate-700/40 text-xs text-slate-500">
-      <span className="flex items-center gap-1"><span className="material-icons text-[14px]">schedule</span>Submitted: {sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : "—"}</span>
-      <span className="flex items-center gap-1"><span className="material-icons text-[14px]">verified</span>Decision: <span className="font-bold text-emerald-400 ml-1">{sub.decision}</span></span>
-    </div>
-  );
-}
-
-function CheckItem({ label, value }: { label: string; value: string }) {
-  const isYes = value?.toLowerCase() === "yes";
-  return (
-    <div className="flex items-center gap-3 bg-slate-800/50 p-3 rounded-lg border border-slate-700">
-      <span className={`material-icons ${isYes ? "text-emerald-400" : "text-slate-600"}`}>{isYes ? "check_box" : "check_box_outline_blank"}</span>
-      <span className="text-sm font-medium text-slate-300 flex-1">{label}</span>
-      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isYes ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-700 text-slate-500"}`}>{value || "—"}</span>
-    </div>
-  );
-}
-
-// Short aliases for field components
-function F({ l, v }: { l: string; v: any }) {
-  return (
-    <div>
-      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">{l}</span>
-      <span className="block text-sm font-medium text-slate-200">{v || <span className="text-slate-600 italic">Not specified</span>}</span>
-    </div>
-  );
-}
-
-function BF({ l, v }: { l: string; v: any }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className={`w-2 h-2 rounded-full ${v ? "bg-emerald-400" : "bg-slate-600"}`} />
-      <span className="text-[13px] text-slate-300">{l}</span>
-    </div>
-  );
-}
-
-function LF({ l, v }: { l: string; v: any }) {
-  return (
-    <div className="bg-slate-800/20 border border-slate-700/40 rounded-xl p-5 hover:shadow-md transition-all">
-      <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">{l}</h4>
-      <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
-        {v || <span className="text-slate-600 italic">No details provided.</span>}
+      return (
+      <div className="flex items-center gap-4 pt-4 border-t border-slate-700/40 text-xs text-slate-500">
+        <span className="flex items-center gap-1"><span className="material-icons text-[14px]">schedule</span>Submitted: {sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : "—"}</span>
+        <span className="flex items-center gap-1"><span className="material-icons text-[14px]">verified</span>Decision: <span className="font-bold text-emerald-400 ml-1">{sub.decision}</span></span>
       </div>
-    </div>
-  );
+      );
 }
+
+      function CheckItem({label, value}: {label: string; value: string }) {
+  const isYes = value?.toLowerCase() === "yes";
+      return (
+      <div className="flex items-center gap-3 bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+        <span className={`material-icons ${isYes ? "text-emerald-400" : "text-slate-600"}`}>{isYes ? "check_box" : "check_box_outline_blank"}</span>
+        <span className="text-sm font-medium text-slate-300 flex-1">{label}</span>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isYes ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-700 text-slate-500"}`}>{value || "—"}</span>
+      </div>
+      );
+}
+
+      // Short aliases for field components
+      function F({l, v}: {l: string; v: any }) {
+  return (
+      <div>
+        <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">{l}</span>
+        <span className="block text-sm font-medium text-slate-200">{v || <span className="text-slate-600 italic">Not specified</span>}</span>
+      </div>
+      );
+}
+
+      function BF({l, v}: {l: string; v: any }) {
+  return (
+      <div className="flex items-center gap-2">
+        <span className={`w-2 h-2 rounded-full ${v ? "bg-emerald-400" : "bg-slate-600"}`} />
+        <span className="text-[13px] text-slate-300">{l}</span>
+      </div>
+      );
+}
+
+      function LF({l, v}: {l: string; v: any }) {
+  return (
+      <div className="bg-slate-800/20 border border-slate-700/40 rounded-xl p-5 hover:shadow-md transition-all">
+        <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">{l}</h4>
+        <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+          {v || <span className="text-slate-600 italic">No details provided.</span>}
+        </div>
+      </div>
+      );
+}
+
+

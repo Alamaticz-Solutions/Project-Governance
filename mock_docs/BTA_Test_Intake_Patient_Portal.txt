@@ -1,0 +1,84 @@
+BUSINESS TECHNOLOGY ARCHITECTURE (BTA) INTAKE DOCUMENT
+=======================================================
+
+Project Name: Patient Self-Service Portal Modernization
+
+Requestor Name: Dr. Angela Reyes
+
+Requesting Department: Ambulatory Care Operations
+
+Target Business Department: Patient Access, Front Desk Scheduling, and Revenue Cycle
+
+Project Type: Digital Transformation
+
+Project Status: New Request
+
+Primary BTA: Jane Architecture
+
+
+1. BUSINESS OBJECTIVE
+---------------------
+Problem Statement: Patients currently rely on phone calls and in-person visits to
+book appointments, request prescription refills, and pay outstanding balances. Call
+center wait times average 11 minutes and 22% of calls are abandoned. The existing
+portal is a legacy vendor product that is no longer supported and cannot integrate
+with our new EHR.
+
+Business Objective: Deliver a modern, mobile-friendly patient portal that lets
+patients self-schedule, complete intake forms online, view lab results, message
+their care team, and pay bills without staff involvement.
+
+Business Value / ROI: Reduce inbound scheduling call volume by 35%, cut patient
+no-show rates from 14% to 9%, and accelerate patient payments by an estimated
+$1.4M annually through online bill pay.
+
+
+2. SCOPE & REQUIREMENTS
+-----------------------
+Strategic Alignment: Supports the 2026 "Digital Front Door" strategic pillar and
+the enterprise goal of improving patient-reported experience scores.
+
+In Scope: Online appointment self-scheduling, digital check-in and intake forms,
+secure two-way messaging, lab/result viewing, online bill pay, and SSO with the
+existing patient identity provider.
+
+Out of Scope: Telehealth video visits, provider-side scheduling template redesign,
+and any changes to the billing clearinghouse.
+
+
+3. TECHNICAL LANDSCAPE
+----------------------
+Is this a new solution: New
+IT Involvement Required: Yes
+Systems Impacted: Epic EHR, Experian identity verification, Elastic payment gateway,
+Twilio notifications, and the enterprise API gateway.
+
+
+4. DATA SECURITY & PRIVACY
+--------------------------
+Contains PHI/PII Data: Yes
+HIPAA Compliance Applicable: Yes
+Data Classification: Restricted / Confidential
+
+
+5. FINANCIALS & RESOURCES
+-------------------------
+Estimated Budget: 480000
+Budget Type: CapEx
+Vendor Required: Yes
+
+
+6. TIMELINE & URGENCY
+---------------------
+Requested Start Date: 2026-10-01
+Requested End Date: 2027-03-31
+Project Priority: High
+
+
+7. DEPENDENCIES & RISKS
+-----------------------
+Risk Level: Medium
+Known Risks: Identity-proofing vendor contract renewal is still pending; portal
+launch depends on completion of the Epic MyChart upgrade in Q4.
+Key Dependencies: Epic MyChart 2026.2 upgrade, API gateway capacity expansion,
+and Marketing sign-off on patient communications.

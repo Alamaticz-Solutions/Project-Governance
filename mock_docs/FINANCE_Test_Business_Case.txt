@@ -1,0 +1,31 @@
+FINANCE REVIEW - BUSINESS CASE & COST MODEL
+==========================================
+Project: Patient Self-Service Portal Modernization
+
+1. DETAILED COST PLAN
+---------------------
+Total Capital Expenditure (CapEx): 480000
+Total Operating Expenditure (OpEx): 96000
+Total Ongoing Run / Maintenance Costs: 60000
+Grand Total (3-year): 636000
+OpEx Memo / Notes: OpEx covers hosting, premium support tier, and two 0.5 FTE
+application analysts after go-live.
+Development & Implementation Costs: 310000
+Software Licensing Costs: 84000
+Recurring Annual Costs: 156000
+Recurring Annual Benefits / Savings: 1400000
+
+2. ROI ANALYSIS
+---------------
+Payback Period: 7 months
+ROI Percentage: 220
+Financial Narrative: The portal replaces a legacy unsupported vendor product and
+reduces inbound scheduling call volume by 35%, lowering call-center staffing cost
+by roughly $420K per year. Online bill pay accelerates collections and is expected
+to recover an additional $1.4M annually. Net cash flow turns positive in month 7
+and cumulative cash flow exceeds $2.5M by end of year 3.
+
+3. FINANCE CHECKLIST
+--------------------
+Budget confirmed in FY26 plan: Yes
+CapEx classification reviewed: Yes

@@ -1,12 +1,16 @@
-import { useState } from "react";
-import { projectsApi } from "../../../lib/api";
+import { useEffect, useState } from "react";
+import { AIPopulationDropzone } from "../components/AIPopulationDropzone";
+
+export interface FinanceFormData {
+  [key: string]: any;
+}
 
 interface FinanceReviewFormProps {
   projectId: string;
-  onSuccess?: () => void;
+  onFormChange?: (data: FinanceFormData, isValid: boolean) => void;
 }
 
-export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormProps) {
+export function FinanceReviewForm({ projectId: _projectId, onFormChange }: FinanceReviewFormProps) {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
 
   const sections = [
@@ -38,9 +42,33 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
     { name: '', justification: '', category: '', costType: '', fy24: '', fy25: '', fy26: '', fy27: '' }
   ]);
 
-  const updateForm = (key: string, value: any) => {
-    setForm((prev: any) => ({ ...prev, [key]: value }));
+  const isValid = (f: any) => !!(f.financeChecklist_budget);
+
+    const handleAIExtraction = (parsedData: Record<string, any>) => {
+    const clean = Object.fromEntries(
+      Object.entries(parsedData || {}).filter(([, v]) => v !== "" && v !== null && v !== undefined)
+    );
+    setForm((prev: any) => {
+      const next = { ...prev, ...clean };
+      if (typeof onFormChange === 'function') {
+         onFormChange(next, isValid(next));
+      }
+      return next;
+    });
   };
+
+const updateForm = (key: string, value: any) => {
+    setForm((prev: any) => {
+      const next = { ...prev, [key]: value };
+      onFormChange?.(next, isValid(next));
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    onFormChange?.(form, isValid(form));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addCostItem = () => {
     setCostItems([...costItems, { name: '', justification: '', category: '', costType: '', fy24: '', fy25: '', fy26: '', fy27: '' }]);
@@ -62,53 +90,8 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
     }
   };
 
-  const autofillAI = () => {
-    setForm({
-      totalCapex: '1,200,000',
-      totalOpex: '350,000',
-      totalRunCosts: '180,000',
-      grandTotal: '1,730,000',
-      memoOpex: 'Annual OpEx increases by $350K starting FY25 due to licensing and support costs.',
-      devImplCosts: '800,000',
-      softwareLicensing: '400,000',
-      annualCosts: '350,000',
-      annualBenefits: '620,000',
-      netCashFlow: '270,000',
-      cumulativeCashFlow: '810,000',
-      paybackPeriod: '3',
-      roiPercentage: '43',
-      financeNarrative: 'The proposed investment yields a strong 43% ROI over 3 years. Cloud migration savings and process automation efficiencies drive annual benefits of $620K against $350K in ongoing costs.',
-      financeChecklist_budget: 'Yes',
-      financeChecklist_capex: 'Yes'
-    });
-    setCostItems([
-      { name: 'Cloud Infrastructure', justification: 'AWS hosting for production workloads', category: 'Infrastructure', costType: 'OpEx', fy24: '200000', fy25: '210000', fy26: '220000', fy27: '230000' },
-      { name: 'Software Licenses', justification: 'Enterprise SaaS platform licensing', category: 'Software', costType: 'OpEx', fy24: '150000', fy25: '155000', fy26: '160000', fy27: '165000' },
-      { name: 'Implementation Services', justification: 'Vendor-led implementation and config', category: 'Services', costType: 'CapEx', fy24: '600000', fy25: '100000', fy26: '', fy27: '' },
-    ]);
-  };
 
-  const submitData = async () => {
-    try {
-      if (!projectId) {
-        alert("Completed Mock Finance Form");
-        return;
-      }
-      await projectsApi.submitDecision(
-        projectId,
-        "Finance Review",
-        "Approve",
-        "Finance review completed and cost plan approved.",
-        { ...form, costItems }
-      );
-      if (onSuccess) onSuccess();
-    } catch (e) {
-      console.error(e);
-      alert("Error submitting Finance form.");
-    }
-  };
-
-
+  // No internal submit — handled by parent via onFormChange
 
   const annualBenefitsNum = parseFloat(form.annualBenefits.replace(/,/g, '')) || 0;
   const annualCostsNum = parseFloat(form.annualCosts.replace(/,/g, '')) || 0;
@@ -142,8 +125,8 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
                >
                  {/* Step Circle */}
                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-all border-2 
-                      ${currentSectionIndex === i ? 'bg-emerald-500 text-white border-emerald-500 shadow-md scale-110' : 
-                       (currentSectionIndex > i ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40' : 'bg-white/5 text-slate-500 border-white/10')}`}>
+                      ${currentSectionIndex === i ? 'bg-indigo-500 text-white border-indigo-500 shadow-md scale-110' : 
+                       (currentSectionIndex > i ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/40' : 'bg-white/5 text-slate-500 border-white/10')}`}>
                    {currentSectionIndex <= i ? (
                      <span>{i + 1}</span>
                    ) : (
@@ -173,7 +156,7 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
         >
           {/* Section Title & Icon */}
           <div className="flex items-start gap-4 mb-8 pb-6 border-b border-white/10 relative z-10">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-emerald-500 shadow-sm text-white">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-indigo-500 shadow-sm text-white">
               <span className="material-icons text-[24px]">{sections[currentSectionIndex].icon}</span>
             </div>
             <div className="mt-1 flex-1">
@@ -190,13 +173,15 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
             {/* ── 1. DETAILED COST PLAN ── */}
             {currentSectionIndex === 0 && (
               <div className="animate-fade-in">
+                <AIPopulationDropzone projectId={_projectId} team="FINANCE" onExtractionComplete={handleAIExtraction} />
+
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-base font-extrabold text-slate-100 flex items-center gap-2">
-                    <span className="material-icons text-emerald-500 text-[20px]">table_chart</span>
+                    <span className="material-icons text-indigo-500 text-[20px]">table_chart</span>
                     Cost Plan
                   </h3>
                   <button onClick={addCostItem}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs rounded-xl border border-emerald-500/30 transition-all duration-200">
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold text-xs rounded-xl border border-indigo-500/30 transition-all duration-200">
                     <span className="material-icons text-[16px]">add</span> Add Cost Plan
                   </button>
                 </div>
@@ -219,7 +204,7 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
                     </thead>
                     <tbody>
                       {costItems.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-emerald-500/5 transition-colors border-b border-white/10 last:border-0 group">
+                        <tr key={idx} className="hover:bg-indigo-500/5 transition-colors border-b border-white/10 last:border-0 group">
                           <td className="px-3 py-2">
                             <input type="text" value={item.name} onChange={e => {
                                 const newItems = [...costItems];
@@ -243,11 +228,11 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
                                 setCostItems(newItems);
                               }}
                               className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-slate-100 outline-none">
-                              <option value="">Select...</option>
-                              <option>Software</option>
-                              <option>Hardware</option>
-                              <option>Services</option>
-                              <option>Infrastructure</option>
+                              <option className="bg-slate-800 text-white" value="">Select...</option>
+                              <option className="bg-slate-800 text-white">Software</option>
+                              <option className="bg-slate-800 text-white">Hardware</option>
+                              <option className="bg-slate-800 text-white">Services</option>
+                              <option className="bg-slate-800 text-white">Infrastructure</option>
                             </select>
                           </td>
                           <td className="px-3 py-2">
@@ -257,9 +242,9 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
                                 setCostItems(newItems);
                               }}
                               className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-slate-100 outline-none">
-                              <option value="">Select...</option>
-                              <option>CapEx</option>
-                              <option>OpEx</option>
+                              <option className="bg-slate-800 text-white" value="">Select...</option>
+                              <option className="bg-slate-800 text-white">CapEx</option>
+                              <option className="bg-slate-800 text-white">OpEx</option>
                             </select>
                           </td>
                           <td className="px-3 py-2">
@@ -321,9 +306,9 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
                 </div>
 
                 {/* Financial Summaries */}
-                <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-6">
+                <div className="p-6 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 mb-6">
                   <div className="flex items-center gap-2 mb-5">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
                       <span className="material-icons text-white text-[16px]">summarize</span>
                     </div>
                     <h3 className="text-sm font-extrabold text-slate-100 uppercase tracking-wider">Financial Summaries</h3>
@@ -334,7 +319,7 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
                       <div className="relative">
                         <span className="absolute left-3 top-2.5 text-slate-500 text-xs font-bold">US$</span>
                         <input type="text" value={form.totalCapex} onChange={e => updateForm('totalCapex', e.target.value)} placeholder="0.00"
-                               className="w-full bg-black/20 border border-emerald-500/30 rounded-xl pl-10 pr-4 py-2 text-sm font-medium text-slate-100 outline-none focus:border-emerald-400" />
+                               className="w-full bg-black/20 border border-indigo-500/30 rounded-xl pl-10 pr-4 py-2 text-sm font-medium text-slate-100 outline-none focus:border-indigo-400" />
                       </div>
                     </div>
                     <div>
@@ -342,7 +327,7 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
                       <div className="relative">
                         <span className="absolute left-3 top-2.5 text-slate-500 text-xs font-bold">US$</span>
                         <input type="text" value={form.totalOpex} onChange={e => updateForm('totalOpex', e.target.value)} placeholder="0.00"
-                               className="w-full bg-black/20 border border-emerald-500/30 rounded-xl pl-10 pr-4 py-2 text-sm font-medium text-slate-100 outline-none focus:border-emerald-400" />
+                               className="w-full bg-black/20 border border-indigo-500/30 rounded-xl pl-10 pr-4 py-2 text-sm font-medium text-slate-100 outline-none focus:border-indigo-400" />
                       </div>
                     </div>
                     <div>
@@ -350,7 +335,7 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
                       <div className="relative">
                         <span className="absolute left-3 top-2.5 text-slate-500 text-xs font-bold">US$</span>
                         <input type="text" value={form.totalRunCosts} onChange={e => updateForm('totalRunCosts', e.target.value)} placeholder="0.00"
-                               className="w-full bg-black/20 border border-emerald-500/30 rounded-xl pl-10 pr-4 py-2 text-sm font-medium text-slate-100 outline-none focus:border-emerald-400" />
+                               className="w-full bg-black/20 border border-indigo-500/30 rounded-xl pl-10 pr-4 py-2 text-sm font-medium text-slate-100 outline-none focus:border-indigo-400" />
                       </div>
                     </div>
                     <div>
@@ -358,13 +343,13 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
                       <div className="relative">
                         <span className="absolute left-3 top-2.5 text-slate-500 text-xs font-bold">US$</span>
                         <input type="text" value={form.grandTotal} onChange={e => updateForm('grandTotal', e.target.value)} placeholder="0.00"
-                               className="w-full bg-black/20 border border-emerald-500/30 rounded-xl pl-10 pr-4 py-2 text-sm font-bold text-emerald-300 outline-none focus:border-emerald-400" />
+                               className="w-full bg-black/20 border border-indigo-500/30 rounded-xl pl-10 pr-4 py-2 text-sm font-bold text-indigo-300 outline-none focus:border-indigo-400" />
                       </div>
                     </div>
                     <div className="col-span-2">
                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Memo: FY OPEX Impact</label>
                        <textarea rows={3} value={form.memoOpex} onChange={e => updateForm('memoOpex', e.target.value)} placeholder="Describe ongoing impact..."
-                                 className="w-full bg-black/20 border border-emerald-500/30 rounded-xl px-4 py-3 text-sm font-medium text-slate-100 outline-none focus:border-emerald-400 resize-y"></textarea>
+                                 className="w-full bg-black/20 border border-indigo-500/30 rounded-xl px-4 py-3 text-sm font-medium text-slate-100 outline-none focus:border-indigo-400 resize-y"></textarea>
                     </div>
                   </div>
                 </div>
@@ -433,10 +418,10 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Net Benefit</p>
                       <p className="text-lg font-extrabold text-blue-300">US$ {netBenefitNum.toLocaleString()}</p>
                     </div>
-                    <div className="bg-black/20 rounded-xl p-4 border border-emerald-500/20 text-center">
-                      <span className="material-icons text-emerald-400 text-2xl mb-1">percent</span>
+                    <div className="bg-black/20 rounded-xl p-4 border border-indigo-500/20 text-center">
+                      <span className="material-icons text-indigo-400 text-2xl mb-1">percent</span>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">ROI</p>
-                      <p className="text-lg font-extrabold text-emerald-300">{form.roiPercentage || '0'}%</p>
+                      <p className="text-lg font-extrabold text-indigo-300">{form.roiPercentage || '0'}%</p>
                     </div>
                     <div className="bg-black/20 rounded-xl p-4 border border-amber-500/20 text-center">
                       <span className="material-icons text-amber-400 text-2xl mb-1">hourglass_bottom</span>
@@ -457,11 +442,11 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
             {/* ── 3. FINANCE CHECKLIST ── */}
             {currentSectionIndex === 2 && (
                <div className="animate-fade-in space-y-6">
-                 <h3 className="text-[13px] font-extrabold uppercase tracking-widest mb-2 text-emerald-400">Finance Mandatory Checklist</h3>
+                 <h3 className="text-[13px] font-extrabold uppercase tracking-widest mb-2 text-indigo-400">Finance Mandatory Checklist</h3>
                  <div className="space-y-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between p-5 border border-white/10 rounded-xl bg-white/5 gap-4">
                       <div className="flex items-start gap-4 flex-1">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-500/15 text-emerald-300 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                        <div className="w-12 h-12 rounded-xl bg-indigo-500/15 text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-500/20">
                           <span className="material-icons text-[24px]">price_check</span>
                         </div>
                         <div>
@@ -471,11 +456,11 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
                       </div>
                       <div className="flex items-center gap-8">
                         <label className="flex items-center gap-3 cursor-pointer group">
-                          <input type="radio" checked={form.financeChecklist_budget === 'Yes'} onChange={() => updateForm('financeChecklist_budget', 'Yes')} className="w-5 h-5 text-emerald-500 accent-emerald-500" />
+                          <input type="radio" checked={form.financeChecklist_budget === 'Yes'} onChange={() => updateForm('financeChecklist_budget', 'Yes')} className="w-5 h-5 text-indigo-500 accent-indigo-500" />
                           <span className="text-[14px] font-bold text-slate-300">Yes</span>
                         </label>
                         <label className="flex items-center gap-3 cursor-pointer group">
-                          <input type="radio" checked={form.financeChecklist_budget === 'No'} onChange={() => updateForm('financeChecklist_budget', 'No')} className="w-5 h-5 text-emerald-500 accent-emerald-500" />
+                          <input type="radio" checked={form.financeChecklist_budget === 'No'} onChange={() => updateForm('financeChecklist_budget', 'No')} className="w-5 h-5 text-indigo-500 accent-indigo-500" />
                           <span className="text-[14px] font-bold text-slate-300">No</span>
                         </label>
                       </div>
@@ -500,28 +485,19 @@ export function FinanceReviewForm({ projectId, onSuccess }: FinanceReviewFormPro
               >
                 <span className="material-icons text-[18px]">arrow_back</span> Previous
               </button>
-              
-              <button 
-                className="px-5 py-2.5 rounded-xl border border-emerald-500/30 text-emerald-300 font-bold text-[13px] bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors flex items-center gap-2"
-                onClick={autofillAI}
-              >
-                <span className="material-icons text-[18px]">auto_awesome</span> Fill with AI
-              </button>
 
               {currentSectionIndex < sections.length - 1 ? (
                 <button 
-                  className="px-8 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-bold text-[13px] shadow-md hover:shadow-emerald-300 hover:shadow-lg transition-all flex items-center gap-2"
+                  className="px-8 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-700 text-white font-bold text-[13px] shadow-md hover:shadow-indigo-300 hover:shadow-lg transition-all flex items-center gap-2"
                   onClick={nextSection}
                 >
                   Next <span className="material-icons text-[18px]">arrow_forward</span>
                 </button>
               ) : (
-                <button 
-                  className="px-8 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-bold text-[13px] shadow-md hover:shadow-emerald-300 hover:shadow-lg transition-all flex items-center gap-2"
-                  onClick={submitData}
-                >
-                  <span className="material-icons text-[18px]">check_circle</span> Submit Finance Review
-                </button>
+                <p className="text-xs text-slate-400 italic flex items-center gap-1.5">
+                  <span className="material-icons text-[14px] text-indigo-400">info</span>
+                  Use the <strong className="text-white mx-1">Approve</strong> button on the right panel to submit.
+                </p>
               )}
             </div>
           </div>

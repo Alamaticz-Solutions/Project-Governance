@@ -1,12 +1,16 @@
-import { useState } from "react";
-import { projectsApi } from "../../../lib/api";
+import { useEffect, useState } from "react";
+import { AIPopulationDropzone } from "../components/AIPopulationDropzone";
+
+export interface EacFormData {
+  [key: string]: any;
+}
 
 interface EacReviewFormProps {
   projectId: string;
-  onSuccess?: () => void;
+  onFormChange?: (data: EacFormData, isValid: boolean) => void;
 }
 
-export function EacReviewForm({ projectId, onSuccess }: EacReviewFormProps) {
+export function EacReviewForm({ projectId: _projectId, onFormChange }: EacReviewFormProps) {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
 
   const sections = [
@@ -36,11 +40,32 @@ export function EacReviewForm({ projectId, onSuccess }: EacReviewFormProps) {
   });
 
   const [stakeholders, setStakeholders] = useState<any[]>([]);
-  const [risksList] = useState<any[]>([]);
-  const [milestones] = useState<any[]>([]);
-  const [solutionsConsidered] = useState<any[]>([]);
 
-  const updateForm = (key: string, value: string) => setForm({ ...form, [key]: value });
+  const isValid = (f: any) => !!(f.problemStatement);
+
+    const handleAIExtraction = (parsedData: Record<string, any>) => {
+    const clean = Object.fromEntries(
+      Object.entries(parsedData || {}).filter(([, v]) => v !== "" && v !== null && v !== undefined)
+    );
+    setForm((prev: any) => {
+      const next = { ...prev, ...clean };
+      if (typeof onFormChange === 'function') {
+         onFormChange(next, isValid(next));
+      }
+      return next;
+    });
+  };
+
+const updateForm = (key: string, value: string) => {
+    const next = { ...form, [key]: value };
+    setForm(next);
+    onFormChange?.(next, isValid(next));
+  };
+
+  useEffect(() => {
+    onFormChange?.(form, isValid(form));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const nextSection = () => { if (currentSectionIndex < sections.length - 1) setCurrentSectionIndex(i => i + 1); };
   const prevSection = () => { if (currentSectionIndex > 0) setCurrentSectionIndex(i => i - 1); };
@@ -67,22 +92,8 @@ export function EacReviewForm({ projectId, onSuccess }: EacReviewFormProps) {
     });
   };
 
-  const submitData = async () => {
-    try {
-      if (!projectId) { alert("Mock Submit"); return; }
-      await projectsApi.submitDecision(
-        projectId,
-        "EAC Review",
-        "Approve",
-        "EAC Dossier submitted successfully.",
-        { ...form, stakeholders, risksList, milestones, solutionsConsidered }
-      );
-      if (onSuccess) onSuccess();
-    } catch (e) {
-      console.error(e);
-      alert("Error submitting EAC review");
-    }
-  };
+  // No internal submit — handled by parent via onFormChange
+
 
   return (
     <div className="animate-fade-in w-full font-sans">
@@ -123,6 +134,7 @@ export function EacReviewForm({ projectId, onSuccess }: EacReviewFormProps) {
             {/* 1. Project Overview */}
             {currentSectionIndex === 0 && (
               <div className="animate-fade-in space-y-4">
+                <AIPopulationDropzone projectId={_projectId} team="EAC" onExtractionComplete={handleAIExtraction} />
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Project Name</label>
@@ -235,9 +247,10 @@ export function EacReviewForm({ projectId, onSuccess }: EacReviewFormProps) {
                   Next
                 </button>
               ) : (
-                <button onClick={submitData} className="px-8 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-700 text-white font-bold text-[13px] shadow-md hover:shadow-indigo-300 hover:shadow-lg transition-all">
-                  Submit EAC Dossier
-                </button>
+                <p className="text-xs text-slate-400 italic flex items-center gap-1.5">
+                  <span className="material-icons text-[14px] text-indigo-400">info</span>
+                  Use the <strong className="text-white mx-1">Approve</strong> button on the right panel to submit.
+                </p>
               )}
             </div>
           </div>
