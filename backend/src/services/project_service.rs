@@ -556,7 +556,12 @@ pub async fn submit_decision(
         .ok_or_else(|| AppError::NotFound("Project not found".to_string()))?;
 
     let required_role = project.current_owner_role.clone().unwrap_or_default();
-    if current_user.role.as_str() != required_role && current_user.role != UserRole::Admin {
+    // `current_owner_role` is stored lowercase (see the `Set(Some("bta"...))`
+    // calls below) while `UserRole::as_str()` yields SCREAMING_SNAKE_CASE, so
+    // this comparison must be case-insensitive or every non-admin is Forbidden.
+    if !current_user.role.as_str().eq_ignore_ascii_case(&required_role)
+        && current_user.role != UserRole::Admin
+    {
         return Err(AppError::Forbidden(format!(
             "You (role: {}) do not have permission at this stage (required: {}).",
             current_user.role.as_str(),

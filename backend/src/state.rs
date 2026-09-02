@@ -4,6 +4,7 @@ use sea_orm::DatabaseConnection;
 
 use crate::config::AppConfig;
 use crate::graphql::AppSchema;
+use crate::services::graph_client::GraphClient;
 use crate::services::s3_service::S3Service;
 
 /// Shared application state, constructed once at boot and cloned (cheap `Arc`
@@ -15,4 +16,7 @@ pub struct AppState {
     pub http: reqwest::Client,
     pub schema: AppSchema,
     pub s3: Arc<S3Service>,
+    /// `Some` when Microsoft Graph is configured (`AppConfig::graph_enabled`);
+    /// `None` falls back to local-stub meeting links.
+    pub graph: Option<Arc<GraphClient>>,
 }

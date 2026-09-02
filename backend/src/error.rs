@@ -29,6 +29,17 @@ pub enum AppError {
 
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
+
+    /// An upstream integration (e.g. Microsoft Graph) returned an error.
+    /// `code` carries the provider's machine code (e.g.
+    /// `GraphAccessToTranscriptsDisabled`) when present, so callers can branch;
+    /// `retryable` distinguishes transient failures from permanent ones.
+    #[error("{message}")]
+    Upstream {
+        code: Option<String>,
+        message: String,
+        retryable: bool,
+    },
 }
 
 impl IntoResponse for AppError {
@@ -52,6 +63,10 @@ impl IntoResponse for AppError {
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Internal server error".to_string(),
                 )
+            }
+            AppError::Upstream { code, message, .. } => {
+                tracing::error!(code = ?code, "upstream integration error: {message}");
+                (StatusCode::BAD_GATEWAY, message.clone())
             }
         };
 

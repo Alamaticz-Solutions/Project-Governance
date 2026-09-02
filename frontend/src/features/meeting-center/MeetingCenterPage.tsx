@@ -1,158 +1,405 @@
-import { useState } from "react";
-
-interface Meeting {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  type: string;
-}
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router";
+import { ApiError } from "../../lib/apiClient";
+import { teamsPocApi, type OrganizerAvailability, type PocMeeting } from "../../lib/teamsPocApi";
+import { fmtDateTime, isCancellable, SOURCE_LABEL, STATUS_DOT, STATUS_STYLE } from "./shared";
+import { AttendeePicker } from "./AttendeePicker";
 
 export function MeetingCenterPage() {
-  const [upcomingMeetings] = useState<Meeting[]>([
-    { id: '1', title: 'EAC Architecture Alignment Vote', date: 'Today, Nov 14', time: '10:00 AM', type: 'EAC' },
-    { id: '2', title: 'BTA Discovery: Cloud Migration', date: 'Today, Nov 14', time: '2:30 PM', type: 'BTA' },
-    { id: '3', title: 'PIC Funding Approval', date: 'Tomorrow, Nov 15', time: '9:00 AM', type: 'PIC' },
-    { id: '4', title: 'Security Gate K Review', date: 'Thu, Nov 16', time: '1:00 PM', type: 'SEC' }
-  ]);
-  
-  const [activeMeetingId, setActiveMeetingId] = useState<string>('1');
-  
-  const activeMeeting = upcomingMeetings.find(m => m.id === activeMeetingId);
+  const navigate = useNavigate();
+  const [meetings, setMeetings] = useState<PocMeeting[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // schedule form
+  const [showSchedule, setShowSchedule] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+  const [subject, setSubject] = useState("EAC Architecture Review — Cloud Data Lake");
+  const [date, setDate] = useState(today);
+  const [startTime, setStartTime] = useState("10:00");
+  const [endTime, setEndTime] = useState("11:00");
+  const [attendees, setAttendees] = useState<string[]>([]);
+  const [scheduling, setScheduling] = useState(false);
+  const [availability, setAvailability] = useState<OrganizerAvailability | null>(null);
+
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  const [statusFilter, setStatusFilter] = useState<PocMeeting["status"] | "all">("all");
+
+  const stats = useMemo(() => {
+    const s = { total: meetings.length, scheduled: 0, processing: 0, completed: 0, failed: 0, cancelled: 0 };
+    for (const m of meetings) s[m.status] += 1;
+    return s;
+  }, [meetings]);
+
+  const filteredMeetings = useMemo(
+    () => (statusFilter === "all" ? meetings : meetings.filter((m) => m.status === statusFilter)),
+    [meetings, statusFilter],
+  );
+
+  const refresh = useCallback(async () => {
+    try {
+      const list = await teamsPocApi.list();
+      setMeetings(list);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Failed to load meetings");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+    return () => {
+      if (pollRef.current) clearTimeout(pollRef.current);
+    };
+  }, [refresh]);
+
+  // poll while any meeting is processing, so card badges stay current
+  useEffect(() => {
+    if (!meetings.some((m) => m.status === "processing")) return;
+    pollRef.current = setTimeout(() => void refresh(), 2500);
+    return () => {
+      if (pollRef.current) clearTimeout(pollRef.current);
+    };
+  }, [meetings, refresh]);
+
+  // advisory organizer clash check for the chosen window (debounced)
+  useEffect(() => {
+    if (!showSchedule) return;
+    const start = new Date(`${date}T${startTime}:00`);
+    const end = new Date(`${date}T${endTime}:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+      setAvailability(null);
+      return;
+    }
+    const t = setTimeout(async () => {
+      try {
+        setAvailability(
+          await teamsPocApi.checkAvailability({
+            start_time: start.toISOString(),
+            end_time: end.toISOString(),
+          }),
+        );
+      } catch {
+        setAvailability(null);
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [showSchedule, date, startTime, endTime]);
+
+  async function schedule(e: FormEvent) {
+    e.preventDefault();
+
+    const start = new Date(`${date}T${startTime}:00`);
+    const end = new Date(`${date}T${endTime}:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      setError("Enter a valid date, start time, and end time.");
+      return;
+    }
+    if (end <= start) {
+      setError("End time must be after start time.");
+      return;
+    }
+    if (start.getTime() < Date.now() - 60_000) {
+      setError("Cannot schedule a meeting in the past.");
+      return;
+    }
+
+    setScheduling(true);
+    setError(null);
+    try {
+      const created = await teamsPocApi.schedule({
+        subject,
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+        attendees,
+      });
+      setShowSchedule(false);
+      await refresh();
+      navigate(`/meeting-center/${created.id}`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to schedule meeting");
+    } finally {
+      setScheduling(false);
+    }
+  }
+
+  async function removeMeeting(id: string, subject: string) {
+    if (
+      !window.confirm(
+        `Remove "${subject}"? This deletes the meeting record and any AI results. This does not cancel the meeting in Teams.`,
+      )
+    ) {
+      return;
+    }
+    setRemovingId(id);
+    setError(null);
+    try {
+      await teamsPocApi.remove(id);
+      setMeetings((prev) => prev.filter((m) => m.id !== id));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to remove meeting");
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  async function cancelMeeting(id: string, subject: string) {
+    if (!window.confirm(`Cancel "${subject}"? The Teams join link will stop working.`)) {
+      return;
+    }
+    setCancellingId(id);
+    setError(null);
+    try {
+      const updated = await teamsPocApi.cancel(id);
+      setMeetings((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to cancel meeting");
+    } finally {
+      setCancellingId(null);
+    }
+  }
 
   return (
     <div className="animate-fade-in p-6 min-h-full" style={{ background: "#0f172a", color: "#f8fafc" }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3" style={{ fontFamily: 'var(--font-display)' }}>
+          <h1
+            className="text-3xl font-bold text-white tracking-tight flex items-center gap-3"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
             <span className="material-icons text-blue-500 text-[32px]">groups</span>
             Enterprise Meeting Center
           </h1>
-          <p className="text-sm font-medium text-slate-400 mt-1">Manage governance council meetings and AI-driven agenda tracking.</p>
+          <p className="text-sm font-medium text-slate-400 mt-1">
+            Schedule Microsoft Teams meetings and run their transcripts through the AI pipeline.
+          </p>
         </div>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30 px-5 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2 transition-all hover:-translate-y-0.5">
-          <span className="material-icons text-[18px]">add</span> Schedule Meeting
+        <button
+          onClick={() => setShowSchedule((v) => !v)}
+          className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30 px-5 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2 transition-all hover:-translate-y-0.5"
+        >
+          <span className="material-icons text-[18px]">{showSchedule ? "close" : "add"}</span>
+          {showSchedule ? "Cancel" : "Schedule Meeting"}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Upcoming Schedule Sidebar */}
-        <div className="space-y-6">
-          <div className="bg-[#1e293b] rounded-2xl shadow-sm border border-white/10 p-5">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 border-b border-white/10 pb-2 mb-4">Upcoming Schedule</h3>
-            
-            <div className="space-y-3">
-              {upcomingMeetings.map((meeting) => {
-                const isActive = activeMeetingId === meeting.id;
-                const typeColor = meeting.type === 'EAC' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-                
-                return (
-                  <div 
-                    key={meeting.id}
-                    onClick={() => setActiveMeetingId(meeting.id)} 
-                    className={`p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${isActive ? 'bg-indigo-500/20 border-indigo-400/50' : 'bg-slate-800 border-white/5 hover:border-indigo-400/30'}`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className={`text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded border ${typeColor}`}>
-                        {meeting.type} COUNCIL
-                      </span>
-                      <span className="text-[11px] font-bold text-slate-500">{meeting.time}</span>
-                    </div>
-                    <h4 className="font-bold text-white text-sm mb-1 leading-snug">{meeting.title}</h4>
-                    <p className="text-xs text-slate-400">{meeting.date}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+      {/* Dashboard stat tiles — click to filter the grid below */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        {(
+          [
+            ["total", "all", "Total", "text-white"],
+            ["scheduled", "scheduled", "Scheduled", "text-slate-300"],
+            ["processing", "processing", "Processing", "text-amber-300"],
+            ["completed", "completed", "Completed", "text-emerald-300"],
+            ["failed", "failed", "Failed", "text-rose-300"],
+          ] as const
+        ).map(([key, filterValue, label, color]) => {
+          const isActive = statusFilter === filterValue;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setStatusFilter((cur) => (cur === filterValue ? "all" : filterValue))}
+              className={`text-left bg-[#1e293b] rounded-xl border px-4 py-3 transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                isActive ? "border-indigo-400/60 ring-1 ring-indigo-400/40" : "border-white/10 hover:border-indigo-400/30"
+              }`}
+            >
+              <div className={`text-2xl font-extrabold ${color}`}>{stats[key]}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mt-0.5">{label}</div>
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Meeting Workspace */}
-        {activeMeeting && (
-          <div className="lg:col-span-2 flex flex-col gap-6">
-            
-            {/* Context Header */}
-            <div className="bg-[#1e293b] rounded-2xl p-6 shadow-sm border border-white/10 flex flex-col gap-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'var(--font-display)' }}>{activeMeeting.title}</h2>
-                  <div className="flex gap-4 text-xs font-medium text-slate-400">
-                    <span className="flex items-center gap-1"><span className="material-icons text-[14px]">event</span> {activeMeeting.date}</span>
-                    <span className="flex items-center gap-1"><span className="material-icons text-[14px]">schedule</span> {activeMeeting.time}</span>
-                    <span className="flex items-center gap-1"><span className="material-icons text-[14px]">videocam</span> MSTeams Bridge</span>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex -space-x-2">
-                    <div className="w-8 h-8 rounded-full border-2 border-[#1e293b] bg-blue-500 text-white flex items-center justify-center text-xs font-bold">AK</div>
-                    <div className="w-8 h-8 rounded-full border-2 border-[#1e293b] bg-orange-500 text-white flex items-center justify-center text-xs font-bold">JR</div>
-                    <div className="w-8 h-8 rounded-full border-2 border-[#1e293b] bg-slate-700 text-slate-300 flex items-center justify-center text-xs font-bold">+5</div>
-                  </div>
-                  <button className="bg-slate-700 hover:bg-slate-600 text-slate-300 w-8 h-8 rounded-full flex items-center justify-center transition-colors">
-                    <span className="material-icons text-[16px]">person_add</span>
+      {statusFilter !== "all" && (
+        <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-slate-400">
+          Filtering by <span className="text-white capitalize">{statusFilter}</span>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("all")}
+            className="text-blue-400 hover:underline"
+          >
+            Clear filter
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-6 rounded-lg border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          {error}
+        </div>
+      )}
+
+      {showSchedule && (
+        <form
+          onSubmit={schedule}
+          className="mb-6 bg-[#1e293b] rounded-2xl border border-white/10 p-5 grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
+          <label className="block text-xs font-semibold text-slate-400 md:col-span-2">
+            Subject
+            <input
+              className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              required
+            />
+          </label>
+          <label className="block text-xs font-semibold text-slate-400">
+            Date
+            <input
+              type="date"
+              min={today}
+              className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </label>
+          <div className="flex gap-3">
+            <label className="block text-xs font-semibold text-slate-400 flex-1">
+              Start
+              <input
+                type="time"
+                className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                required
+              />
+            </label>
+            <label className="block text-xs font-semibold text-slate-400 flex-1">
+              End
+              <input
+                type="time"
+                className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                required
+              />
+            </label>
+          </div>
+          <div className="block text-xs font-semibold text-slate-400 md:col-span-2">
+            Attendees (optional)
+            <AttendeePicker value={attendees} onChange={setAttendees} />
+            {attendees.length > 0 && (
+              <span className="mt-1 block text-[11px] text-slate-500">
+                {attendees.length} attendee(s) will get a Teams invite email.
+              </span>
+            )}
+          </div>
+
+          {availability?.checked && availability.busy && (
+            <div className="md:col-span-2 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 flex items-start gap-2">
+              <span className="material-icons text-[15px] mt-px">event_busy</span>
+              <span>
+                The organizer already has {availability.conflicts.length} calendar
+                {availability.conflicts.length === 1 ? " entry" : " entries"} overlapping this
+                window. You can still schedule.
+              </span>
+            </div>
+          )}
+
+          <p className="md:col-span-2 text-[11px] text-slate-500 -mt-1">
+            Organized by the governance service mailbox. Invitations are sent from that account.
+          </p>
+
+          <div className="md:col-span-2">
+            <button
+              type="submit"
+              disabled={scheduling}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-5 py-2 text-sm font-bold disabled:opacity-50"
+            >
+              {scheduling ? "Scheduling…" : "Create meeting"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Meeting grid */}
+      {loading ? (
+        <p className="text-sm text-slate-500">Loading…</p>
+      ) : meetings.length === 0 ? (
+        <div className="bg-[#1e293b] rounded-2xl border border-white/10 p-10 text-center">
+          <p className="text-sm text-slate-500">No meetings yet. Use "Schedule Meeting" to create one.</p>
+        </div>
+      ) : filteredMeetings.length === 0 ? (
+        <div className="bg-[#1e293b] rounded-2xl border border-white/10 p-10 text-center">
+          <p className="text-sm text-slate-500">
+            No <span className="capitalize">{statusFilter}</span> meetings.{" "}
+            <button type="button" onClick={() => setStatusFilter("all")} className="text-blue-400 hover:underline">
+              Show all
+            </button>
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filteredMeetings.map((meeting) => {
+            const isRemoving = removingId === meeting.id;
+            const isCancelling = cancellingId === meeting.id;
+            const cancellable = isCancellable(meeting);
+            return (
+              <div
+                key={meeting.id}
+                onClick={() => navigate(`/meeting-center/${meeting.id}`)}
+                className={`group relative p-4 rounded-xl border cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5 bg-slate-800 border-white/5 hover:border-indigo-400/30 ${
+                  isRemoving || isCancelling ? "opacity-40 pointer-events-none" : ""
+                }`}
+              >
+                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                  {cancellable && (
+                    <button
+                      type="button"
+                      title="Cancel meeting"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void cancelMeeting(meeting.id, meeting.subject);
+                      }}
+                      className="text-slate-500 hover:text-amber-400 p-1 rounded-md hover:bg-amber-500/10"
+                    >
+                      <span className="material-icons text-[16px]">event_busy</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    title="Remove meeting"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void removeMeeting(meeting.id, meeting.subject);
+                    }}
+                    className="text-slate-500 hover:text-rose-400 p-1 rounded-md hover:bg-rose-500/10"
+                  >
+                    <span className="material-icons text-[16px]">delete_outline</span>
                   </button>
                 </div>
-              </div>
-            </div>
 
-            {/* AI Summary and Actions */}
-            <div className="grid grid-cols-2 gap-6">
-              
-              {/* AI Meeting Summary */}
-              <div className="relative overflow-hidden rounded-2xl p-1 shadow-xl border border-white/10" style={{ background: 'linear-gradient(135deg, #312E81 0%, #1E40AF 100%)' }}>
-                <div className="bg-black/20 backdrop-blur-md rounded-xl p-6 relative z-10 text-white h-full">
-                  <div className="flex items-center gap-3 mb-4 border-b border-white/10 pb-3">
-                    <span className="material-icons text-indigo-300">auto_graph</span>
-                    <h3 className="font-bold text-lg">AI Meeting Summary & Notes</h3>
-                  </div>
-                  <div className="space-y-4">
-                    <p className="text-sm text-indigo-100 leading-relaxed font-light">"The committee largely agreed with the cloud migration strategy but highlighted a dependency on the SOC2 vendor compliance for Azure modules. AI suggests deferring final approval until Security signs off."</p>
-                    <div className="bg-black/30 rounded-lg py-3 px-4 flex justify-between items-center border border-white/5 cursor-pointer hover:bg-black/40 transition-colors">
-                      <div className="flex items-center gap-2">
-                        <span className="material-icons text-rose-400 text-[18px]">mic</span>
-                        <span className="text-xs font-medium uppercase tracking-widest text-slate-300">Live Transcript Active</span>
-                      </div>
-                      <span className="flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                      </span>
-                    </div>
-                  </div>
+                <div className="flex justify-between items-start mb-2 gap-2 pr-14">
+                  <span
+                    className={`inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded border ${STATUS_STYLE[meeting.status]}`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[meeting.status]}`} />
+                    {meeting.status}
+                  </span>
+                </div>
+                <h4 className="font-bold text-white text-sm mb-1 leading-snug line-clamp-2" title={meeting.subject}>
+                  {meeting.subject}
+                </h4>
+                <div className="flex items-center justify-between text-xs text-slate-400 mt-3">
+                  <span className="flex items-center gap-1">
+                    <span className="material-icons text-[14px]">event</span>
+                    {fmtDateTime(meeting.start_time ?? meeting.created_at)}
+                  </span>
+                  <span>{SOURCE_LABEL[meeting.source]}</span>
                 </div>
               </div>
-
-              {/* Action Items */}
-              <div className="bg-[#1e293b] rounded-2xl p-6 shadow-sm border border-white/10">
-                <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-3">
-                  <span className="material-icons text-orange-400">assignment_turned_in</span>
-                  <h3 className="font-bold text-white text-lg">AI Suggested Actions</h3>
-                </div>
-                <div className="space-y-3">
-                  <label className="flex items-start gap-3 p-3 bg-slate-800 border border-white/5 rounded-lg cursor-pointer hover:bg-slate-700/50 transition-colors">
-                    <input type="checkbox" className="mt-0.5 w-4 h-4 accent-blue-500 rounded border-slate-600 bg-slate-800" />
-                    <div>
-                      <div className="text-sm font-semibold text-white">Add Security Sign-off Dependency</div>
-                      <div className="text-xs text-slate-400 mt-1">Assign to: J. Doe (Security Architect)</div>
-                    </div>
-                  </label>
-                  <label className="flex items-start gap-3 p-3 bg-slate-800 border border-white/5 rounded-lg cursor-pointer hover:bg-slate-700/50 transition-colors">
-                    <input type="checkbox" className="mt-0.5 w-4 h-4 accent-blue-500 rounded border-slate-600 bg-slate-800" />
-                    <div>
-                      <div className="text-sm font-semibold text-white">Schedule Vendor Risk Assessment</div>
-                      <div className="text-xs text-slate-400 mt-1">Due before next EAC session</div>
-                    </div>
-                  </label>
-                </div>
-                <button className="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg text-sm font-bold transition-colors">
-                  Save Action Items to Project
-                </button>
-              </div>
-
-            </div>
-          </div>
-        )}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

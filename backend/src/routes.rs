@@ -80,7 +80,42 @@ pub fn build_router(state: AppState) -> Router {
             "/users",
             get(handlers::users::list_users).post(handlers::users::create_user),
         )
-        .route("/graphql", post(handlers::graphql::graphql_handler));
+        .route("/graphql", post(handlers::graphql::graphql_handler))
+        // ── Teams meeting + VTT (Microsoft Graph route) ──────────────────────
+        .route(
+            "/teams-poc/meetings",
+            get(handlers::teams_poc::list_meetings).post(handlers::teams_poc::schedule_meeting),
+        )
+        .route(
+            "/teams-poc/meetings/:id",
+            get(handlers::teams_poc::get_meeting).delete(handlers::teams_poc::delete_meeting),
+        )
+        .route(
+            "/teams-poc/meetings/:id/cancel",
+            post(handlers::teams_poc::cancel_meeting),
+        )
+        .route(
+            "/teams-poc/meetings/:id/ingest-transcript",
+            post(handlers::teams_poc::ingest_transcript),
+        )
+        .route(
+            "/teams-poc/availability",
+            post(handlers::teams_poc::check_availability),
+        )
+        .route(
+            "/teams-poc/directory/users",
+            get(handlers::teams_poc::directory_search),
+        )
+        // Graph change-notification webhooks — unauthenticated by design
+        // (verified via clientState + the subscription validation handshake).
+        .route(
+            "/teams-poc/graph-notifications",
+            post(handlers::teams_poc::graph_notifications),
+        )
+        .route(
+            "/teams-poc/graph-lifecycle",
+            post(handlers::teams_poc::graph_lifecycle),
+        );
 
     Router::new()
         .route("/", get(root))

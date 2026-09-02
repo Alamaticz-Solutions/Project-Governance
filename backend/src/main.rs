@@ -13,6 +13,7 @@ mod state;
 mod graphql;
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use config::AppConfig;
 use migration::MigratorTrait;
@@ -36,15 +37,71 @@ async fn main() -> anyhow::Result<()> {
     seed::seed_demo_users(&db).await?;
     seed::seed_workflow_definitions(&db).await?;
 
+    // Recover POC meetings left stuck in `processing` by a prior crash/restart.
+    crate::services::poc_meeting_service::spawn_stuck_meeting_reaper(db.clone());
+
     let schema = graphql::build_schema();
     let s3 = crate::services::s3_service::S3Service::new(&config).await;
+
+    // Shared outbound HTTP client. Bounded so a hung upstream (OpenAI, Microsoft
+    // Graph) can never pin a request forever; individual call sites tighten this
+    // further where a shorter bound is appropriate.
+    let http = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(300))
+        .build()
+        .expect("failed to build HTTP client");
+
+    // Microsoft Graph (Teams meetings + transcripts). `None` → the portal issues
+    // local-stub join links and does no transcript auto-ingest.
+    let graph = if config.graph_enabled() {
+        Some(Arc::new(crate::services::graph_client::GraphClient::new(
+            &config,
+            http.clone(),
+        )))
+    } else {
+        tracing::warn!("Microsoft Graph not configured — Teams scheduling will issue local-stub links");
+        None
+    };
+
+    // Establishing the transcript subscription makes Graph synchronously call
+    // back to our notification URL to validate it, so it must run *after* the
+    // HTTP server is accepting connections — hence a spawned task, not an
+    // inline await before `axum::serve`.
+    if let Some(client) = graph.clone() {
+        if config.graph_notifications_enabled() {
+            let cfg = config.clone();
+            let db = db.clone();
+            tokio::spawn(async move {
+                // Give `axum::serve` a moment to bind before Graph calls back.
+                tokio::time::sleep(Duration::from_secs(3)).await;
+                if let Err(e) = crate::services::graph_subscription_service::ensure_subscription(
+                    &client, &cfg, &db,
+                )
+                .await
+                {
+                    tracing::error!(error = %e, "could not establish Graph transcript subscription at startup");
+                }
+                // Spawn the renewer only after the row exists, so its immediate
+                // first tick is a cheap no-op rather than a second create.
+                crate::services::graph_subscription_service::spawn_subscription_renewer(
+                    client, cfg, db,
+                );
+            });
+        } else {
+            tracing::warn!(
+                "GRAPH_NOTIFICATION_BASE_URL / GRAPH_NOTIFICATION_CLIENT_STATE not set — transcript auto-ingest disabled"
+            );
+        }
+    }
 
     let state = AppState {
         db,
         config: Arc::new(config.clone()),
-        http: reqwest::Client::new(),
+        http,
         schema,
         s3: Arc::new(s3),
+        graph,
     };
 
     let app = routes::build_router(state);
