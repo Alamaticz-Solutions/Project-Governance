@@ -49,6 +49,18 @@ pub fn build_router(state: AppState) -> Router {
             post(handlers::projects::submit_decision),
         )
         .route(
+            "/projects/:project_id/documents",
+            get(handlers::projects::list_documents)
+        )
+        .route(
+            "/projects/:project_id/documents/:doc_id/download",
+            get(handlers::projects::download_document)
+        )
+        .route(
+            "/projects/:project_id/extract-team-fields/:team",
+            post(handlers::projects::extract_team_fields)
+        )
+        .route(
             "/projects/:project_id/fast-track-complete",
             post(handlers::projects::fast_track_complete),
         )

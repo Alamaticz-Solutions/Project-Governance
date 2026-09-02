@@ -696,6 +696,32 @@ pub async fn submit_decision(
     project_am.updated_at = Set(Some(now.into()));
     let updated_project = project_am.update(&txn).await?;
 
+    let mut data_obj = serde_json::Map::new();
+    if let Some(updates) = &payload.project_updates {
+        for (k, v) in updates {
+            data_obj.insert(k.clone(), v.clone());
+        }
+    }
+    if let Some(ref comments) = payload.comments {
+        let prefix = payload.stage.to_lowercase().split_whitespace().next().unwrap_or("").to_string();
+        data_obj.insert(format!("{}_comments", prefix), Value::String(comments.clone()));
+    }
+    
+    let gate_sub_am = gate_submissions::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        project_id: Set(project_id),
+        stage: Set(payload.stage.clone()),
+        status: Set(approval.status.clone()),
+        decision: Set(approval.decision.clone()),
+        data: Set(Value::Object(data_obj)),
+        submitted_by: Set(Some(current_user.id)),
+        submitted_at: Set(Some(now.into())),
+        created_at: Set(now.into()),
+        updated_at: Set(Some(now.into())),
+        ..Default::default()
+    };
+    gate_sub_am.insert(&txn).await?;
+
     record_audit(
         &txn,
         Some(updated_project.id),

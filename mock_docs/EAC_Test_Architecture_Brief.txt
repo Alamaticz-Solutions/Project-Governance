@@ -1,0 +1,35 @@
+ENTERPRISE ARCHITECTURE COMMITTEE (EAC) - SOLUTION BRIEF
+=======================================================
+
+PROJECT OVERVIEW
+----------------
+Project Name: Patient Self-Service Portal Modernization
+Project Type: Digital Transformation
+Target Business Department: Patient Access, Front Desk Scheduling, and Revenue Cycle
+
+BUSINESS JUSTIFICATION
+----------------------
+Problem or Opportunity Statement: Patients depend on phone and in-person visits to
+schedule appointments, request refills, and pay balances. Call-center wait times
+average 11 minutes with a 22% abandonment rate, and the current portal is an
+end-of-life vendor product that cannot integrate with the new EHR.
+
+Strategic Alignment: Supports the 2026 "Digital Front Door" strategic pillar.
+Aligns with the enterprise architecture principles of "buy before build",
+"API-first integration", and "cloud-preferred hosting". Reuses the existing
+patient identity provider and enterprise API gateway rather than introducing new
+platforms.
+
+CURRENT STATE ANALYSIS
+----------------------
+Current State Architecture: The existing portal is a monolithic .NET application
+hosted on two aging on-premise IIS servers with a direct SQL Server dependency.
+It has no supported upgrade path, integrates with the legacy HIS via nightly batch
+files, and has no API layer. Pain points include frequent downtime during peak
+hours, manual data reconciliation, no mobile support, and inability to surface
+real-time appointment availability. Systems in scope today: legacy HIS, on-prem
+SQL Server, a third-party payment iframe, and manual eligibility checks.
+
+EAC CHECKLIST
+-------------
+Architecture footprint verified by committee: Yes

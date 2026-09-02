@@ -1,0 +1,57 @@
+PROJECT INVESTMENT COMMITTEE (PIC) - INVESTMENT CASE
+===================================================
+Project: Patient Self-Service Portal Modernization
+
+1. CORE PROJECT DEFINITION
+--------------------------
+Problem or Opportunity Statement: The legacy patient portal is unsupported, cannot
+integrate with the new EHR, and drives 22% of scheduling calls to abandonment.
+Modernizing it unlocks patient self-service and faster collections.
+
+Scope of Project (High Level): Enterprise-wide rollout of a cloud patient portal
+covering self-scheduling, digital check-in, secure messaging, results viewing, and
+online bill pay, delivered over six months with SSO to the existing identity
+provider.
+
+2. VENDOR RECOMMENDATION
+-----------------------
+Recommended Vendor: Bridgewell Health Digital
+Vendor Justification: Lowest 3-year total cost of ownership of the three vendors
+evaluated, native FHIR integration with our EHR, HITRUST certified, and an existing
+enterprise MSA that shortens contracting by 8 weeks.
+Additional Vendor Benefits: Includes premium 24x7 support and a dedicated
+implementation architect at no additional cost for the first year.
+
+3. PROJECT EVALUATION & BENEFIT
+------------------------------
+Benefit Category: Cost Reduction
+Annual Benefit Year 1: 900000
+Annual Benefit Year 2: 1400000
+Benefit Methodology: Year 1 benefit reflects a partial-year ramp; based on a 35%
+reduction in scheduling call volume (=$420K staffing), a no-show rate drop from 14%
+to 9% (=$180K recovered revenue), and accelerated collections from online bill pay.
+Year 2 reflects full run-rate.
+
+4. COST PLAN & ROI
+------------------
+Capital Expenditure (CapEx): 480000
+Net Present Value (NPV): 2100000
+Internal Rate of Return (IRR): 84
+Payback Period (months): 7
+
+5. PROJECT EXECUTION & ASK
+-------------------------
+Key Milestones: Vendor contract signed - Oct 2026; Build & integration complete -
+Jan 2027; Pilot with 2 clinics - Feb 2027; Enterprise go-live - Mar 2027.
+Resource Ask: 2.5 FTE (1 PM, 1 integration engineer, 0.5 BA) plus vendor
+implementation team for six months.
+
+6. SUPPORTING INFORMATION
+-------------------------
+Comments: Vendor references checked with two comparable health systems. Security
+review pre-cleared the HITRUST package. Requesting approval to release CapEx and
+proceed to contracting.
+
+7. PIC APPROVAL CHECKLIST
+------------------------
+Investment case verified: Yes

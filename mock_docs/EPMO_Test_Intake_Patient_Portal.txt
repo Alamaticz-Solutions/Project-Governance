@@ -1,0 +1,38 @@
+EPMO CHECK-IN INPUT DOCUMENT
+===========================
+
+Project Name: Patient Self-Service Portal Modernization
+Requestor: Dr. Angela Reyes  (Ambulatory Care Operations)
+
+STRATEGIC ALIGNMENT
+-------------------
+This initiative directly supports the organization's 2026 "Digital Front Door"
+strategic pillar and the enterprise goal of improving patient-reported experience
+scores. It is aligned with organizational strategy and business objectives.
+=> Aligned with strategy: Yes
+
+INVESTMENT / GOVERNANCE
+----------------------
+Estimated cost is $480,000 in capital spend, which is above the $250,000 threshold
+that requires Project Investment Committee (PIC) review and approval before funding
+is released.
+=> PIC approval required: Yes
+
+DELIVERY MANAGEMENT
+------------------
+Given the cross-functional scope (Patient Access, Scheduling, Revenue Cycle, and IT)
+and the six-month timeline, a dedicated project manager must be assigned to
+coordinate delivery.
+=> Dedicated project manager required: Yes
+
+RELATED WORK
+-----------
+The portal launch is dependent on the in-flight "Epic MyChart 2026.2 Upgrade"
+project and must be sequenced after it. This is related to an existing project.
+=> Related to an existing project: Yes
+
+EPMO REVIEWER NOTES
+------------------
+Recommend proceeding to BTA review. Confirm funding is reserved in the FY26 capital
+plan and that the MyChart upgrade completion date is locked before committing a
+go-live date.

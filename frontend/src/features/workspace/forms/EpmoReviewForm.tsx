@@ -1,16 +1,25 @@
+import { useEffect } from "react";
 import { useState } from "react";
-import { useNavigate } from "react-router";
-import { projectsApi } from "../../../lib/api";
+import { AIPopulationDropzone } from "../components/AIPopulationDropzone";
+
+export interface EpmoFormData {
+  epmo_strategy: string;
+  epmo_pic_needed: string;
+  epmo_pm_required: string;
+  epmo_related_project: string;
+  epmo_comments: string;
+  [key: string]: unknown;
+}
 
 interface EpmoReviewFormProps {
   projectId: string;
-  onSuccess?: () => void;
+  /** Called whenever any field changes — parent reads this to get current state */
+  onFormChange: (data: EpmoFormData, isValid: boolean) => void;
 }
 
-export function EpmoReviewForm({ projectId, onSuccess }: EpmoReviewFormProps) {
-  const navigate = useNavigate();
-  const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({
+export function EpmoReviewForm({ projectId: _projectId, onFormChange }: EpmoReviewFormProps) {
+  const [touched, setTouched] = useState(false);
+  const [form, setForm] = useState<EpmoFormData>({
     epmo_strategy: "",
     epmo_pic_needed: "",
     epmo_pm_required: "",
@@ -18,51 +27,98 @@ export function EpmoReviewForm({ projectId, onSuccess }: EpmoReviewFormProps) {
     epmo_comments: "",
   });
 
-  const [touched, setTouched] = useState(false);
-
   const isValid = form.epmo_strategy !== "" && form.epmo_pic_needed !== "";
 
-  const updateForm = (key: string, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSubmit = async (decision: string) => {
-    if (!projectId) {
-      alert("No active Project ID found.");
-      return;
-    }
-
-    setTouched(true);
-
-    if (decision === "Approve" && !isValid) {
-      alert("Please fill in all mandatory fields before approving.");
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      await projectsApi.submitDecision(
-        projectId,
-        "EPMO Review",
-        decision,
-        form.epmo_comments || "EPMO Review Completed via Dashboard.",
-        form
-      );
-      
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        alert("EPMO Review Successfully Submitted! Project routed to BTA.");
-        navigate("/team-inbox");
+    const handleAIExtraction = (parsedData: Record<string, any>) => {
+    const clean = Object.fromEntries(
+      Object.entries(parsedData || {}).filter(([, v]) => v !== "" && v !== null && v !== undefined)
+    );
+    setForm((prev: any) => {
+      const next = { ...prev, ...clean };
+      if (typeof onFormChange === 'function') {
+         onFormChange(next, next.epmo_strategy !== "" && next.epmo_pic_needed !== "");
       }
-    } catch (err: any) {
-      console.error(err);
-      alert("Failed to submit EPMO decision: " + (err.message || "Unknown error"));
-    } finally {
-      setSubmitting(false);
-    }
+      return next;
+    });
   };
+
+const updateForm = (key: keyof EpmoFormData, value: string) => {
+    const next = { ...form, [key]: value };
+    setForm(next);
+    const nextValid = next.epmo_strategy !== "" && next.epmo_pic_needed !== "";
+    onFormChange(next, nextValid);
+  };
+
+  // Emit initial state on mount
+  useEffect(() => {
+    onFormChange(form, isValid);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Expose touched setter so parent can trigger validation display
+  const markTouched = () => setTouched(true);
+  (window as any).__epmoMarkTouched = markTouched;
+
+  const RadioGroup = ({
+    name,
+    value,
+    onChange,
+    label,
+    description,
+    icon,
+    required,
+    error,
+  }: {
+    name: keyof EpmoFormData;
+    value: string;
+    onChange: (v: string) => void;
+    label: string;
+    description: string;
+    icon: string;
+    required?: boolean;
+    error?: boolean;
+  }) => (
+    <div className="flex flex-col md:flex-row md:items-center justify-between p-5 border border-white/10 rounded-xl hover:border-indigo-400/40 transition-colors bg-white/5 gap-4">
+      <div className="flex items-start gap-4 flex-1">
+        <div className="w-12 h-12 rounded-xl bg-indigo-500/15 text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-500/20">
+          <span className="material-icons text-[24px]">{icon}</span>
+        </div>
+        <div>
+          <h3 className="text-[14px] font-bold text-slate-100 mb-1">
+            {label} {required && <span className="text-red-500">*</span>}
+          </h3>
+          <p className="text-[12px] text-slate-400 font-medium leading-relaxed">{description}</p>
+          {touched && error && <p className="text-xs text-red-400 mt-1">This field is required</p>}
+        </div>
+      </div>
+      <div className="flex items-center gap-6 md:gap-14 shrink-0 mt-2 md:mt-0">
+        <div className="flex items-center gap-8">
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <input
+              type="radio"
+              name={name as string}
+              value="Yes"
+              checked={value === "Yes"}
+              onChange={(e) => onChange(e.target.value)}
+              className="w-5 h-5 text-indigo-500 bg-transparent border-white/20 focus:ring-indigo-500 cursor-pointer accent-indigo-500"
+            />
+            <span className="text-[14px] font-bold text-slate-300 group-hover:text-indigo-400 transition-colors">Yes</span>
+          </label>
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <input
+              type="radio"
+              name={name as string}
+              value="No"
+              checked={value === "No"}
+              onChange={(e) => onChange(e.target.value)}
+              className="w-5 h-5 text-indigo-500 bg-transparent border-white/20 focus:ring-indigo-500 cursor-pointer accent-indigo-500"
+            />
+            <span className="text-[14px] font-bold text-slate-300 group-hover:text-indigo-400 transition-colors">No</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="w-full bg-[#0f172a] rounded-2xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),0_0_20px_rgba(99,102,241,0.1)] overflow-hidden font-sans border border-slate-700/50">
@@ -77,7 +133,7 @@ export function EpmoReviewForm({ projectId, onSuccess }: EpmoReviewFormProps) {
               Conduct EPMO Check-in
             </h1>
             <p className="text-[13px] font-medium text-slate-400 mt-2">
-              Please complete the checklist below to evaluate project alignment and governance readiness.
+              Please complete the checklist below. Use the sidebar <strong className="text-indigo-300">Approve</strong> or <strong className="text-red-400">Reject</strong> buttons to submit your decision.
             </p>
           </div>
           <div className="flex items-center gap-2 border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 rounded-full text-emerald-300 text-[11px] font-bold tracking-wide">
@@ -86,202 +142,50 @@ export function EpmoReviewForm({ projectId, onSuccess }: EpmoReviewFormProps) {
           </div>
         </div>
 
+        <AIPopulationDropzone projectId={_projectId} team="EPMO" onExtractionComplete={handleAIExtraction} />
+
         <div className="space-y-4">
-          {/* Card 1: Strategy */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between p-5 border border-white/10 rounded-xl hover:border-indigo-400/40 transition-colors bg-white/5 gap-4">
-            <div className="flex items-start gap-4 flex-1">
-              <div className="w-12 h-12 rounded-xl bg-indigo-500/15 text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-500/20">
-                <span className="material-icons text-[24px]">track_changes</span>
-              </div>
-              <div>
-                <h3 className="text-[14px] font-bold text-slate-100 mb-1">
-                  Is aligned with strategy? <span className="text-red-500">*</span>
-                </h3>
-                <p className="text-[12px] text-slate-400 font-medium leading-relaxed">
-                  Does this project align with organizational strategy and business objectives?
-                </p>
-                {touched && !form.epmo_strategy && <p className="text-xs text-red-400 mt-1">Required</p>}
-              </div>
-            </div>
-            <div className="flex items-center gap-6 md:gap-14 shrink-0 mt-2 md:mt-0">
-              <div className="flex items-center gap-8">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="epmo_strategy"
-                    value="Yes"
-                    checked={form.epmo_strategy === "Yes"}
-                    onChange={(e) => updateForm("epmo_strategy", e.target.value)}
-                    className="w-5 h-5 text-indigo-500 bg-transparent border-white/20 focus:ring-indigo-500 cursor-pointer accent-indigo-500"
-                  />
-                  <span className="text-[14px] font-bold text-slate-300 group-hover:text-indigo-400 transition-colors">Yes</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="epmo_strategy"
-                    value="No"
-                    checked={form.epmo_strategy === "No"}
-                    onChange={(e) => updateForm("epmo_strategy", e.target.value)}
-                    className="w-5 h-5 text-indigo-500 bg-transparent border-white/20 focus:ring-indigo-500 cursor-pointer accent-indigo-500"
-                  />
-                  <span className="text-[14px] font-bold text-slate-300 group-hover:text-indigo-400 transition-colors">No</span>
-                </label>
-              </div>
-              <button
-                type="button"
-                className="w-9 h-9 rounded-lg border border-white/10 text-slate-500 hover:text-indigo-300 hover:border-indigo-400/40 hover:bg-indigo-500/10 flex items-center justify-center transition-all bg-white/5"
-              >
-                <span className="material-icons text-[18px]">chat_bubble_outline</span>
-              </button>
-            </div>
-          </div>
+          <RadioGroup
+            name="epmo_strategy"
+            value={form.epmo_strategy}
+            onChange={(v) => updateForm("epmo_strategy", v)}
+            label="Is aligned with strategy?"
+            description="Does this project align with organizational strategy and business objectives?"
+            icon="track_changes"
+            required
+            error={!form.epmo_strategy}
+          />
 
-          {/* Card 2: PIC */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between p-5 border border-white/10 rounded-xl hover:border-indigo-400/40 transition-colors bg-white/5 gap-4">
-            <div className="flex items-start gap-4 flex-1">
-              <div className="w-12 h-12 rounded-xl bg-indigo-500/15 text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-500/20">
-                <span className="material-icons text-[24px]">groups</span>
-              </div>
-              <div>
-                <h3 className="text-[14px] font-bold text-slate-100 mb-1">
-                  PIC Needed? <span className="text-red-500">*</span>
-                </h3>
-                <p className="text-[12px] text-slate-400 font-medium leading-relaxed">
-                  Is Project Investment Committee (PIC) approval required for this project?
-                </p>
-                {touched && !form.epmo_pic_needed && <p className="text-xs text-red-400 mt-1">Required</p>}
-              </div>
-            </div>
-            <div className="flex items-center gap-6 md:gap-14 shrink-0 mt-2 md:mt-0">
-              <div className="flex items-center gap-8">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="epmo_pic_needed"
-                    value="Yes"
-                    checked={form.epmo_pic_needed === "Yes"}
-                    onChange={(e) => updateForm("epmo_pic_needed", e.target.value)}
-                    className="w-5 h-5 text-indigo-500 bg-transparent border-white/20 focus:ring-indigo-500 cursor-pointer accent-indigo-500"
-                  />
-                  <span className="text-[14px] font-bold text-slate-300 group-hover:text-indigo-400 transition-colors">Yes</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="epmo_pic_needed"
-                    value="No"
-                    checked={form.epmo_pic_needed === "No"}
-                    onChange={(e) => updateForm("epmo_pic_needed", e.target.value)}
-                    className="w-5 h-5 text-indigo-500 bg-transparent border-white/20 focus:ring-indigo-500 cursor-pointer accent-indigo-500"
-                  />
-                  <span className="text-[14px] font-bold text-slate-300 group-hover:text-indigo-400 transition-colors">No</span>
-                </label>
-              </div>
-              <button
-                type="button"
-                className="w-9 h-9 rounded-lg border border-white/10 text-slate-500 hover:text-indigo-300 hover:border-indigo-400/40 hover:bg-indigo-500/10 flex items-center justify-center transition-all bg-white/5"
-              >
-                <span className="material-icons text-[18px]">chat_bubble_outline</span>
-              </button>
-            </div>
-          </div>
+          <RadioGroup
+            name="epmo_pic_needed"
+            value={form.epmo_pic_needed}
+            onChange={(v) => updateForm("epmo_pic_needed", v)}
+            label="PIC Needed?"
+            description="Is Project Investment Committee (PIC) approval required for this project?"
+            icon="groups"
+            required
+            error={!form.epmo_pic_needed}
+          />
 
-          {/* Card 3: PM */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between p-5 border border-white/10 rounded-xl hover:border-indigo-400/40 transition-colors bg-white/5 gap-4">
-            <div className="flex items-start gap-4 flex-1">
-              <div className="w-12 h-12 rounded-xl bg-indigo-500/15 text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-500/20">
-                <span className="material-icons text-[24px]">person_outline</span>
-              </div>
-              <div>
-                <h3 className="text-[14px] font-bold text-slate-100 mb-1">Is Project Manager Required?</h3>
-                <p className="text-[12px] text-slate-400 font-medium leading-relaxed">
-                  Do we need to assign a dedicated project manager for this initiative?
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-6 md:gap-14 shrink-0 mt-2 md:mt-0">
-              <div className="flex items-center gap-8">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="epmo_pm_required"
-                    value="Yes"
-                    checked={form.epmo_pm_required === "Yes"}
-                    onChange={(e) => updateForm("epmo_pm_required", e.target.value)}
-                    className="w-5 h-5 text-indigo-500 bg-transparent border-white/20 focus:ring-indigo-500 cursor-pointer accent-indigo-500"
-                  />
-                  <span className="text-[14px] font-bold text-slate-300 group-hover:text-indigo-400 transition-colors">Yes</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="epmo_pm_required"
-                    value="No"
-                    checked={form.epmo_pm_required === "No"}
-                    onChange={(e) => updateForm("epmo_pm_required", e.target.value)}
-                    className="w-5 h-5 text-indigo-500 bg-transparent border-white/20 focus:ring-indigo-500 cursor-pointer accent-indigo-500"
-                  />
-                  <span className="text-[14px] font-bold text-slate-300 group-hover:text-indigo-400 transition-colors">No</span>
-                </label>
-              </div>
-              <button
-                type="button"
-                className="w-9 h-9 rounded-lg border border-white/10 text-slate-500 hover:text-indigo-300 hover:border-indigo-400/40 hover:bg-indigo-500/10 flex items-center justify-center transition-all bg-white/5"
-              >
-                <span className="material-icons text-[18px]">chat_bubble_outline</span>
-              </button>
-            </div>
-          </div>
+          <RadioGroup
+            name="epmo_pm_required"
+            value={form.epmo_pm_required}
+            onChange={(v) => updateForm("epmo_pm_required", v)}
+            label="Is Project Manager Required?"
+            description="Do we need to assign a dedicated project manager for this initiative?"
+            icon="person_outline"
+          />
 
-          {/* Card 4: Related Project */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between p-5 border border-white/10 rounded-xl hover:border-indigo-400/40 transition-colors bg-white/5 gap-4">
-            <div className="flex items-start gap-4 flex-1">
-              <div className="w-12 h-12 rounded-xl bg-indigo-500/15 text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-500/20">
-                <span className="material-icons text-[24px]">link</span>
-              </div>
-              <div>
-                <h3 className="text-[14px] font-bold text-slate-100 mb-1">Related to Existing Project?</h3>
-                <p className="text-[12px] text-slate-400 font-medium leading-relaxed">
-                  Is this project related to or dependent on any existing projects or initiatives?
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-6 md:gap-14 shrink-0 mt-2 md:mt-0">
-              <div className="flex items-center gap-8">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="epmo_related_project"
-                    value="Yes"
-                    checked={form.epmo_related_project === "Yes"}
-                    onChange={(e) => updateForm("epmo_related_project", e.target.value)}
-                    className="w-5 h-5 text-indigo-500 bg-transparent border-white/20 focus:ring-indigo-500 cursor-pointer accent-indigo-500"
-                  />
-                  <span className="text-[14px] font-bold text-slate-300 group-hover:text-indigo-400 transition-colors">Yes</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="epmo_related_project"
-                    value="No"
-                    checked={form.epmo_related_project === "No"}
-                    onChange={(e) => updateForm("epmo_related_project", e.target.value)}
-                    className="w-5 h-5 text-indigo-500 bg-transparent border-white/20 focus:ring-indigo-500 cursor-pointer accent-indigo-500"
-                  />
-                  <span className="text-[14px] font-bold text-slate-300 group-hover:text-indigo-400 transition-colors">No</span>
-                </label>
-              </div>
-              <button
-                type="button"
-                className="w-9 h-9 rounded-lg border border-white/10 text-slate-500 hover:text-indigo-300 hover:border-indigo-400/40 hover:bg-indigo-500/10 flex items-center justify-center transition-all bg-white/5"
-              >
-                <span className="material-icons text-[18px]">chat_bubble_outline</span>
-              </button>
-            </div>
-          </div>
+          <RadioGroup
+            name="epmo_related_project"
+            value={form.epmo_related_project}
+            onChange={(v) => updateForm("epmo_related_project", v)}
+            label="Related to Existing Project?"
+            description="Is this project related to or dependent on any existing projects or initiatives?"
+            icon="link"
+          />
 
-          {/* Text Area */}
+          {/* Comments */}
           <div className="mt-8 border border-white/10 rounded-xl p-5 bg-white/5">
             <h3 className="text-[13px] font-bold text-slate-100 mb-1">Additional Comments (Optional)</h3>
             <p className="text-[12px] text-slate-400 font-medium mb-3">Provide any additional context or observations...</p>
@@ -300,30 +204,15 @@ export function EpmoReviewForm({ projectId, onSuccess }: EpmoReviewFormProps) {
             </div>
           </div>
 
-          {/* Footer Buttons */}
-          <div className="flex justify-between items-center mt-10 pt-4 border-t border-slate-700/50">
-            {/* Back Button */}
-            <button
-              type="button"
-              onClick={() => navigate("/team-inbox")}
-              className="px-5 py-2.5 rounded-lg border border-white/10 text-slate-300 font-bold text-[13px] hover:bg-white/10 flex items-center gap-2 transition-colors bg-white/5"
-            >
-              <span className="material-icons text-[16px]">arrow_back</span>
-              Back
-            </button>
-
-            {/* Save & Continue Button */}
-            <button
-              type="button"
-              disabled={!isValid || submitting}
-              onClick={() => handleSubmit("Approve")}
-              className="px-6 py-2.5 rounded-lg bg-[#533BED] hover:bg-[#432BC2] text-white font-bold text-[13px] flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? "Saving..." : "Save & Continue"}
-              {!submitting && <span className="material-icons text-[16px]">arrow_forward</span>}
-              {submitting && <span className="material-icons text-[16px] animate-spin">refresh</span>}
-            </button>
-          </div>
+          {/* Validation summary — shown when touched but not valid */}
+          {touched && !isValid && (
+            <div className="flex items-center gap-3 p-4 rounded-xl border border-red-500/30 bg-red-500/10 mt-4">
+              <span className="material-icons text-red-400 text-[20px]">error_outline</span>
+              <p className="text-sm font-bold text-red-400">
+                Please answer all mandatory fields (marked <span className="text-red-300">*</span>) before approving.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

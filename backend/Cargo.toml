@@ -62,6 +62,7 @@ docx-rs = "0.4"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 tower-request-id = "0.3"
+calamine = "0.36.1"
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3

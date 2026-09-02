@@ -1,12 +1,16 @@
-import { useState } from "react";
-import { projectsApi } from "../../../lib/api";
+import { useEffect, useState } from "react";
+import { AIPopulationDropzone } from "../components/AIPopulationDropzone";
+
+export interface PicFormData {
+  [key: string]: any;
+}
 
 interface PicReviewFormProps {
   projectId: string;
-  onSuccess?: () => void;
+  onFormChange?: (data: PicFormData, isValid: boolean) => void;
 }
 
-export function PicReviewForm({ projectId, onSuccess }: PicReviewFormProps) {
+export function PicReviewForm({ projectId: _projectId, onFormChange }: PicReviewFormProps) {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
 
   const sections = [
@@ -29,7 +33,31 @@ export function PicReviewForm({ projectId, onSuccess }: PicReviewFormProps) {
     picChecklist_verified: 'Yes'
   });
 
-  const updateForm = (key: string, value: string) => setForm({ ...form, [key]: value });
+  const isValid = (f: any) => !!(f.problemStatement);
+
+    const handleAIExtraction = (parsedData: Record<string, any>) => {
+    const clean = Object.fromEntries(
+      Object.entries(parsedData || {}).filter(([, v]) => v !== "" && v !== null && v !== undefined)
+    );
+    setForm((prev: any) => {
+      const next = { ...prev, ...clean };
+      if (typeof onFormChange === 'function') {
+         onFormChange(next, isValid(next));
+      }
+      return next;
+    });
+  };
+
+const updateForm = (key: string, value: string) => {
+    const next = { ...form, [key]: value };
+    setForm(next);
+    onFormChange?.(next, isValid(next));
+  };
+
+  useEffect(() => {
+    onFormChange?.(form, isValid(form));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const nextSection = () => { if (currentSectionIndex < sections.length - 1) setCurrentSectionIndex(i => i + 1); };
   const prevSection = () => { if (currentSectionIndex > 0) setCurrentSectionIndex(i => i - 1); };
@@ -55,23 +83,8 @@ export function PicReviewForm({ projectId, onSuccess }: PicReviewFormProps) {
     });
   };
 
-  const submitData = async () => {
-    try {
-      if (!projectId) { alert("Mock Submit"); return; }
-      // Sends "Prepare for PIC" exactly like the Angular application
-      await projectsApi.submitDecision(
-        projectId,
-        "Prepare for PIC", 
-        "Approve",
-        form.comments || "PIC preparation packet submitted.",
-        form
-      );
-      if (onSuccess) onSuccess();
-    } catch (e) {
-      console.error(e);
-      alert("Error submitting PIC review");
-    }
-  };
+  // No internal submit — handled by parent via onFormChange
+
 
   return (
     <div className="animate-fade-in w-full font-sans">
@@ -112,6 +125,7 @@ export function PicReviewForm({ projectId, onSuccess }: PicReviewFormProps) {
             {/* 1. Core Project Def */}
             {currentSectionIndex === 0 && (
               <div className="animate-fade-in space-y-4">
+                <AIPopulationDropzone projectId={_projectId} team="PIC" onExtractionComplete={handleAIExtraction} />
                 <div>
                   <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Problem or Opportunity Statement</label>
                   <textarea rows={4} className="w-full bg-black/20 border border-[#059669]/30 rounded-xl px-4 py-3 text-sm text-slate-100 outline-none resize-y focus:border-[#10B981]" value={form.problemStatement} onChange={(e) => updateForm('problemStatement', e.target.value)}></textarea>
@@ -260,9 +274,10 @@ export function PicReviewForm({ projectId, onSuccess }: PicReviewFormProps) {
                   Next
                 </button>
               ) : (
-                <button onClick={submitData} className="px-8 py-2.5 rounded-xl bg-gradient-to-r from-[#10B981] to-[#059669] text-white font-bold text-[13px] shadow-md hover:shadow-[#34D399] transition-all">
-                  Verify & Send to PIC Meeting
-                </button>
+                <p className="text-xs text-slate-400 italic flex items-center gap-1.5">
+                  <span className="material-icons text-[14px] text-emerald-400">info</span>
+                  Use the <strong className="text-white mx-1">Approve</strong> button on the right panel to submit.
+                </p>
               )}
             </div>
           </div>

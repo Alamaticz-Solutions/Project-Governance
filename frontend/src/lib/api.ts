@@ -61,6 +61,16 @@ export const projectsApi = {
       method: "POST",
       body: { project_id: projectId, email, data },
     }),
+  extractTeamFields: (projectId: string, team: string, files: File[]) => {
+    const form = new FormData();
+    files.forEach((file, idx) => form.append(`file${idx}`, file));
+    return apiRequest<{ success: boolean; data: Record<string, any> }>(`/projects/${projectId}/extract-team-fields/${team}`, {
+      method: "POST",
+      body: form,
+      isForm: true,
+    });
+  },
+  listDocuments: (projectId: string) => apiRequest<any[]>(`/projects/${projectId}/documents`),
 };
 
 export const workspaceApi = {

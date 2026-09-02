@@ -1,40 +1,42 @@
 //! Postgres native enum types shared across entities.
-//! Mirrors the enum columns in `models.py` — values are lowercase snake_case
-//! matching each Python enum member's `.value`.
+//! Values mirror the labels actually present in the database (created by the
+//! original SQLAlchemy models), i.e. SCREAMING_SNAKE_CASE matching each Python
+//! enum member's *name*. The `enum_name` must match the Postgres type name
+//! exactly (no underscores between words) so casts/filters resolve.
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "user_role")]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "userrole")]
 pub enum UserRole {
-    #[sea_orm(string_value = "admin")]
+    #[sea_orm(string_value = "ADMIN")]
     Admin,
-    #[sea_orm(string_value = "project_manager")]
+    #[sea_orm(string_value = "PROJECT_MANAGER")]
     ProjectManager,
-    #[sea_orm(string_value = "bta")]
+    #[sea_orm(string_value = "BTA")]
     Bta,
-    #[sea_orm(string_value = "epmo")]
+    #[sea_orm(string_value = "EPMO")]
     Epmo,
-    #[sea_orm(string_value = "finance")]
+    #[sea_orm(string_value = "FINANCE")]
     Finance,
-    #[sea_orm(string_value = "vendor_screening")]
+    #[sea_orm(string_value = "VENDOR_SCREENING")]
     VendorScreening,
-    #[sea_orm(string_value = "analysis_team")]
+    #[sea_orm(string_value = "ANALYSIS_TEAM")]
     AnalysisTeam,
-    #[sea_orm(string_value = "eac")]
+    #[sea_orm(string_value = "EAC")]
     Eac,
-    #[sea_orm(string_value = "cab")]
+    #[sea_orm(string_value = "CAB")]
     Cab,
-    #[sea_orm(string_value = "security")]
+    #[sea_orm(string_value = "SECURITY")]
     Security,
-    #[sea_orm(string_value = "taf")]
+    #[sea_orm(string_value = "TAF")]
     Taf,
-    #[sea_orm(string_value = "trc")]
+    #[sea_orm(string_value = "TRC")]
     Trc,
-    #[sea_orm(string_value = "pic")]
+    #[sea_orm(string_value = "PIC")]
     Pic,
-    #[sea_orm(string_value = "viewer")]
+    #[sea_orm(string_value = "VIEWER")]
     Viewer,
 }
 
@@ -81,146 +83,137 @@ impl UserRole {
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "project_status")]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "projectstatus")]
 pub enum ProjectStatus {
-    #[sea_orm(string_value = "draft")]
+    #[sea_orm(string_value = "DRAFT")]
     Draft,
-    #[sea_orm(string_value = "active")]
+    #[sea_orm(string_value = "ACTIVE")]
     Active,
-    #[sea_orm(string_value = "on_hold")]
+    #[sea_orm(string_value = "ON_HOLD")]
     OnHold,
-    #[sea_orm(string_value = "completed")]
+    #[sea_orm(string_value = "COMPLETED")]
     Completed,
-    #[sea_orm(string_value = "cancelled")]
+    #[sea_orm(string_value = "CANCELLED")]
     Cancelled,
-    #[sea_orm(string_value = "archived")]
+    #[sea_orm(string_value = "ARCHIVED")]
     Archived,
-    #[sea_orm(string_value = "in_delivery")]
+    #[sea_orm(string_value = "IN_DELIVERY")]
     InDelivery,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "project_priority")]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "projectpriority")]
 pub enum ProjectPriority {
-    #[sea_orm(string_value = "critical")]
+    #[sea_orm(string_value = "CRITICAL")]
     Critical,
-    #[sea_orm(string_value = "high")]
+    #[sea_orm(string_value = "HIGH")]
     High,
-    #[sea_orm(string_value = "medium")]
+    #[sea_orm(string_value = "MEDIUM")]
     Medium,
-    #[sea_orm(string_value = "low")]
+    #[sea_orm(string_value = "LOW")]
     Low,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "project_risk")]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "projectrisk")]
 pub enum ProjectRisk {
-    #[sea_orm(string_value = "very_high")]
+    #[sea_orm(string_value = "VERY_HIGH")]
     VeryHigh,
-    #[sea_orm(string_value = "high")]
+    #[sea_orm(string_value = "HIGH")]
     High,
-    #[sea_orm(string_value = "medium")]
+    #[sea_orm(string_value = "MEDIUM")]
     Medium,
-    #[sea_orm(string_value = "low")]
+    #[sea_orm(string_value = "LOW")]
     Low,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "workflow_stage_status")]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "workflowstagestatus")]
 pub enum WorkflowStageStatus {
-    #[sea_orm(string_value = "locked")]
-    Locked,
-    #[sea_orm(string_value = "eligible")]
-    Eligible,
-    #[sea_orm(string_value = "in_progress")]
-    InProgress,
-    #[sea_orm(string_value = "pending_approval")]
-    PendingApproval,
-    #[sea_orm(string_value = "completed")]
+    #[sea_orm(string_value = "PENDING")]
+    Pending,
+    #[sea_orm(string_value = "ACTIVE")]
+    Active,
+    #[sea_orm(string_value = "COMPLETED")]
     Completed,
-    #[sea_orm(string_value = "skipped")]
+    #[sea_orm(string_value = "SKIPPED")]
     Skipped,
-    #[sea_orm(string_value = "rejected")]
-    Rejected,
-    #[sea_orm(string_value = "changes_requested")]
-    ChangesRequested,
+    #[sea_orm(string_value = "BLOCKED")]
+    Blocked,
 }
 
 impl WorkflowStageStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
-            WorkflowStageStatus::Locked => "LOCKED",
-            WorkflowStageStatus::Eligible => "ELIGIBLE",
-            WorkflowStageStatus::InProgress => "IN_PROGRESS",
-            WorkflowStageStatus::PendingApproval => "PENDING_APPROVAL",
+            WorkflowStageStatus::Pending => "PENDING",
+            WorkflowStageStatus::Active => "ACTIVE",
             WorkflowStageStatus::Completed => "COMPLETED",
             WorkflowStageStatus::Skipped => "SKIPPED",
-            WorkflowStageStatus::Rejected => "REJECTED",
-            WorkflowStageStatus::ChangesRequested => "CHANGES_REQUESTED",
+            WorkflowStageStatus::Blocked => "BLOCKED",
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "task_status")]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "taskstatus")]
 pub enum TaskStatus {
-    #[sea_orm(string_value = "pending")]
+    #[sea_orm(string_value = "PENDING")]
     Pending,
-    #[sea_orm(string_value = "in_progress")]
+    #[sea_orm(string_value = "IN_PROGRESS")]
     InProgress,
-    #[sea_orm(string_value = "completed")]
+    #[sea_orm(string_value = "COMPLETED")]
     Completed,
-    #[sea_orm(string_value = "overdue")]
+    #[sea_orm(string_value = "OVERDUE")]
     Overdue,
-    #[sea_orm(string_value = "cancelled")]
+    #[sea_orm(string_value = "CANCELLED")]
     Cancelled,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "approval_decision")]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "approvaldecision")]
 pub enum ApprovalDecision {
-    #[sea_orm(string_value = "approved")]
+    #[sea_orm(string_value = "APPROVED")]
     Approved,
-    #[sea_orm(string_value = "rejected")]
+    #[sea_orm(string_value = "REJECTED")]
     Rejected,
-    #[sea_orm(string_value = "needs_info")]
+    #[sea_orm(string_value = "NEEDS_INFO")]
     NeedsInfo,
-    #[sea_orm(string_value = "deferred")]
+    #[sea_orm(string_value = "DEFERRED")]
     Deferred,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "notification_type")]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "notificationtype")]
 pub enum NotificationType {
-    #[sea_orm(string_value = "project_created")]
+    #[sea_orm(string_value = "PROJECT_CREATED")]
     ProjectCreated,
-    #[sea_orm(string_value = "task_assigned")]
+    #[sea_orm(string_value = "TASK_ASSIGNED")]
     TaskAssigned,
-    #[sea_orm(string_value = "task_completed")]
+    #[sea_orm(string_value = "TASK_COMPLETED")]
     TaskCompleted,
-    #[sea_orm(string_value = "approval_required")]
+    #[sea_orm(string_value = "APPROVAL_REQUIRED")]
     ApprovalRequired,
-    #[sea_orm(string_value = "approved")]
+    #[sea_orm(string_value = "APPROVED")]
     Approved,
-    #[sea_orm(string_value = "rejected")]
+    #[sea_orm(string_value = "REJECTED")]
     Rejected,
-    #[sea_orm(string_value = "overdue")]
+    #[sea_orm(string_value = "OVERDUE")]
     Overdue,
-    #[sea_orm(string_value = "stage_advanced")]
+    #[sea_orm(string_value = "STAGE_ADVANCED")]
     StageAdvanced,
-    #[sea_orm(string_value = "comment_added")]
+    #[sea_orm(string_value = "COMMENT_ADDED")]
     CommentAdded,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "gate_code")]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "gatecode")]
 pub enum GateCode {
     #[sea_orm(string_value = "A")]
     A,
