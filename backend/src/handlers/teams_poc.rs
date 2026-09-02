@@ -15,6 +15,7 @@
 //! validation-token handshake, not by app auth.
 
 use std::collections::HashMap;
+use std::time::Duration;
 
 use axum::{
     extract::{Path, Query, RawQuery, State},
@@ -258,14 +259,42 @@ pub async fn ingest_transcript(
     Path(id): Path<Uuid>,
     Json(req): Json<IngestTranscriptRequest>,
 ) -> AppResult<Json<MeetingResponse>> {
-    let updated = poc_meeting_service::process_transcript(
-        &state.db,
-        &state.http,
-        &state.config,
-        id,
-        req.vtt_text,
-    )
-    .await?;
+    let row = poc_meetings::Entity::find_by_id(id)
+        .one(&state.db)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Meeting not found".to_string()))?;
+    if !matches!(row.status.as_str(), "scheduled" | "failed") {
+        return Err(AppError::BadRequest(format!(
+            "Meeting is '{}', not awaiting a transcript.",
+            row.status
+        )));
+    }
+    if req.vtt_text.trim().is_empty() {
+        return Err(AppError::BadRequest("Transcript is empty.".to_string()));
+    }
+
+    // Run the extract + BPMN pipeline off the request — it can take minutes and
+    // a proxy/browser would otherwise time the request out. `process_transcript`
+    // flips the row to `processing` via its atomic claim; the UI polls from
+    // there. Mirrors the Graph-webhook path.
+    let db = state.db.clone();
+    let http = state.http.clone();
+    let config = (*state.config).clone();
+    let vtt = req.vtt_text;
+    tokio::spawn(async move {
+        if let Err(e) =
+            poc_meeting_service::process_transcript(&db, &http, &config, id, vtt).await
+        {
+            tracing::error!(error = %e, "manual transcript ingest failed");
+        }
+    });
+
+    // Brief pause so the claim lands, then return the row (now `processing`).
+    tokio::time::sleep(Duration::from_millis(400)).await;
+    let updated = poc_meetings::Entity::find_by_id(id)
+        .one(&state.db)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Meeting not found".to_string()))?;
     Ok(Json(updated.into()))
 }
 
@@ -335,6 +364,8 @@ pub struct GraphNotification {
     #[serde(rename = "clientState")]
     pub client_state: Option<String>,
     pub resource: Option<String>,
+    #[serde(rename = "resourceData")]
+    pub resource_data: Option<serde_json::Value>,
 }
 
 /// `application/x-www-form-urlencoded` decode of one query-string value: `+`
@@ -418,8 +449,19 @@ pub async fn graph_notifications(
             tracing::warn!("Graph notification with mismatched clientState — dropped");
             continue;
         }
-        let Some(resource) = n.resource else { continue };
-        let Some(tref) = graph_meeting_service::parse_transcript_resource(&resource) else {
+        // Prefer `resource`; fall back to `resourceData["@odata.id"]`.
+        let resource = n.resource.clone().or_else(|| {
+            n.resource_data
+                .as_ref()
+                .and_then(|d| d.get("@odata.id"))
+                .and_then(|v| v.as_str())
+                .map(String::from)
+        });
+        let Some(resource) = resource else { continue };
+        let Some(tref) = graph_meeting_service::parse_transcript_resource(
+            &resource,
+            &state.config.graph_default_organizer_id,
+        ) else {
             tracing::warn!(%resource, "Graph notification resource is not a transcript — skipped");
             continue;
         };

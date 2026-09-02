@@ -380,15 +380,24 @@ pub struct TranscriptRef {
     pub transcript_id: String,
 }
 
-pub fn parse_transcript_resource(resource: &str) -> Option<TranscriptRef> {
-    let after_users = resource.split("users/").nth(1)?;
-    let organizer_id = after_users
-        .split(['/', '('])
-        .next()?
-        .trim_matches('\'')
-        .to_string();
-    let online_meeting_id = extract_seg(after_users, "onlineMeetings")?;
-    let transcript_id = extract_seg(after_users, "transcripts")?;
+/// Docs give this as `users/{organizer}/onlineMeetings('MSp…')/transcripts('MSM…')`
+/// for `communications/onlineMeetings/getAllTranscripts` notifications, but be
+/// lenient: pull `onlineMeetings` / `transcripts` from anywhere in the string,
+/// and fall back to the configured organizer when the path carries no
+/// `users/{id}` segment (e.g. a `communications/onlineMeetings(...)` form).
+pub fn parse_transcript_resource(
+    resource: &str,
+    fallback_organizer: &str,
+) -> Option<TranscriptRef> {
+    let online_meeting_id = extract_seg(resource, "onlineMeetings")?;
+    let transcript_id = extract_seg(resource, "transcripts")?;
+    let organizer_id = resource
+        .split("users/")
+        .nth(1)
+        .and_then(|s| s.split(['/', '(']).next())
+        .map(|s| s.trim_matches('\'').trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| fallback_organizer.trim().to_string());
     if organizer_id.is_empty() || online_meeting_id.is_empty() || transcript_id.is_empty() {
         return None;
     }

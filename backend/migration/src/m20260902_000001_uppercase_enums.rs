@@ -66,16 +66,19 @@ BEGIN
   --    build that actually needs those tables must (re)create the enums with
   --    the new labels + a value mapping in m20260101_000001_init_schema — this
   --    migration only removes the dead lowercase types where they exist.
-  DROP TYPE IF EXISTS user_role;
-  DROP TYPE IF EXISTS project_status;
-  DROP TYPE IF EXISTS project_priority;
-  DROP TYPE IF EXISTS project_risk;
-  DROP TYPE IF EXISTS approval_decision;
-  DROP TYPE IF EXISTS notification_type;
-  DROP TYPE IF EXISTS gate_code;
-  DROP TYPE IF EXISTS checklist_result_status;
-  DROP TYPE IF EXISTS workflow_stage_status;
-  DROP TYPE IF EXISTS task_status;
+  -- Each drop is individually guarded: `IF EXISTS` covers absence, and the
+  -- EXCEPTION covers a type that some column on this particular DB is still
+  -- typed with (skip it rather than abort the whole migration + startup).
+  BEGIN DROP TYPE IF EXISTS user_role;               EXCEPTION WHEN dependent_objects_still_exist THEN NULL; END;
+  BEGIN DROP TYPE IF EXISTS project_status;          EXCEPTION WHEN dependent_objects_still_exist THEN NULL; END;
+  BEGIN DROP TYPE IF EXISTS project_priority;        EXCEPTION WHEN dependent_objects_still_exist THEN NULL; END;
+  BEGIN DROP TYPE IF EXISTS project_risk;            EXCEPTION WHEN dependent_objects_still_exist THEN NULL; END;
+  BEGIN DROP TYPE IF EXISTS approval_decision;       EXCEPTION WHEN dependent_objects_still_exist THEN NULL; END;
+  BEGIN DROP TYPE IF EXISTS notification_type;       EXCEPTION WHEN dependent_objects_still_exist THEN NULL; END;
+  BEGIN DROP TYPE IF EXISTS gate_code;               EXCEPTION WHEN dependent_objects_still_exist THEN NULL; END;
+  BEGIN DROP TYPE IF EXISTS checklist_result_status; EXCEPTION WHEN dependent_objects_still_exist THEN NULL; END;
+  BEGIN DROP TYPE IF EXISTS workflow_stage_status;   EXCEPTION WHEN dependent_objects_still_exist THEN NULL; END;
+  BEGIN DROP TYPE IF EXISTS task_status;             EXCEPTION WHEN dependent_objects_still_exist THEN NULL; END;
 END $$;
 "#;
 
