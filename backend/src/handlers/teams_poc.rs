@@ -73,7 +73,7 @@ pub async fn schedule_meeting(
         if let Some(graph) = &state.graph {
             let scheduled = graph_meeting_service::schedule_meeting_via_graph(
                 graph,
-                &cfg.graph_organizer_user_id,
+                &cfg.graph_default_organizer_id,
                 &req.subject,
                 start_dt,
                 end_dt,
@@ -104,11 +104,11 @@ pub async fn schedule_meeting(
         .clone()
         .filter(|s| !s.is_empty())
         .or_else(|| {
-            (!cfg.graph_organizer_user_id.is_empty())
-                .then(|| cfg.graph_organizer_user_id.clone())
+            (!cfg.graph_default_organizer_email.is_empty())
+                .then(|| cfg.graph_default_organizer_email.clone())
         });
-    let graph_organizer = (!cfg.graph_organizer_user_id.is_empty())
-        .then(|| cfg.graph_organizer_user_id.clone());
+    let graph_organizer = (!cfg.graph_default_organizer_id.is_empty())
+        .then(|| cfg.graph_default_organizer_id.clone());
 
     let model = poc_meetings::ActiveModel {
         id: Set(id),
@@ -175,7 +175,7 @@ async fn try_cancel_graph_event(state: &AppState, row: &poc_meetings::Model) {
     let organizer = row
         .graph_organizer_user_id
         .clone()
-        .unwrap_or_else(|| state.config.graph_organizer_user_id.clone());
+        .unwrap_or_else(|| state.config.graph_default_organizer_id.clone());
     if organizer.is_empty() {
         return;
     }
@@ -276,9 +276,10 @@ pub struct GraphNotification {
     pub resource: Option<String>,
 }
 
-/// RFC 3986 percent-decode. Unlike form decoding, `+` is a literal plus (Graph
-/// validation tokens are base64-ish and can contain `+` `/` `=`).
-fn percent_decode(s: &str) -> String {
+/// `application/x-www-form-urlencoded` decode of one query-string value: `+`
+/// is a space, `%XX` is a byte. A literal `+` in the token is delivered by
+/// Graph as `%2B`, so this round-trips correctly.
+fn query_decode(s: &str) -> String {
     let b = s.as_bytes();
     let hex = |c: u8| match c {
         b'0'..=b'9' => Some(c - b'0'),
@@ -289,25 +290,37 @@ fn percent_decode(s: &str) -> String {
     let mut out = Vec::with_capacity(b.len());
     let mut i = 0;
     while i < b.len() {
-        if b[i] == b'%' && i + 2 < b.len() {
-            if let (Some(h), Some(l)) = (hex(b[i + 1]), hex(b[i + 2])) {
-                out.push(h * 16 + l);
-                i += 3;
-                continue;
+        match b[i] {
+            b'%' if i + 2 < b.len() => match (hex(b[i + 1]), hex(b[i + 2])) {
+                (Some(h), Some(l)) => {
+                    out.push(h * 16 + l);
+                    i += 3;
+                }
+                _ => {
+                    out.push(b'%');
+                    i += 1;
+                }
+            },
+            b'+' => {
+                out.push(b' ');
+                i += 1;
+            }
+            c => {
+                out.push(c);
+                i += 1;
             }
         }
-        out.push(b[i]);
-        i += 1;
     }
     String::from_utf8_lossy(&out).into_owned()
 }
 
 /// Graph subscription create/renew handshake: if the raw query carries
-/// `validationToken`, its decoded value must be echoed back as `text/plain`.
+/// `validationToken`, its decoded value must be echoed back verbatim as
+/// `text/plain` within ~10s.
 fn validation_reply(raw_query: Option<&str>) -> Option<Response> {
     let token = raw_query?.split('&').find_map(|pair| {
         let (k, v) = pair.split_once('=')?;
-        (k == "validationToken").then(|| percent_decode(v))
+        (k == "validationToken").then(|| query_decode(v))
     })?;
     Some((StatusCode::OK, [(CONTENT_TYPE, "text/plain")], token).into_response())
 }

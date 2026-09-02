@@ -38,9 +38,12 @@ pub struct AppConfig {
     pub graph_client_id: String,
     /// Client secret for the app registration. Secret store / `.env` only.
     pub graph_client_secret: String,
-    /// Entra object id of the mailbox that hosts every portal-scheduled
-    /// meeting (the meeting organizer).
-    pub graph_organizer_user_id: String,
+    /// Entra object id (or UPN) of the mailbox that hosts every
+    /// portal-scheduled meeting (the meeting organizer).
+    pub graph_default_organizer_id: String,
+    /// The organizer mailbox's email address — stored on each meeting record
+    /// for display when the request omits `organizer_email`.
+    pub graph_default_organizer_email: String,
     /// Public HTTPS base URL this backend is reachable at, for Graph change
     /// notifications (dev: the ngrok URL; deployed: the Render URL).
     pub graph_notification_base_url: String,
@@ -110,7 +113,8 @@ impl AppConfig {
             graph_tenant_id: env_or("GRAPH_TENANT_ID", ""),
             graph_client_id: env_or("GRAPH_CLIENT_ID", ""),
             graph_client_secret: env_or("GRAPH_CLIENT_SECRET", ""),
-            graph_organizer_user_id: env_or("GRAPH_ORGANIZER_USER_ID", ""),
+            graph_default_organizer_id: env_or("GRAPH_DEFAULT_ORGANIZER_ID", ""),
+            graph_default_organizer_email: env_or("GRAPH_DEFAULT_ORGANIZER_EMAIL", ""),
             graph_notification_base_url: env_or("GRAPH_NOTIFICATION_BASE_URL", "")
                 .trim_end_matches('/')
                 .to_string(),
@@ -130,7 +134,7 @@ impl AppConfig {
         !self.graph_tenant_id.is_empty()
             && !self.graph_client_id.is_empty()
             && !self.graph_client_secret.is_empty()
-            && !self.graph_organizer_user_id.is_empty()
+            && !self.graph_default_organizer_id.is_empty()
     }
 
     /// True when Graph change-notification subscriptions can be set up — needs

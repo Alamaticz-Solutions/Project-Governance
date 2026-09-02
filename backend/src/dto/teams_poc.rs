@@ -11,8 +11,8 @@ pub struct ScheduleMeetingRequest {
     pub start_time: String,
     pub end_time: String,
     /// Display-only metadata on the record. The real organizer is the
-    /// configured `GRAPH_ORGANIZER_USER_ID` mailbox; when omitted the record
-    /// shows that.
+    /// configured `GRAPH_DEFAULT_ORGANIZER_ID` mailbox; when omitted the record
+    /// shows `GRAPH_DEFAULT_ORGANIZER_EMAIL`.
     pub organizer_email: Option<String>,
     /// Email addresses (internal or external) to invite. Sent as required
     /// attendees on the Graph calendar event; each gets the native Outlook
