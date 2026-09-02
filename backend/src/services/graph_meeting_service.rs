@@ -272,10 +272,15 @@ pub async fn ingest_from_notification(
         return Ok(());
     };
 
-    // Duplicate notification for a transcript we already have.
-    if row.graph_transcript_id.as_deref() == Some(tref.transcript_id.as_str())
-        && matches!(row.status.as_str(), "processing" | "completed")
-    {
+    // Only meetings still awaiting a transcript are ingested. A `completed` or
+    // `processing` row (incl. a duplicate/retried notification) is left alone —
+    // `process_transcript`'s own atomic claim would no-op anyway, and we must
+    // not record a `graph_transcript_id` we never actually extracted.
+    if !matches!(row.status.as_str(), "scheduled" | "failed") {
+        tracing::info!(
+            status = %row.status, meeting = %tref.online_meeting_id,
+            "transcript notification for a meeting not awaiting ingest — ignored"
+        );
         return Ok(());
     }
 
@@ -288,15 +293,14 @@ pub async fn ingest_from_notification(
     )
     .await?;
 
-    // Note which transcript we're about to process (idempotency aid).
+    poc_meeting_service::process_transcript(db, http, config, row_id, vtt).await?;
+
+    // Record the transcript we processed — only now that it succeeded.
     if let Some(m) = poc_meetings::Entity::find_by_id(row_id).one(db).await? {
         let mut am: poc_meetings::ActiveModel = m.into();
         am.graph_transcript_id = Set(Some(tref.transcript_id.clone()));
-        am.updated_at = Set(Some(now()));
         am.update(db).await?;
     }
-
-    poc_meeting_service::process_transcript(db, http, config, row_id, vtt).await?;
     Ok(())
 }
 

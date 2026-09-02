@@ -14,10 +14,8 @@
 //! auth). The Graph webhooks are verified by `clientState` + the subscription
 //! validation-token handshake, not by app auth.
 
-use std::collections::HashMap;
-
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, RawQuery, State},
     http::{header::CONTENT_TYPE, StatusCode},
     response::{IntoResponse, Response},
     Json,
@@ -278,10 +276,40 @@ pub struct GraphNotification {
     pub resource: Option<String>,
 }
 
-fn validation_reply(params: &HashMap<String, String>) -> Option<Response> {
-    params.get("validationToken").map(|token| {
-        (StatusCode::OK, [(CONTENT_TYPE, "text/plain")], token.clone()).into_response()
-    })
+/// RFC 3986 percent-decode. Unlike form decoding, `+` is a literal plus (Graph
+/// validation tokens are base64-ish and can contain `+` `/` `=`).
+fn percent_decode(s: &str) -> String {
+    let b = s.as_bytes();
+    let hex = |c: u8| match c {
+        b'0'..=b'9' => Some(c - b'0'),
+        b'a'..=b'f' => Some(c - b'a' + 10),
+        b'A'..=b'F' => Some(c - b'A' + 10),
+        _ => None,
+    };
+    let mut out = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'%' && i + 2 < b.len() {
+            if let (Some(h), Some(l)) = (hex(b[i + 1]), hex(b[i + 2])) {
+                out.push(h * 16 + l);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(b[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+/// Graph subscription create/renew handshake: if the raw query carries
+/// `validationToken`, its decoded value must be echoed back as `text/plain`.
+fn validation_reply(raw_query: Option<&str>) -> Option<Response> {
+    let token = raw_query?.split('&').find_map(|pair| {
+        let (k, v) = pair.split_once('=')?;
+        (k == "validationToken").then(|| percent_decode(v))
+    })?;
+    Some((StatusCode::OK, [(CONTENT_TYPE, "text/plain")], token).into_response())
 }
 
 // ── POST /api/v1/teams-poc/graph-notifications ──────────────────────────────
@@ -291,10 +319,10 @@ fn validation_reply(params: &HashMap<String, String>) -> Option<Response> {
 // process each transcript on a spawned task so Graph is ACKed immediately.
 pub async fn graph_notifications(
     State(state): State<AppState>,
-    Query(params): Query<HashMap<String, String>>,
+    RawQuery(raw_query): RawQuery,
     body: String,
 ) -> Response {
-    if let Some(reply) = validation_reply(&params) {
+    if let Some(reply) = validation_reply(raw_query.as_deref()) {
         return reply;
     }
 
@@ -344,10 +372,10 @@ pub async fn graph_notifications(
 // Subscription lifecycle events (reauthorization needed, subscription removed).
 pub async fn graph_lifecycle(
     State(state): State<AppState>,
-    Query(params): Query<HashMap<String, String>>,
+    RawQuery(raw_query): RawQuery,
     body: String,
 ) -> Response {
-    if let Some(reply) = validation_reply(&params) {
+    if let Some(reply) = validation_reply(raw_query.as_deref()) {
         return reply;
     }
 
