@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { ApiError } from "../../lib/apiClient";
-import { teamsPocApi, type PocMeeting } from "../../lib/teamsPocApi";
-import { fmtDateTime, isCancellable, parseEmailList, SOURCE_LABEL, STATUS_DOT, STATUS_STYLE } from "./shared";
+import { teamsPocApi, type OrganizerAvailability, type PocMeeting } from "../../lib/teamsPocApi";
+import { fmtDateTime, isCancellable, SOURCE_LABEL, STATUS_DOT, STATUS_STYLE } from "./shared";
+import { AttendeePicker } from "./AttendeePicker";
 
 export function MeetingCenterPage() {
   const navigate = useNavigate();
@@ -18,9 +19,9 @@ export function MeetingCenterPage() {
   const [date, setDate] = useState(today);
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("11:00");
-  const [organizerEmail, setOrganizerEmail] = useState("");
-  const [attendeesInput, setAttendeesInput] = useState("");
+  const [attendees, setAttendees] = useState<string[]>([]);
   const [scheduling, setScheduling] = useState(false);
+  const [availability, setAvailability] = useState<OrganizerAvailability | null>(null);
 
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -66,6 +67,30 @@ export function MeetingCenterPage() {
     };
   }, [meetings, refresh]);
 
+  // advisory organizer clash check for the chosen window (debounced)
+  useEffect(() => {
+    if (!showSchedule) return;
+    const start = new Date(`${date}T${startTime}:00`);
+    const end = new Date(`${date}T${endTime}:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+      setAvailability(null);
+      return;
+    }
+    const t = setTimeout(async () => {
+      try {
+        setAvailability(
+          await teamsPocApi.checkAvailability({
+            start_time: start.toISOString(),
+            end_time: end.toISOString(),
+          }),
+        );
+      } catch {
+        setAvailability(null);
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [showSchedule, date, startTime, endTime]);
+
   async function schedule(e: FormEvent) {
     e.preventDefault();
 
@@ -79,6 +104,10 @@ export function MeetingCenterPage() {
       setError("End time must be after start time.");
       return;
     }
+    if (start.getTime() < Date.now() - 60_000) {
+      setError("Cannot schedule a meeting in the past.");
+      return;
+    }
 
     setScheduling(true);
     setError(null);
@@ -87,8 +116,7 @@ export function MeetingCenterPage() {
         subject,
         start_time: start.toISOString(),
         end_time: end.toISOString(),
-        organizer_email: organizerEmail || undefined,
-        attendees: parseEmailList(attendeesInput),
+        attendees,
       });
       setShowSchedule(false);
       await refresh();
@@ -226,6 +254,7 @@ export function MeetingCenterPage() {
             Date
             <input
               type="date"
+              min={today}
               className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
               value={date}
               onChange={(e) => setDate(e.target.value)}
@@ -254,29 +283,31 @@ export function MeetingCenterPage() {
               />
             </label>
           </div>
-          <label className="block text-xs font-semibold text-slate-400">
-            Organizer email (optional)
-            <input
-              className="mt-1 w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
-              value={organizerEmail}
-              onChange={(e) => setOrganizerEmail(e.target.value)}
-              placeholder="display-only; the real organizer is the configured service mailbox"
-            />
-          </label>
-          <label className="block text-xs font-semibold text-slate-400 md:col-span-2">
+          <div className="block text-xs font-semibold text-slate-400 md:col-span-2">
             Attendees (optional)
-            <textarea
-              className="mt-1 w-full h-16 bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
-              value={attendeesInput}
-              onChange={(e) => setAttendeesInput(e.target.value)}
-              placeholder="comma, semicolon, or newline separated — internal or external emails both work, e.g. jane@yourcompany.com, partner@othercompany.com"
-            />
-            {parseEmailList(attendeesInput).length > 0 && (
+            <AttendeePicker value={attendees} onChange={setAttendees} />
+            {attendees.length > 0 && (
               <span className="mt-1 block text-[11px] text-slate-500">
-                {parseEmailList(attendeesInput).length} attendee(s) will get a Teams invite email.
+                {attendees.length} attendee(s) will get a Teams invite email.
               </span>
             )}
-          </label>
+          </div>
+
+          {availability?.checked && availability.busy && (
+            <div className="md:col-span-2 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 flex items-start gap-2">
+              <span className="material-icons text-[15px] mt-px">event_busy</span>
+              <span>
+                The organizer already has {availability.conflicts.length} calendar
+                {availability.conflicts.length === 1 ? " entry" : " entries"} overlapping this
+                window. You can still schedule.
+              </span>
+            </div>
+          )}
+
+          <p className="md:col-span-2 text-[11px] text-slate-500 -mt-1">
+            Organized by the governance service mailbox. Invitations are sent from that account.
+          </p>
+
           <div className="md:col-span-2">
             <button
               type="submit"

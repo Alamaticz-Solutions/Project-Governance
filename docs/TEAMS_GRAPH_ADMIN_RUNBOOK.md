@@ -80,20 +80,27 @@ Requirements for that mailbox:
 Entra admin center → **Identity → Applications → App registrations** →
 *Governance Portal-Team Meeting* → **API permissions**.
 
-**Add permission → Microsoft Graph → Application permissions**, add these three:
+**Add permission → Microsoft Graph → Application permissions**, add these four:
 
 | Permission | Purpose in this integration |
 |---|---|
-| `Calendars.ReadWrite` | Create / update / cancel the calendar event that hosts each Teams meeting and sends the invites. |
-| `OnlineMeetings.Read.All` | Look up the Teams *online meeting* record for an event we created (to get the meeting ID used to match transcripts). |
+| `Calendars.ReadWrite` | Create / update / cancel the calendar event that hosts each Teams meeting and sends the invites; read the organizer's free/busy for the (advisory, non-blocking) clash check. |
+| `OnlineMeetings.Read.All` | Look up the Teams *online meeting* record for an event we created (to get the meeting ID used to match transcripts). `OnlineMeetings.ReadWrite.All` is an acceptable superset if that is what's already granted. |
 | `OnlineMeetingTranscript.Read.All` | Subscribe to "transcript available" notifications and download transcript text. |
+| `User.Read.All` | Attendee typeahead — resolve a typed name to a directory user when scheduling. Read-only directory profile data only. |
 
-Then click **“Grant admin consent for {tenant}”** and confirm. All three must
+Then click **“Grant admin consent for {tenant}”** and confirm. All four must
 show **“Granted for {tenant}”** with a green check.
 
-> We are deliberately **not** requesting `OnlineMeetings.ReadWrite.All` (create
-> standalone meetings) or any `Mail.*`, `Files.*`, `Chat.*`, `User.ReadWrite`,
-> or `.ReadWrite` directory scopes.
+> We are deliberately **not** requesting any `Mail.*`, `Files.*`, `Chat.*`,
+> `User.ReadWrite`, `Directory.ReadWrite`, or other `.ReadWrite` scopes beyond
+> `Calendars.ReadWrite`.
+
+> **Current status (2026-09-02):** `OnlineMeetings.ReadWrite.All` and
+> `OnlineMeetingTranscript.Read.All` are granted + consented and working.
+> **`Calendars.ReadWrite` and `User.Read.All` are still needed** — meeting
+> creation and the attendee picker return `403` until they are added and
+> consented.
 
 **Why consent is required:** application permissions never work until a tenant
 admin consents on behalf of the organisation — there is no per-user prompt in
@@ -322,6 +329,7 @@ severs all access in one step.
 | `Calendars.ReadWrite` (application) | Graph / Exchange | Create, update, cancel calendar events + read the event's online-meeting join info | Can't create meetings or send invites | Exchange application access policy (Step 5) |
 | `OnlineMeetings.Read.All` (application) | Graph / Teams | Read an online meeting object by ID or join URL | Can't map a created meeting to its transcript | Teams application access policy (Step 4) |
 | `OnlineMeetingTranscript.Read.All` (application) | Graph / Teams | Subscribe to transcript-ready notifications; download transcript content | No auto-transcript pipeline at all | Teams application access policy (Step 4) |
+| `User.Read.All` (application) | Graph / Directory | Attendee typeahead resolves a typed name to a directory user | Attendee picker can't search — free-typed emails still work | none (read-only profile data) |
 | Admin consent | Entra | Activates the three permissions org-wide | Permissions stay inert | — |
 | **Teams** application access policy (`New-CsApplicationAccessPolicy`) | Teams | Names which mailboxes the app may act for, for **Teams cloud-communication** calls | All meeting/transcript calls return 403 | its own `Grant-…-Identity` (one mailbox) |
 | **Exchange** application access policy (`New-ApplicationAccessPolicy`) | Exchange Online | Restricts which mailboxes the app's **calendar/mail** permissions reach | `Calendars.ReadWrite` hits every mailbox in the tenant | a mail-enabled security group |

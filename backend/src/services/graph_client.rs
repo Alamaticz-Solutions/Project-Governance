@@ -135,6 +135,21 @@ impl GraphClient {
             .await
     }
 
+    /// GET with query params plus extra request headers (e.g.
+    /// `ConsistencyLevel: eventual`, required for `$search`).
+    pub async fn get_query_h(
+        &self,
+        path: &str,
+        query: &[(&str, &str)],
+        headers: &[(&str, &str)],
+    ) -> AppResult<reqwest::Response> {
+        let mut req = self.http.get(format!("{GRAPH_BASE}{path}")).query(query);
+        for (k, v) in headers {
+            req = req.header(*k, *v);
+        }
+        self.send(req).await
+    }
+
     pub async fn get_with_accept(
         &self,
         path: &str,

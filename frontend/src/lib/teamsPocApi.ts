@@ -42,9 +42,26 @@ export interface PocMeeting {
   updated_at: string | null;
 }
 
+export interface DirectoryUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface OrganizerAvailability {
+  /** false when Graph isn't configured — the UI then shows no warning */
+  checked: boolean;
+  busy: boolean;
+  conflicts: { start: string; end: string; status: string }[];
+}
+
 export const teamsPocApi = {
   list: () => apiRequest<PocMeeting[]>("/teams-poc/meetings"),
   get: (id: string) => apiRequest<PocMeeting>(`/teams-poc/meetings/${id}`),
+  searchDirectory: (q: string) =>
+    apiRequest<DirectoryUser[]>(`/teams-poc/directory/users?q=${encodeURIComponent(q)}`),
+  checkAvailability: (payload: { start_time: string; end_time: string }) =>
+    apiRequest<OrganizerAvailability>("/teams-poc/availability", { method: "POST", body: payload }),
   schedule: (payload: {
     subject: string;
     start_time: string;

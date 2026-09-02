@@ -86,6 +86,14 @@ pub fn build_router(state: AppState) -> Router {
             "/teams-poc/meetings/:id/ingest-transcript",
             post(handlers::teams_poc::ingest_transcript),
         )
+        .route(
+            "/teams-poc/availability",
+            post(handlers::teams_poc::check_availability),
+        )
+        .route(
+            "/teams-poc/directory/users",
+            get(handlers::teams_poc::directory_search),
+        )
         // Graph change-notification webhooks — unauthenticated by design
         // (verified via clientState + the subscription validation handshake).
         .route(

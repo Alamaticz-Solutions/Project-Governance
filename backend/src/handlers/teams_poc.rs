@@ -14,8 +14,10 @@
 //! auth). The Graph webhooks are verified by `clientState` + the subscription
 //! validation-token handshake, not by app auth.
 
+use std::collections::HashMap;
+
 use axum::{
-    extract::{Path, RawQuery, State},
+    extract::{Path, Query, RawQuery, State},
     http::{header::CONTENT_TYPE, StatusCode},
     response::{IntoResponse, Response},
     Json,
@@ -66,6 +68,12 @@ pub async fn schedule_meeting(
     if end_dt <= start_dt {
         return Err(AppError::BadRequest(
             "end_time must be after start_time.".to_string(),
+        ));
+    }
+    // Reject past meetings (1-minute grace for request/clock skew).
+    if start_dt < now() - chrono::Duration::minutes(1) {
+        return Err(AppError::BadRequest(
+            "Cannot schedule a meeting in the past.".to_string(),
         ));
     }
 
@@ -259,6 +267,59 @@ pub async fn ingest_transcript(
     )
     .await?;
     Ok(Json(updated.into()))
+}
+
+// ── POST /teams-poc/availability ───────────────────────────────────────────
+// Advisory organizer clash check for a proposed window. Never blocks
+// scheduling — the UI shows a warning and lets the user proceed.
+#[derive(Debug, serde::Deserialize)]
+pub struct AvailabilityRequest {
+    pub start_time: String,
+    pub end_time: String,
+}
+
+pub async fn check_availability(
+    State(state): State<AppState>,
+    Json(req): Json<AvailabilityRequest>,
+) -> AppResult<Json<serde_json::Value>> {
+    let start = require_dt("start_time", &req.start_time)?;
+    let end = require_dt("end_time", &req.end_time)?;
+
+    let Some(graph) = &state.graph else {
+        return Ok(Json(json!({ "checked": false, "busy": false, "conflicts": [] })));
+    };
+
+    let a = graph_meeting_service::check_organizer_availability(
+        graph,
+        &state.config.graph_default_organizer_id,
+        &state.config.graph_default_organizer_email,
+        start,
+        end,
+    )
+    .await?;
+
+    Ok(Json(json!({
+        "checked": a.checked,
+        "busy": a.busy,
+        "conflicts": a.conflicts.iter().map(|c| json!({
+            "start": c.start, "end": c.end, "status": c.status
+        })).collect::<Vec<_>>(),
+    })))
+}
+
+// ── GET /teams-poc/directory/users?q= ──────────────────────────────────────
+// Attendee typeahead against the org directory (needs `User.Read.All`).
+pub async fn directory_search(
+    State(state): State<AppState>,
+    Query(params): Query<HashMap<String, String>>,
+) -> AppResult<Json<Vec<graph_meeting_service::DirectoryUser>>> {
+    let q = params.get("q").map(String::as_str).unwrap_or("");
+    let Some(graph) = &state.graph else {
+        return Ok(Json(vec![]));
+    };
+    Ok(Json(
+        graph_meeting_service::search_directory_users(graph, q).await?,
+    ))
 }
 
 // ── Graph change notifications ─────────────────────────────────────────────

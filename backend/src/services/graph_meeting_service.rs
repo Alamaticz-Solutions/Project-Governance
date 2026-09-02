@@ -158,6 +158,174 @@ pub async fn cancel_event(
         .await
 }
 
+// ── Organizer availability (clash check) ──────────────────────────────────
+
+pub struct BusyBlock {
+    pub start: String,
+    pub end: String,
+    pub status: String,
+}
+
+pub struct OrganizerAvailability {
+    /// False when Graph isn't configured or no organizer email is set — the
+    /// caller then simply shows no warning.
+    pub checked: bool,
+    pub busy: bool,
+    pub conflicts: Vec<BusyBlock>,
+}
+
+/// `POST /users/{organizer}/calendar/getSchedule` for the proposed window.
+/// Advisory only — the caller warns, it never blocks scheduling.
+pub async fn check_organizer_availability(
+    graph: &GraphClient,
+    organizer_id: &str,
+    organizer_email: &str,
+    start: DateTime<FixedOffset>,
+    end: DateTime<FixedOffset>,
+) -> AppResult<OrganizerAvailability> {
+    if organizer_email.trim().is_empty() {
+        return Ok(OrganizerAvailability {
+            checked: false,
+            busy: false,
+            conflicts: vec![],
+        });
+    }
+
+    let body = json!({
+        "schedules": [organizer_email],
+        "startTime": { "dateTime": start.naive_utc().format("%Y-%m-%dT%H:%M:%S").to_string(), "timeZone": "UTC" },
+        "endTime":   { "dateTime": end.naive_utc().format("%Y-%m-%dT%H:%M:%S").to_string(),   "timeZone": "UTC" },
+        "availabilityViewInterval": 30
+    });
+    let resp = graph
+        .post_json(&format!("/users/{organizer_id}/calendar/getSchedule"), &body)
+        .await?;
+    if !resp.status().is_success() {
+        return Err(graph_error(resp).await);
+    }
+
+    #[derive(Deserialize)]
+    struct Resp {
+        #[serde(default)]
+        value: Vec<Sched>,
+    }
+    #[derive(Deserialize)]
+    struct Sched {
+        #[serde(rename = "scheduleItems", default)]
+        schedule_items: Vec<Item>,
+    }
+    #[derive(Deserialize)]
+    struct Item {
+        status: Option<String>,
+        start: Slot,
+        end: Slot,
+    }
+    #[derive(Deserialize)]
+    struct Slot {
+        #[serde(rename = "dateTime")]
+        date_time: String,
+    }
+
+    let parsed: Resp = resp.json().await.map_err(|e| AppError::Upstream {
+        code: None,
+        message: format!("getSchedule parse failed: {e}"),
+        retryable: false,
+    })?;
+
+    let mut conflicts = vec![];
+    for s in parsed.value {
+        for it in s.schedule_items {
+            let status = it.status.unwrap_or_default();
+            if status != "free" {
+                conflicts.push(BusyBlock {
+                    start: it.start.date_time,
+                    end: it.end.date_time,
+                    status,
+                });
+            }
+        }
+    }
+    Ok(OrganizerAvailability {
+        checked: true,
+        busy: !conflicts.is_empty(),
+        conflicts,
+    })
+}
+
+// ── Directory search (attendee picker) ────────────────────────────────────
+
+#[derive(serde::Serialize)]
+pub struct DirectoryUser {
+    pub id: String,
+    pub name: String,
+    pub email: String,
+}
+
+/// `GET /users?$search=…` for the attendee typeahead. Needs the `User.Read.All`
+/// application permission. Returns up to 10 matches; `< 2` char terms return
+/// nothing.
+pub async fn search_directory_users(
+    graph: &GraphClient,
+    term: &str,
+) -> AppResult<Vec<DirectoryUser>> {
+    let term = term.trim().replace(['"', '\\'], "");
+    if term.chars().count() < 2 {
+        return Ok(vec![]);
+    }
+    let search = format!(
+        "\"displayName:{t}\" OR \"mail:{t}\" OR \"userPrincipalName:{t}\"",
+        t = term
+    );
+    let resp = graph
+        .get_query_h(
+            "/users",
+            &[
+                ("$search", search.as_str()),
+                ("$select", "id,displayName,mail,userPrincipalName"),
+                ("$top", "10"),
+            ],
+            &[("ConsistencyLevel", "eventual")],
+        )
+        .await?;
+    if !resp.status().is_success() {
+        return Err(graph_error(resp).await);
+    }
+
+    #[derive(Deserialize)]
+    struct Resp {
+        #[serde(default)]
+        value: Vec<GraphUser>,
+    }
+    #[derive(Deserialize)]
+    struct GraphUser {
+        id: String,
+        #[serde(rename = "displayName")]
+        display_name: Option<String>,
+        mail: Option<String>,
+        #[serde(rename = "userPrincipalName")]
+        user_principal_name: Option<String>,
+    }
+
+    let parsed: Resp = resp.json().await.map_err(|e| AppError::Upstream {
+        code: None,
+        message: format!("directory search parse failed: {e}"),
+        retryable: false,
+    })?;
+
+    Ok(parsed
+        .value
+        .into_iter()
+        .filter_map(|u| {
+            let email = u.mail.or(u.user_principal_name)?;
+            Some(DirectoryUser {
+                id: u.id,
+                name: u.display_name.unwrap_or_else(|| email.clone()),
+                email,
+            })
+        })
+        .collect())
+}
+
 // ── Transcript retrieval ───────────────────────────────────────────────────
 
 /// `GET …/transcripts/{id}/content?$format=text/vtt`, falling back to the
