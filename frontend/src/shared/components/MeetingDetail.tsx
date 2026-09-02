@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import BpmnViewer from "bpmn-js/lib/NavigatedViewer";
 
 export interface ActionItem {

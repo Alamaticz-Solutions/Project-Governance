@@ -36,9 +36,9 @@ export function EacReviewForm({ projectId, onSuccess }: EacReviewFormProps) {
   });
 
   const [stakeholders, setStakeholders] = useState<any[]>([]);
-  const [risksList, setRisksList] = useState<any[]>([]);
-  const [milestones, setMilestones] = useState<any[]>([]);
-  const [solutionsConsidered, setSolutionsConsidered] = useState<any[]>([]);
+  const [risksList] = useState<any[]>([]);
+  const [milestones] = useState<any[]>([]);
+  const [solutionsConsidered] = useState<any[]>([]);
 
   const updateForm = (key: string, value: string) => setForm({ ...form, [key]: value });
 
@@ -51,14 +51,6 @@ export function EacReviewForm({ projectId, onSuccess }: EacReviewFormProps) {
     const list = [...stakeholders];
     list[i][key] = value;
     setStakeholders(list);
-  };
-
-  const addRisk = () => setRisksList([...risksList, { description: '', mitigation: '', likelihood: 'Medium', impact: 'Medium', owner: '' }]);
-  const removeRisk = (i: number) => setRisksList(risksList.filter((_, idx) => idx !== i));
-  const updateRisk = (i: number, key: string, value: string) => {
-    const list = [...risksList];
-    list[i][key] = value;
-    setRisksList(list);
   };
 
   const autofillAI = () => {
