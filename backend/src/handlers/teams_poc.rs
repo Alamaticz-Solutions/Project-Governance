@@ -438,10 +438,11 @@ pub async fn graph_notifications(
     let batch: GraphNotificationBatch = match serde_json::from_str(&body) {
         Ok(b) => b,
         Err(e) => {
-            tracing::warn!(error = %e, "unparseable Graph notification body");
+            tracing::warn!(error = %e, body = %body.chars().take(400).collect::<String>(), "unparseable Graph notification body");
             return StatusCode::ACCEPTED.into_response();
         }
     };
+    tracing::info!(count = batch.value.len(), "Graph notification batch received");
 
     let expected = state.config.graph_notification_client_state.clone();
     for n in batch.value {

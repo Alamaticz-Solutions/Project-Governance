@@ -6,12 +6,20 @@
 //! latter is not calendar-backed and its transcripts are unreachable via Graph,
 //! and it sends no invitations.
 
+use std::time::Duration;
+
 use chrono::{DateTime, FixedOffset, Utc};
 use sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
 use serde::Deserialize;
 use serde_json::json;
+
+/// The transcript `/content` endpoint often 404s for a few minutes after the
+/// change notification fires (the notification lands when the transcript
+/// *metadata* exists; the VTT body lags). Retry a 404 / 5xx / 429 a handful of
+/// times with a linear backoff (15,30,45,60,75s ≈ 3.75 min total).
+const TRANSCRIPT_FETCH_ATTEMPTS: u32 = 6;
 
 use crate::{
     config::AppConfig,
@@ -340,34 +348,54 @@ pub async fn fetch_transcript_vtt(
         "/users/{organizer_id}/onlineMeetings/{online_meeting_id}/transcripts/{transcript_id}/content"
     );
 
-    let read_body = |resp: reqwest::Response| async move {
+    async fn read_body(resp: reqwest::Response) -> AppResult<String> {
         resp.text().await.map_err(|e| AppError::Upstream {
             code: None,
             message: format!("transcript body read failed: {e}"),
             retryable: true,
         })
-    };
-
-    let resp = graph.get_query(&path, &[("$format", "text/vtt")]).await?;
-    if resp.status().is_success() {
-        return read_body(resp).await;
     }
 
-    let err = graph_error(resp).await;
-    let attribution_disabled = matches!(
-        &err,
-        AppError::Upstream { code: Some(c), .. } if c == "SpeakerAttributionNotAllowed"
-    );
-    if attribution_disabled {
-        let resp2 = graph
-            .get_with_accept(&path, "application/vnd.microsoft.graph.transcript+text")
-            .await?;
-        if resp2.status().is_success() {
-            return read_body(resp2).await;
+    let mut attempt = 0u32;
+    loop {
+        attempt += 1;
+        let resp = graph.get_query(&path, &[("$format", "text/vtt")]).await?;
+        let status = resp.status();
+        if status.is_success() {
+            return read_body(resp).await;
         }
-        return Err(graph_error(resp2).await);
+
+        let err = graph_error(resp).await;
+
+        // Speaker attribution disabled → retry once as unattributed plain text.
+        if matches!(&err, AppError::Upstream { code: Some(c), .. } if c == "SpeakerAttributionNotAllowed")
+        {
+            let resp2 = graph
+                .get_with_accept(&path, "application/vnd.microsoft.graph.transcript+text")
+                .await?;
+            if resp2.status().is_success() {
+                return read_body(resp2).await;
+            }
+            return Err(graph_error(resp2).await);
+        }
+
+        // Content not ready yet / transient upstream → back off and retry.
+        let transient = status == reqwest::StatusCode::NOT_FOUND
+            || status == reqwest::StatusCode::TOO_MANY_REQUESTS
+            || status.is_server_error();
+        if transient && attempt < TRANSCRIPT_FETCH_ATTEMPTS {
+            let wait = Duration::from_secs(15 * attempt as u64);
+            tracing::info!(
+                attempt,
+                %status,
+                "transcript content not ready — retrying in {}s",
+                wait.as_secs()
+            );
+            tokio::time::sleep(wait).await;
+            continue;
+        }
+        return Err(err);
     }
-    Err(err)
 }
 
 // ── Notification → ingest orchestration ────────────────────────────────────
@@ -462,13 +490,30 @@ pub async fn ingest_from_notification(
     }
 
     let row_id = row.id;
-    let vtt = fetch_transcript_vtt(
+    let vtt = match fetch_transcript_vtt(
         graph,
         &tref.organizer_id,
         &tref.online_meeting_id,
         &tref.transcript_id,
     )
-    .await?;
+    .await
+    {
+        Ok(v) => v,
+        Err(e) => {
+            // Don't leave the row silently stuck in `scheduled` — mark it
+            // `failed` with the reason so it's visible and re-ingestable
+            // (the manual paste path accepts `failed` rows).
+            if let Some(m) = poc_meetings::Entity::find_by_id(row_id).one(db).await? {
+                let mut am: poc_meetings::ActiveModel = m.into();
+                am.status = Set("failed".to_string());
+                am.error_message =
+                    Set(Some(format!("Could not fetch the meeting transcript: {e}")));
+                am.updated_at = Set(Some(now()));
+                am.update(db).await?;
+            }
+            return Err(e);
+        }
+    };
 
     poc_meeting_service::process_transcript(db, http, config, row_id, vtt).await?;
 
