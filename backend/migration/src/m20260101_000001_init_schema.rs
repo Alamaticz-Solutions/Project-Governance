@@ -7,15 +7,7 @@ const UP_SQL: &str = r#"
 -- ══════════════════════════════════════════════════════════════════
 -- ENUM TYPES
 -- ══════════════════════════════════════════════════════════════════
-DROP TYPE IF EXISTS gate_code CASCADE;
-DROP TYPE IF EXISTS notification_type CASCADE;
-DROP TYPE IF EXISTS approval_decision CASCADE;
-DROP TYPE IF EXISTS task_status CASCADE;
-DROP TYPE IF EXISTS workflow_stage_status CASCADE;
-DROP TYPE IF EXISTS project_risk CASCADE;
-DROP TYPE IF EXISTS project_priority CASCADE;
-DROP TYPE IF EXISTS project_status CASCADE;
-DROP TYPE IF EXISTS user_role CASCADE;
+
 
 CREATE TYPE user_role AS ENUM (
     'admin','project_manager','bta','epmo','finance','vendor_screening',
@@ -458,13 +450,6 @@ DROP TYPE IF EXISTS user_role;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Guards against this migration's `up()` being invoked more than once
-        // for the same database (observed under some connection-pool/driver
-        // combinations) — without this check a second invocation crashes with
-        // "relation already exists" instead of being a harmless no-op.
-        if manager.has_table("users").await? {
-            return Ok(());
-        }
         manager.get_connection().execute_unprepared(UP_SQL).await?;
         Ok(())
     }
