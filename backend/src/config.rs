@@ -94,7 +94,11 @@ impl AppConfig {
             openai_model: env_or("OPENAI_MODEL", "gpt-4o-mini"),
 
             server_host: env_or("SERVER_HOST", "0.0.0.0"),
-            server_port: env_or("API_PORT", "8000").parse().unwrap_or(8000),
+            server_port: env::var("PORT")
+                .or_else(|_| env::var("API_PORT"))
+                .unwrap_or_else(|_| "8000".to_string())
+                .parse()
+                .unwrap_or(8000),
 
             power_automate_schedule_url: env_or("POWER_AUTOMATE_SCHEDULE_URL", ""),
             ingest_api_key: env_or("INGEST_API_KEY", ""),
