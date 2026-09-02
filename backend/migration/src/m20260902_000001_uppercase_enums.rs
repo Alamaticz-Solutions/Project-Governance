@@ -57,7 +57,15 @@ BEGIN
   ALTER TABLE projects ALTER COLUMN priority   SET DEFAULT 'MEDIUM';
   ALTER TABLE projects ALTER COLUMN risk_level SET DEFAULT 'MEDIUM';
 
-  -- 4. drop the now-unused lowercase types
+  -- 4. drop the now-unused lowercase types.
+  --    workflow_stage_status / task_status are included: on the target DB the
+  --    workflow_stages / workflow_tasks tables were already removed and no
+  --    column is typed with them, while the entity layer now expects
+  --    `workflowstagestatus` / `taskstatus` (5 UPPERCASE labels). The label
+  --    sets differ (locked/eligible/… vs PENDING/ACTIVE/…), so a fresh-DB
+  --    build that actually needs those tables must (re)create the enums with
+  --    the new labels + a value mapping in m20260101_000001_init_schema — this
+  --    migration only removes the dead lowercase types where they exist.
   DROP TYPE IF EXISTS user_role;
   DROP TYPE IF EXISTS project_status;
   DROP TYPE IF EXISTS project_priority;
@@ -66,6 +74,8 @@ BEGIN
   DROP TYPE IF EXISTS notification_type;
   DROP TYPE IF EXISTS gate_code;
   DROP TYPE IF EXISTS checklist_result_status;
+  DROP TYPE IF EXISTS workflow_stage_status;
+  DROP TYPE IF EXISTS task_status;
 END $$;
 "#;
 
