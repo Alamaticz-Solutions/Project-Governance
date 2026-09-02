@@ -1,0 +1,33 @@
+name: keep-render-warm
+
+# Pings the Render backend's health endpoint so the free/Starter instance does
+# not spin down on idle (a sleeping backend misses Graph's ~10s subscription
+# validation window and can drop transcript notifications).
+#
+# GitHub's scheduled runs are best-effort and often delayed 5-20 min under
+# load, so the cron is set tighter than the ~15 min Render idle timeout.
+# Trigger manually any time from the Actions tab (workflow_dispatch).
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: keep-render-warm
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping backend health
+        run: |
+          curl -fsS --retry 3 --retry-all-errors --retry-delay 20 \
+               --max-time 90 \
+               "${HEALTH_URL:-https://pdsgovernance.onrender.com/health}"
+        env:
+          # Override in repo Variables (Settings -> Secrets and variables ->
+          # Actions -> Variables) if the backend URL changes.
+          HEALTH_URL: ${{ vars.RENDER_HEALTH_URL }}
