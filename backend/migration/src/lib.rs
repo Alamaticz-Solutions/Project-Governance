@@ -9,6 +9,7 @@ mod m20260101_000006_teams_poc_attendees;
 mod m20260101_000007_teams_graph;
 mod m20260901_000001_drop_unused_tables;
 mod m20260901_000002_project_number_seq;
+mod m20260902_000001_uppercase_enums;
 
 pub struct Migrator;
 
@@ -32,6 +33,9 @@ impl MigratorTrait for Migrator {
             // recorded versions instead of erroring on a missing file.
             Box::new(m20260901_000001_drop_unused_tables::Migration),
             Box::new(m20260901_000002_project_number_seq::Migration),
+            // Aligns the DB's enum types with origin/Dev's bf0a2ed entity layer
+            // (lowercase `user_role`/`admin` -> `userrole`/`ADMIN`).
+            Box::new(m20260902_000001_uppercase_enums::Migration),
         ]
     }
 }
