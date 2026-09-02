@@ -53,9 +53,6 @@ export function EacReviewForm({ projectId, onSuccess }: EacReviewFormProps) {
     setStakeholders(list);
   };
 
-  // Risk add/remove/update handlers intentionally omitted until the Risks
-  // editor UI in this form is built; `risksList` is still submitted below.
-
   const autofillAI = () => {
     setForm({
       ...form,

@@ -25,9 +25,6 @@ const DOWN_SQL: &str = "DROP TABLE IF EXISTS gate_submissions CASCADE;";
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        if manager.has_table("gate_submissions").await? {
-            return Ok(());
-        }
         manager.get_connection().execute_unprepared(UP_SQL).await?;
         Ok(())
     }
