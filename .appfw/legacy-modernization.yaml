@@ -8,30 +8,212 @@ product:
   data_source_name: pg_primary
 legacy_evidence:
   codebase: ../../Governance/Project-Governance
-  data_source_inventory: null
-  ui_inventory: null
-  reviewed_paths: []
+  data_source_inventory: >-
+    Single PostgreSQL (pgvector/pgvector:pg16 in docker-compose; dev DB `governance_db` on host port 5440,
+    remote/shared DB `governance` per migration/manual/*.sql header). No live DB accessible during this
+    inventory, so all row counts are unknown. The authoritative data model is the SeaORM entity layer
+    (backend/src/entities/*.rs, one file per table, 24 tables) plus a hand-written sea-orm-migration crate
+    (backend/migration/src/*.rs, 10 registered migrations) and one manual SQL script
+    (backend/migration/manual/2026-08-31_align_enum_types_to_rust.sql, stale — see lookup_values notes).
+    m20260101_000001_init_schema.rs is the base schema (21 tables + 9 Postgres enum types);
+    m20260101_000002 adds gate_submissions; 000003/000004/000007 own poc_meetings + graph_subscriptions
+    with heavy column churn; m20260901_000001_drop_unused_tables.rs is a REGISTERED NO-OP (nothing dropped);
+    m20260901_000002 creates an unused project_number_seq sequence; m20260902_000001_uppercase_enums.rs
+    changes enum type names + label casing. No raw SQL anywhere in backend/src (grep for
+    execute_unprepared/from_raw_sql/Statement::from/query_all/query_one = zero hits outside the migration crate).
+    No stored procedures / functions / triggers. pgvector extension enabled; knowledge_chunks.embedding is vector(1536).
+  ui_inventory: >-
+    React 19 + Vite 6 + Tailwind 4 SPA (frontend/package.json), react-router 7, deployed to Netlify
+    (frontend/netlify.toml proxies /api/* to the Render backend, SPA fallback). Active route tree is
+    frontend/src/app/App.tsx with feature screens under frontend/src/features/. Two dead parallel trees
+    also present: frontend/src/app/features/ (stale Angular-style tree: 15 feature dirs plus core/guards,
+    core/interceptors — never imported by App.tsx), frontend/src/components/, src/environments/, src/shared/.
+    Frontend deps of note: bpmn-js ^18.27 (BPMN render), firebase ^12.18 (initialized in
+    frontend/src/lib/firebase.ts with a COMMITTED config literal — dead: auth is custom JWT, drop it).
+    Routes enumerated below.
+  reviewed_paths:
+    - 'appfw-framework-rules/00-INDEX.md, 02-MODEL-CONFIG-REFERENCE.md (headers), 03-BACKEND-ADRS.md (headers), 04-PROVIDER-STANDARDS.md (headers), 05-FRONTEND-FRAMEWORK-RULES.md (headers), 06-GOLDEN-PATH-LIFECYCLE.md'
+    - 'Project-Governance/backend/src/main.rs, routes.rs, config.rs, seed.rs'
+    - 'Project-Governance/backend/src/services/ (all 17 modules: ai_extraction_service, audit_service, auth_service, dashboard_service, email_service, gate_review_service, graph_client, graph_meeting_service (skimmed), graph_subscription_service, meeting_agent_service, notification_service, poc_meeting_service, project_service, s3_service, support, workspace_service, workflow_engine)'
+    - 'Project-Governance/backend/src/handlers/projects.rs, teams_poc.rs, users.rs; handlers/ dir listing'
+    - 'Project-Governance/backend/src/auth/extractor.rs, jwt.rs; auth/ dir listing (password.rs, mod.rs)'
+    - 'Project-Governance/backend/src/domain/mod.rs, domain/workflow_conditions.rs (referenced)'
+    - 'Project-Governance/backend/src/entities/mod.rs, sea_orm_active_enums.rs; entities/ dir listing (24 table modules)'
+    - 'Project-Governance/backend/src/graphql/mod.rs, query.rs, mutation.rs; graphql/ dir listing'
+    - 'Project-Governance/backend/migration/src/lib.rs and all 10 migration files; migration/manual/2026-08-31_align_enum_types_to_rust.sql'
+    - 'Project-Governance/backend/README.md, backend/.env.example, docker-compose.yml, .github/workflows/keep-render-warm.yml'
+    - 'Project-Governance/governance_workflow_design.md (section map + section 9 Excel field mapping)'
+    - 'Project-Governance/frontend/src/app/App.tsx, frontend/package.json, frontend/netlify.toml, frontend/src/lib/firebase.ts; frontend/src tree listing'
+    - 'Project-Governance/docs/ dir listing'
+    - 'governance-appfw/.appfw/manifest.yaml, .appfw/model/schemas/governance/_res.yaml'
 modernization_slice:
-  name: null
-  goals: []
-  excluded_capabilities: []
-  rollback_posture: null
+  name: >-
+    Governance workflow + intake + gate reviews + Teams transcript ingestion (read-only), matching current
+    wired behavior — config-driven .appfw/model mirroring the full ~24-table legacy data model, with a
+    net-new workflow/approval engine and governed Microsoft Graph provider reads as human-owned product code.
+  goals:
+    - 'Re-express the FULL current data model (~24 tables incl. currently-unwired ones) as config-driven .appfw/model entities/relationships/enums for schema `governance` (+ framework schema `system`), provider PostgreSQL, data source pg_primary, single-tenant.'
+    - 'Build the governance workflow + approval state machine as net-new human-owned product services on the framework''s generic extension points (services + custom_methods) — the framework has NO case/workflow-engine primitive.'
+    - 'Reconcile the three-plus competing workflow models in the current code (see static_analysis) into ONE configurable model; the authoritative Excel gate/field matrix (governance_workflow_design.md section 9) is a hard prerequisite and is NOT in the repo — recorded as a known gap.'
+    - 'Governed Microsoft Graph provider: a named-operation registry for read-only Graph calls (calendar getSchedule, directory $search, transcript fetch, subscription lifecycle) following the SaaS-provider default-deny write posture (rulebook file 04).'
+    - 'Per-entity Rego RBAC replacing the current scattered inline authz checks; project one scalar user_role per user, projected to a one-element array at the auth boundary.'
+    - 'Frontend rebuild: Project Workspace (list-detail + document/workflow archetype) plus a portfolio Dashboard, on the framework React/TS scaffold.'
+    - 'Local/dev only — no Stage/Production hardening in this slice.'
+  excluded_capabilities:
+    - 'Teams/Graph portal-initiated WRITES (meeting scheduling, cancel, subscription creation) — deferred until an 8-item "G1" governed-write evidence stack exists; first slice does Graph reads + transcript ingest only.'
+    - 'pgvector RAG knowledge base (knowledge_documents / knowledge_chunks) — entities mirrored in .appfw/model for model fidelity, but the capability is recommended dropped/deferred; no human-owned service.'
+    - 'Analytics / reporting screen — placeholder in the current app (frontend /analytics renders PlaceholderPage), not rebuilt.'
+    - 'All release-gate / production hardening (rulebook file 09) — local/dev only for now.'
+    - 'Firebase frontend integration — dead code, dropped.'
+    - 'AWS S3 document storage as currently coded — s3_service.rs has zero call sites; document storage is net-new (see integrations).'
+    - 'email_queue asynchronous email — table present but fully unwired; SMTP send stays synchronous or moves to the framework notification service.'
+  rollback_posture: 'n/a — greenfield rebuild in a separate repo/branch; the current app keeps running untouched.'
 static_analysis:
-  routes_controllers_pages: []
-  services_and_domain_logic: []
-  orm_raw_sql_and_data_access: []
-  stored_procedure_callers: []
-  jobs_schedulers_and_queues: []
-  auth_roles_claims_and_policy: []
-  configuration_and_secrets: []
-  integrations_reports_and_files: []
+  routes_controllers_pages:
+    - 'REST (axum, backend/src/routes.rs). Top-level: GET / (root JSON), GET /health. All others nested under /api/v1.'
+    - 'POST /api/v1/auth/login -> handlers::auth::login'
+    - 'POST /api/v1/auth/register -> handlers::auth::register (always creates role=VIEWER)'
+    - 'POST /api/v1/auth/refresh -> handlers::auth::refresh'
+    - 'GET /api/v1/auth/me -> handlers::auth::me'
+    - 'GET /api/v1/projects -> handlers::projects::list (CurrentUser required, no role gate)'
+    - 'POST /api/v1/projects -> handlers::projects::create (creates project ACTIVE, seeds intake gate_submission + first EPMO project_approval, notifies EPMO + SECURITY)'
+    - 'POST /api/v1/projects/send-intake-email -> handlers::projects::send_intake_email (email_service, synchronous SMTP / mock)'
+    - 'POST /api/v1/projects/extract-intake -> handlers::projects::extract_intake (multipart upload -> ai_extraction_service text extract + OpenAI)'
+    - 'GET /api/v1/projects/approvals/pending -> handlers::projects::pending_approvals (row-scoped by role unless Admin/EPMO)'
+    - 'GET /api/v1/projects/:project_id -> handlers::projects::get (accepts UUID or project_number)'
+    - 'PATCH /api/v1/projects/:project_id -> handlers::projects::update (inline authz: owner OR Admin/EPMO)'
+    - 'DELETE /api/v1/projects/:project_id -> handlers::projects::delete (SOFT delete: sets status=CANCELLED; inline authz Admin/EPMO)'
+    - 'POST /api/v1/projects/:project_id/submit-decision -> handlers::projects::submit_decision (the linear EPMO->BTA->Finance->EAC->PIC->TRC approval state machine)'
+    - 'GET /api/v1/projects/:project_id/documents -> handlers::projects::list_documents (attachments table; CurrentUser required)'
+    - 'GET /api/v1/projects/:project_id/documents/:doc_id/download -> handlers::projects::download_document (NO CurrentUser extractor — unauthenticated; reads a file from local static/uploads/)'
+    - 'POST /api/v1/projects/:project_id/extract-team-fields/:team -> handlers::projects::extract_team_fields (multipart; writes an attachments row + local file; OpenAI per-team template for bta|finance|epmo|eac|pic)'
+    - 'POST /api/v1/projects/:project_id/fast-track-complete -> handlers::projects::fast_track_complete (inline authz Admin only)'
+    - 'GET /api/v1/projects/:project_id/workspace -> handlers::workspace::get (the SEPARATE 7-stage workspace over gate_submissions)'
+    - 'POST /api/v1/projects/:project_id/workspace/:stage -> handlers::workspace::save_stage (stage in sra_dfd|vcr_vra|eac|trc|cab|st_runbook|pic; no server-side role enforcement)'
+    - 'GET /api/v1/gate-reviews -> handlers::gate_reviews::list'
+    - 'GET /api/v1/gate-reviews/:gate_id -> handlers::gate_reviews::get'
+    - 'POST /api/v1/gate-reviews/:gate_id/decision -> handlers::gate_reviews::decide (inline authz: review.assigned_role == current_user.role OR Admin)'
+    - 'GET /api/v1/dashboard -> handlers::dashboard::get (portfolio KPI aggregation in-process)'
+    - 'GET /api/v1/notifications -> handlers::notifications::list (last 50 for current user)'
+    - 'POST /api/v1/notifications/mark-all-read -> handlers::notifications::mark_all_read'
+    - 'GET /api/v1/audit -> handlers::audit::list (audit_history, optional project_id / entity_type filter, last 200)'
+    - 'GET /api/v1/users -> handlers::users::list_users (ensure_role Admin|EPMO — one of only two ensure_role call sites)'
+    - 'POST /api/v1/users -> handlers::users::create_user (ensure_role Admin; sets arbitrary role, is_verified=true)'
+    - 'POST /api/v1/graphql -> handlers::graphql::graphql_handler (thin async-graphql surface, see below)'
+    - 'GET /api/v1/teams-poc/meetings -> handlers::teams_poc::list_meetings (UNAUTHENTICATED — no CurrentUser)'
+    - 'POST /api/v1/teams-poc/meetings -> handlers::teams_poc::schedule_meeting (UNAUTH; Graph calendar event when configured, else local-stub join link)'
+    - 'GET /api/v1/teams-poc/meetings/:id -> handlers::teams_poc::get_meeting (UNAUTH)'
+    - 'DELETE /api/v1/teams-poc/meetings/:id -> handlers::teams_poc::delete_meeting (UNAUTH)'
+    - 'POST /api/v1/teams-poc/meetings/:id/cancel -> handlers::teams_poc::cancel_meeting (UNAUTH)'
+    - 'POST /api/v1/teams-poc/meetings/:id/ingest-transcript -> handlers::teams_poc::ingest_transcript (UNAUTH; spawns poc_meeting_service::process_transcript)'
+    - 'POST /api/v1/teams-poc/availability -> handlers::teams_poc::check_availability (UNAUTH; advisory only)'
+    - 'GET /api/v1/teams-poc/directory/users -> handlers::teams_poc::directory_search (UNAUTH; Graph $search)'
+    - 'POST /api/v1/teams-poc/graph-notifications -> handlers::teams_poc::graph_notifications (unauthenticated by design; verified by clientState + validationToken handshake)'
+    - 'POST /api/v1/teams-poc/graph-lifecycle -> handlers::teams_poc::graph_lifecycle (unauthenticated by design)'
+    - 'GraphQL (async-graphql, EmptySubscription). Query: health_check; get_gates(workflow_instance_id) -> reads workflow_stages. Mutation: process_transcript(transcript) -> synchronous meeting_agent_service extract + optional BPMN, does NOT persist; start_gate(gate_id) / approve_gate(gate_id) / skip_gate(gate_id, reason) -> workflow_engine::TransitionService writes workflow_stages.status. No REST path creates workflow_stages rows, so these mutations operate on data nothing produces.'
+    - 'Frontend routes (frontend/src/app/App.tsx, react-router 7): /login (guest-only); authenticated shell: index -> redirect /dashboard, /dashboard (DashboardPage), /projects (ProjectListPage), /projects/:id (ProjectDetailPage), /team-inbox (TeamInboxPage), /team-inbox/:id/workspace (ProjectWorkspacePage), /intake (IntakePage), /notifications (NotificationsPage), /analytics (PlaceholderPage — "coming soon"), /meeting-center (MeetingCenterPage), /meeting-center/:id (MeetingDetailPage); wildcard * -> redirect /dashboard.'
+  services_and_domain_logic:
+    - 'ai_extraction_service.rs — extract_text from PDF/DOCX/XLSX/TXT + OpenAI calls (extract_intake_fields, extract_team_fields with per-team JSON templates). WIRED via POST /projects/extract-intake and POST /projects/:id/extract-team-fields/:team.'
+    - 'audit_service.rs — list_audit query over audit_history (filter + limit). WIRED via GET /audit.'
+    - 'auth_service.rs — login (Argon2 verify, lowercases email), register (always UserRole::Viewer), admin_create_user (arbitrary role), refresh. WIRED via /auth/* and POST /users.'
+    - 'dashboard_service.rs — in-process aggregation of all projects into status/priority breakdowns, high-risk count, recent gate reviews, my pending tasks. WIRED via GET /dashboard.'
+    - 'email_service.rs — send_intake_copy_email via lettre SMTP starttls (smtp.office365.com:587); mock-logs when SMTP_USER empty. Synchronous. WIRED via POST /projects/send-intake-email.'
+    - 'gate_review_service.rs — list / get / submit_gate_decision on gate_reviews with inline authz (assigned_role or Admin); writes decision + audit. WIRED via /gate-reviews/*.'
+    - 'graph_client.rs — minimal Microsoft Graph client: app-only client-credentials token (login.microsoftonline.com/{tenant}/oauth2/v2.0/token, scope https://graph.microsoft.com/.default), cached single-flight refresh, base https://graph.microsoft.com/v1.0, raw reqwest, no SDK. WIRED (constructed in main.rs only when config.graph_enabled(); consumed by graph_meeting_service + graph_subscription_service).'
+    - 'graph_meeting_service.rs — schedule_meeting_via_graph, cancel_event, check_organizer_availability (calendar getSchedule), search_directory_users ($search), parse_transcript_resource, ingest_from_notification (fetch VTT -> poc_meeting_service). WIRED via /teams-poc/* and the Graph notification handler when Graph is configured.'
+    - 'graph_subscription_service.rs — ensure_subscription + renew_once for the tenant-wide getAllTranscripts change-notification subscription; spawn_subscription_renewer (6h tick). WIRED via a startup spawned task (3s after boot) and POST /teams-poc/graph-lifecycle.'
+    - 'meeting_agent_service.rs — OpenAI extract_meeting_notes (summary/decisions/action_items/agenda_items/process-flow) + generate_bpmn. WIRED via poc_meeting_service::process_transcript and the GraphQL process_transcript mutation.'
+    - 'notification_service.rs — list_for_user (last 50), mark_all_read over notifications. WIRED via /notifications and /notifications/mark-all-read.'
+    - 'poc_meeting_service.rs — parse_vtt, process_transcript (atomic scheduled/failed->processing claim, LLM extract with 240s timeout, best-effort BPMN, persist to poc_meetings), spawn_stuck_meeting_reaper (60s tick, processing >15min -> failed). WIRED via POST /teams-poc/meetings/:id/ingest-transcript, the Graph notification path, and a startup spawned task.'
+    - 'project_service.rs — project list/create/get/update/delete (soft), get_pending_approvals, submit_decision (linear EPMO->BTA->Finance->EAC->PIC->TRC state machine, one function per transition, inserts next project_approvals row + notifications + gate_submissions + audit), fast_track_complete (Admin). Holds generate_project_number (= projects count + 1 — NOT concurrency-safe against the UNIQUE constraint, not monotonic under deletes; project_number_seq exists but is unused; must not be ported as-is). WIRED via /projects/*, submit-decision, approvals/pending, fast-track-complete, dashboard.'
+    - 'support.rs — shared helpers notify_user, notify_users_with_role (adds Admins), record_audit (hardcodes ip_address=None, user_agent=None). WIRED (used by project_service, gate_review_service, workspace_service, auth_service).'
+    - 'workspace_service.rs — the SEPARATE continuous 7-stage "workspace" model: STAGE_ORDER = sra_dfd, vcr_vra, eac, trc, cab, st_runbook, pic; one gate_submissions row per (project, stage); save_stage advances project.current_stage/current_owner_role using workspace vocabulary; stage_owner_role() is advisory (comment: "not exhaustively enforced server-side"). WIRED via /projects/:id/workspace and /workspace/:stage.'
+    - 's3_service.rs — S3Service::new + upload_file + get_presigned_url (aws-sdk-s3, bucket "governance-attachments" hardcoded, AWS creds via aws_config::load_defaults ambient env). DEAD: constructed into AppState in main.rs but ZERO call sites (grep confirmed). Attachments are actually written to local disk static/uploads/ by projects::extract_team_fields, with s3_key = local filename and s3_url = a relative /api/v1/... download path.'
+    - 'workflow_engine.rs — EligibilityEngine (condition-expression evaluator over domain/workflow_conditions.rs types): DEAD, zero call sites (grep confirmed). TransitionService (start/submit/approve/skip on workflow_stages, WorkflowStageStatus): wired ONLY to the three GraphQL mutations; no REST; no row-creation path for workflow_stages.'
+    - 'domain/workflow_conditions.rs — condition/prerequisite AST types (GateConditions, ConditionRule, LogicalOp, ...) consumed only by the dead EligibilityEngine.'
+  orm_raw_sql_and_data_access:
+    - 'All data access is SeaORM (async, PostgreSQL). 24 entity modules in backend/src/entities/mod.rs (annotated #![allow(dead_code)]), one per table; the entity layer is the authoritative column shape and mirrors the legacy schema.'
+    - 'Schema DDL is a hand-written sea-orm-migration crate (backend/migration/src, 10 registered migrations via lib.rs Migrator) run automatically at startup by Migrator::up in main.rs. Base = m20260101_000001_init_schema.rs (inline UP_SQL string, 21 tables + 9 enum types + pgvector). m20260101_000002 adds gate_submissions. 000003/000004/000006/000007 own poc_meetings + graph_subscriptions (all guarded/idempotent, with column add->rename->drop->re-add churn). 000005 is a legacy-DB reconciliation (adds phase_name/prerequisites/conditions to workflow_stage_definitions). m20260901_000001_drop_unused_tables.rs is a REGISTERED NO-OP (up/down both Ok(()); nothing dropped). m20260901_000002 creates project_number_seq (unused). m20260902_000001_uppercase_enums.rs retypes enum columns (see lookup_values).'
+    - 'One manual SQL file: backend/migration/manual/2026-08-31_align_enum_types_to_rust.sql — a metadata-only ALTER TYPE ... RENAME script pushing the OPPOSITE direction from m20260902 (concatenated->snake_case type names, UPPERCASE->lowercase labels). Its header claims the Rust entities want lowercase labels — FALSE for the current entity layer (SCREAMING_SNAKE_CASE). Stale and actively unsafe to run; treat as a discrepancy artifact, do not carry forward.'
+    - 'No raw SQL in application code: grep of backend/src for execute_unprepared / from_raw_sql / Statement::from / query_all / query_one / raw_sql = zero matches. Raw SQL exists only inside the migration crate.'
+    - 'Freeform JSONB sinks used as schemaless columns: projects.ai_extracted_data (apply_project_updates dumps every unrecognized decision-submission key in; get_pending_approvals reads ~35 keys back out), gate_submissions.data, project_fields.field_value, audit_history.old_values/new_values, poc_meetings.decisions/action_items/agenda_items/attendees.'
+  stored_procedure_callers:
+    - 'none — no stored procedures / functions / triggers in the database. generate_project_number() is application-side in project_service.rs (projects count + 1). The project_number_seq Postgres sequence (m20260901_000002) exists but is unused.'
+  jobs_schedulers_and_queues:
+    - 'Boot sequence (main.rs): Migrator::up -> seed::seed_demo_users -> seed::seed_workflow_definitions -> poc_meeting_service::spawn_stuck_meeting_reaper -> graphql::build_schema -> S3Service::new -> build shared reqwest client -> (if graph configured) spawn task: sleep 3s, graph_subscription_service::ensure_subscription, then spawn_subscription_renewer -> axum::serve.'
+    - 'seed_workflow_definitions inserts 1 workflow_definitions row ("Standard Project Lifecycle v2") + 19 workflow_stage_definitions rows (a phase DAG with prerequisites) on every boot (idempotent guard). Nothing reads these rows.'
+    - 'poc_meeting_service::spawn_stuck_meeting_reaper — tokio task, 60s interval; flips poc_meetings stuck in status=processing with updated_at older than 15 min to status=failed with a retry-able message. Only recovery path, and only for the processing state.'
+    - 'graph_subscription_service::spawn_subscription_renewer — tokio task, 6h interval; renews the transcript subscription when within 12h of expiry; recreates on 404.'
+    - 'Startup spawned task — graph_subscription_service::ensure_subscription (must run after the HTTP server binds because Graph synchronously calls back the notification URL to validate within ~10s).'
+    - 'Three more fire-and-forget tokio::spawn calls with no queue, no retry, no dead-letter: the ingest_transcript handler, per-notification graph_meeting_service::ingest_from_notification, and the lifecycle re-subscribe. No job durability beyond the reaper.'
+    - 'email_queue table is present but fully UNWIRED — no producer, no consumer. SMTP send is synchronous only (email_service.rs). The legacy Celery+Redis queue was dropped in the Rust rewrite (backend/README.md).'
+    - 'GitHub Action .github/workflows/keep-render-warm.yml — cron */5 * * * *, curls the Render backend /health so the instance does not spin down and miss Graph subscription validation. No Dockerfile in the repo; docker-compose.yml only starts postgres (pgvector/pgvector:pg16, POSTGRES_DB=governance_db, host port 5440).'
+  auth_roles_claims_and_policy:
+    - 'JWT via jsonwebtoken (HS256 default). Claims (auth/jwt.rs): sub (user id), role (Option<String>, present on access tokens only), email (Option<String>, access only), exp (i64 unix), type ("access" | "refresh"). Validation::default() checks exp only — NO aud / iss validation. Refresh tokens carry role=None, email=None.'
+    - 'CurrentUser extractor (auth/extractor.rs): requires "Bearer " token, rejects unless type=="access", then loads the user FRESH from the DB on every request (a deactivated user is locked out on the next request). Role is therefore read from the DB row and is authoritative; the token role claim is decorative — consistent with the locked single-scalar-role decision.'
+    - 'Passwords: Argon2 (auth/password.rs). seed.rs re-hashes any legacy non-$argon2 demo hash on boot. SECRET_KEY has a hardcoded fallback in config.rs (app boots with a known secret if the env var is unset).'
+    - 'Registration: POST /auth/register always creates role = UserRole::Viewer (closes the legacy hole where role came from the request body). Every non-viewer account must be created by an admin via POST /api/v1/users (ensure_role Admin), which sets is_verified=true and an arbitrary role.'
+    - 'auth::ensure_role (the "central RBAC guard" per README) is used at only TWO call sites: handlers::users::list_users (Admin|EPMO) and create_user (Admin). Every other authorization decision is an inline check in a service.'
+    - 'Inline authz found: project_service::update_project — is_owner (project.manager_id == current_user.id) OR is_privileged (matches!(role, Admin | Epmo)); else Forbidden. project_service::delete_project — matches!(role, Admin | Epmo); else Forbidden (and it is a SOFT delete: status=Cancelled). project_service::submit_decision — required_role = project.current_owner_role (lowercase text column); allowed if current_user.role.as_str().eq_ignore_ascii_case(&required_role) OR role == Admin (case-insensitive on purpose — the column is lowercase, as_str() is SCREAMING_SNAKE). project_service::get_pending_approvals — if not Admin|EPMO, filter project_approvals.assigned_role == current_user.role. project_service::fast_track_complete — role == Admin only. gate_review_service::submit_gate_decision — is_admin (role == Admin) OR review.assigned_role == current_user.role. workspace_service::save_stage — NO server-side role check (stage_owner_role is advisory/UI-only).'
+    - 'user_role enum — 14 values. Base schema (m20260101_000001, lowercase): admin, project_manager, bta, epmo, finance, vendor_screening, analysis_team, eac, cab, security, taf, trc, pic, viewer. Entity layer + m20260902 (type name `userrole`, SCREAMING_SNAKE): ADMIN, PROJECT_MANAGER, BTA, EPMO, FINANCE, VENDOR_SCREENING, ANALYSIS_TEAM, EAC, CAB, SECURITY, TAF, TRC, PIC, VIEWER.'
+    - 'Unauthenticated endpoints (no CurrentUser extractor): all 8 /api/v1/teams-poc/* meeting/availability/directory routes (handler doc comment admits it — "V1 frontend is on mock auth"), the 2 Graph webhooks (by design, verified by clientState + the validationToken handshake), and GET /api/v1/projects/:project_id/documents/:doc_id/download (unauthenticated file read from static/uploads/, while the sibling list_documents does require CurrentUser).'
+  configuration_and_secrets:
+    - 'config.rs builds an immutable AppConfig from env (dotenvy) at boot. 27 keys are documented in backend/.env.example: APP_NAME, APP_VERSION, DEBUG, ENVIRONMENT, SERVER_HOST, API_PORT, DATABASE_URL, SECRET_KEY (JWT signing — hardcoded fallback in config.rs), ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, ALLOWED_ORIGINS (CORS), SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, EMAIL_FROM, EMAIL_FROM_NAME, OPENAI_API_KEY, OPENAI_MODEL (default gpt-4o-mini), GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET, GRAPH_DEFAULT_ORGANIZER_ID, GRAPH_DEFAULT_ORGANIZER_EMAIL, GRAPH_NOTIFICATION_BASE_URL, GRAPH_NOTIFICATION_CLIENT_STATE (shared secret echoed in every Graph notification), GRAPH_SUBSCRIPTION_MINUTES (default 4230).'
+    - 'config.rs also reads PORT before API_PORT — PORT is NOT in .env.example (Render injects it). graph_enabled() needs tenant+client+secret+organizer_id; graph_notifications_enabled() additionally needs base_url + client_state.'
+    - 'DATABASE_URL: dev/.env.example points at governance_db (also docker-compose POSTGRES_DB, host port 5440); the remote/shared DB is named governance (migration/manual/*.sql header). config.rs default is postgres://postgres:password@localhost:5432/governance_db.'
+    - 'Hardcoded S3 bucket "governance-attachments" in s3_service.rs (with a code comment noting it should be config). AWS credentials are taken from ambient env via aws_config::load_defaults — no corresponding .env.example key.'
+    - 'Committed Firebase config literal in frontend/src/lib/firebase.ts (apiKey AIzaSyDJE3mrAnrxt8DSo2O_YiioUQBnuQ5KV_E, projectId governance-af0a4, appId, measurementId) — dead code.'
+    - 'seed.rs hardcodes DEMO_PASSWORD "Demo1234!" for 7 accounts including admin@abchealth.com, re-seeded on every boot in every environment. No demo projects are seeded.'
+  integrations_reports_and_files:
+    - 'Microsoft Graph — app-only (client-credentials) OAuth2 at login.microsoftonline.com/{tenant}/oauth2/v2.0/token (scope .default), direct HTTP to https://graph.microsoft.com/v1.0 via raw reqwest (no Graph SDK). Named operations in use: create calendar event with isOnlineMeeting, cancel/delete event, GET /users/{id}/calendar getSchedule (availability), GET /users $search=... (directory typeahead, ConsistencyLevel: eventual), POST/PATCH/DELETE /subscriptions (getAllTranscripts change-notification + lifecycleNotificationUrl), fetch transcript VTT. Optional: without config the portal issues local-stub join links and does no auto-ingest.'
+    - 'OpenAI — POST https://api.openai.com/v1/chat/completions, bearer OPENAI_API_KEY, model from OPENAI_MODEL (default gpt-4o-mini), response_format json_object. Used for intake-document extraction, per-team form extraction, meeting-notes extraction, and BPMN 2.0 XML generation.'
+    - 'AWS S3 — s3_service.rs (aws-sdk-s3), bucket "governance-attachments". DEAD: zero call sites. Real attachment storage is the local filesystem static/uploads/ (ephemeral on Render — existing bytes are already unreliable).'
+    - 'SMTP email — lettre AsyncSmtpTransport starttls_relay, smtp.office365.com:587; synchronous; mock-logs when SMTP_USER is empty.'
+    - 'bpmn-js (frontend ^18.27) — renders meeting-AI-generated BPMN XML.'
+    - 'Firebase (frontend ^12.18) — firebase/app + analytics + auth initialized with a committed config; not otherwise used. DEAD — drop.'
+    - 'Render — backend deploy (https://pdsgovernance.onrender.com); kept warm by the keep-render-warm GitHub Action.'
+    - 'Netlify — frontend deploy; frontend/netlify.toml proxies /api/* to the Render backend and provides SPA fallback.'
+    - 'No Dockerfile. docker-compose.yml starts only postgres.'
 data_discovery:
-  tables_views_and_row_counts: []
-  keys_relationships_constraints_and_indexes: []
-  lookup_values_and_status_codes: []
-  temporal_audit_version_fields: []
-  sensitive_fields_and_classification: []
-  procedures_functions_triggers_and_jobs: []
+  tables_views_and_row_counts:
+    - 'Table count = 24. Reconciliation: 21 from m20260101_000001_init_schema + gate_submissions (m..._000002) + poc_meetings (m..._000003) + graph_subscriptions (m..._000007) = 24, matching all 24 table modules in backend/src/entities/mod.rs. m20260901_000001 "drop_unused_tables" dropped nothing (registered no-op). Row counts: unknown (no live DB).'
+    - 'Wired via REST (10): users, projects, project_approvals, gate_submissions, gate_reviews, notifications, audit_history, attachments, poc_meetings, graph_subscriptions.'
+    - 'Seeded at every boot but read by nothing (2): workflow_definitions, workflow_stage_definitions (~1 + ~19 rows from seed_workflow_definitions).'
+    - 'Referenced by the GraphQL surface only, with no row-creation path (1): workflow_stages (read by get_gates, written by TransitionService mutations).'
+    - 'Fully unwired — schema-fidelity only (11): project_stakeholders, project_fields, workflow_instances, workflow_tasks, task_assignments, checklist_items, risk_items, comments, email_queue, knowledge_documents, knowledge_chunks.'
+    - 'Discrepancy: backend/README.md is stale — it lists attachments and the workflow tables as unwired, but attachments IS written/read (extract_team_fields / list_documents / download_document; m20260901_000001 comment cites 27 live rows) and workflow_definitions/stage_definitions ARE seeded every boot.'
+    - 'No database views.'
+  keys_relationships_constraints_and_indexes:
+    - 'PRIMARY KEYs: every table has a UUID id PK (application-generated Uuid::new_v4()).'
+    - 'UNIQUE: users.email, users.username, projects.project_number, project_stakeholders(project_id,user_id) [uq_project_stakeholder], project_fields(project_id,field_name) [uq_project_field], workflow_stage_definitions(workflow_id,stage_code) [uq_workflow_stage_code], task_assignments(task_id,assignee_id) [uq_task_assignee], gate_submissions(project_id,stage) [uq_gate_submission_stage], graph_subscriptions.subscription_id.'
+    - 'Circular FK: workflow_instances.current_stage_id -> workflow_stages.id (added via ALTER TABLE after both tables exist) while workflow_stages.workflow_instance_id -> workflow_instances.id ON DELETE CASCADE — mutually dependent.'
+    - 'Self-referential FKs: projects.duplicate_of_id -> projects.id; comments.parent_id -> comments.id.'
+    - 'Other FKs: projects.manager_id -> users.id (NOT NULL); most child tables project_id -> projects.id ON DELETE CASCADE (project_stakeholders, project_fields, gate_reviews, gate_submissions, project_approvals, risk_items, attachments, comments, workflow_instances, audit_history). audit_history.project_id is ON DELETE CASCADE — deleting a project would destroy its audit trail (contradicts the design doc "immutable audit history"; mitigated in practice only because delete_project is a soft delete). notifications.project_id -> projects.id (nullable, no cascade). comments.task_id / comments.gate_review_id ON DELETE CASCADE. Many *_by_id / owner_id / assignee_id -> users.id (nullable, no cascade). poc_meetings has NO FK to projects (deliberately standalone per m20260101_000003). graph_subscriptions is standalone.'
+    - 'Indexes: ix_users_email, ix_users_username, ix_users_email_active; ix_projects_number, ix_projects_status_priority, ix_projects_manager, ix_projects_created; ix_stage_def_order; ix_wf_stage_status; ix_task_stage_status; ix_gate_review_project_gate, ix_gate_review_status; ix_audit_project_date, ix_audit_entity, ix_audit_date; ix_notification_recipient_read; ix_email_queue_status; ix_gate_submissions_project; ix_poc_meetings_status + ix_poc_meetings_external_ref/graph_online_meeting_id (renamed across 000004/000007); ix_graph_subscriptions_resource.'
+    - 'pgvector: CREATE EXTENSION IF NOT EXISTS vector; knowledge_chunks.embedding is vector(1536).'
+  lookup_values_and_status_codes:
+    - '9 Postgres enum types created in m20260101_000001 (lowercase labels, snake_case type names): user_role (14), project_status (6: draft, active, on_hold, completed, cancelled, archived), project_priority (4: critical, high, medium, low), project_risk (4: very_high, high, medium, low), workflow_stage_status (8: locked, eligible, in_progress, pending_approval, completed, skipped, rejected, changes_requested), task_status (5: pending, in_progress, completed, overdue, cancelled), approval_decision (4: approved, rejected, needs_info, deferred), notification_type (9: project_created, task_assigned, task_completed, approval_required, approved, rejected, overdue, stage_advanced, comment_added), gate_code (20: A..S plus CAB).'
+    - 'Casing divergence: backend/src/entities/sea_orm_active_enums.rs maps every enum to SCREAMING_SNAKE_CASE string_values with underscore-free type names (userrole, projectstatus, projectpriority, projectrisk, workflowstagestatus, taskstatus, approvaldecision, notificationtype, gatecode). m20260902_000001_uppercase_enums.rs is meant to reconcile a legacy DB, but it only (re)creates userrole/projectstatus/projectpriority/projectrisk/approvaldecision/notificationtype/gatecode and retypes their columns via USING upper(col::text). It NEVER creates workflowstagestatus or taskstatus and never retypes workflow_stages.status / workflow_tasks.status.'
+    - 'workflow_stage_status is the sharp break: the base (m0001) labels {locked, eligible, in_progress, pending_approval, completed, skipped, rejected, changes_requested} and the entity WorkflowStageStatus labels {PENDING, ACTIVE, COMPLETED, SKIPPED, BLOCKED} are DISJOINT — upper() cannot map one to the other (m0902 own comment admits this). task_status labels match apart from casing. On a fresh DB built from this repo''s migrations, the type name the entity layer expects for workflow_stages does not exist, so GraphQL get_gates and every TransitionService write would fail at the DB layer. m20260901_000001 being a no-op is what leaves workflow_stages present and still typed workflow_stage_status, so m0902''s guarded DROP TYPE of workflow_stage_status / task_status is swallowed by its own EXCEPTION handler.'
+    - 'project_status label-count mismatch: m0001 has 6; entity + m0902 have 7 (adds IN_DELIVERY).'
+    - 'checklist_result_status appears in m0902''s DROP-TYPE list but is created nowhere in the repo (dangling reference).'
+    - 'Non-enum status columns are plain VARCHAR with app-level vocabularies: project_approvals.status (Pending / Approved / Rejected / Returned), project_approvals.decision (Approve / Reject / Needs Info), gate_reviews.status (pending / approved / rejected / ...), gate_submissions.status (in_progress / submitted), poc_meetings.status (scheduled / processing / completed / failed / cancelled), poc_meetings.source (local_stub / graph_scheduled), projects.workflow_status / current_status / current_stage / current_owner_role (free text, written with two different vocabularies by submit_decision vs save_stage).'
+    - 'The manual SQL (migration/manual/2026-08-31_align_enum_types_to_rust.sql) renames types the OTHER way (concatenated -> snake_case) and lowercases labels — contradicts both the entity layer and m0902. Stale; do not use.'
+  temporal_audit_version_fields:
+    - 'created_at + updated_at (TIMESTAMPTZ): users, projects, gate_submissions, project_approvals, comments, poc_meetings, graph_subscriptions. created_at only: workflow_definitions. updated_at only: project_fields (+ updated_by_id).'
+    - 'Other per-table timestamps (uneven, not a uniform pattern): notifications (created_at, read_at), email_queue (scheduled_at, sent_at, created_at), audit_history (performed_at), attachments (uploaded_at), project_stakeholders (added_at), risk_items (identified_at, resolved_at), gate_reviews (submitted_at, due_date, decision_at), task_assignments (assigned_at, accepted_at, completed_at), workflow_instances (started_at, completed_at), workflow_stages (started_at, completed_at, due_date), workflow_tasks (due_date, completed_at). Neither created_at nor updated_at: knowledge_chunks; checklist_items has only completed_at.'
+    - 'audit_history is a hand-rolled append table written by support::record_audit (id, project_id, entity_type, entity_id, action, old_values JSONB, new_values JSONB, performed_by_id, ip_address, user_agent, performed_at). No hash chain, no chain scope, no redaction, no tamper-evidence. ip_address and user_agent are always set to None. project_id FK is ON DELETE CASCADE. Login, project create/update/cancel, stage decisions, gate decisions, workspace saves, and admin fast-track write rows; other mutations do not.'
+    - 'NO optimistic-concurrency / row-version columns exist anywhere. workflow_definitions.version is an integer definition-version (starts at 1), not a concurrency token. Update paths do read-modify-write with no guard.'
+  sensitive_fields_and_classification:
+    - 'Credentials / secrets: users.hashed_password (Argon2). graph_subscriptions.client_state (shared secret). Config: SECRET_KEY (JWT, hardcoded fallback), OPENAI_API_KEY, GRAPH_CLIENT_SECRET, GRAPH_NOTIFICATION_CLIENT_STATE, SMTP_PASSWORD; committed Firebase apiKey literal (frontend). seed.rs hardcoded demo password for 7 accounts incl. admin.'
+    - 'PII: users.email / phone; projects.sponsor_email, sponsor_name, requestor_name; poc_meetings.organizer_email and poc_meetings.attendees (JSONB list of email addresses, external/non-org addresses explicitly allowed per m20260101_000006).'
+    - 'Compliance-scope flags on projects: has_phi_data, is_clinical, is_hipaa_applicable — governance data is PHI-adjacent whenever a project touches clinical / HIPAA scope.'
+    - 'PHI-risk free text: poc_meetings.transcript_text and transcript_vtt (meeting transcripts — may contain PHI for clinical-project meetings), plus derived poc_meetings.summary / decisions / action_items. knowledge_chunks.chunk_text (+ embedding).'
+    - 'Unclassifiable-by-construction JSONB: projects.ai_extracted_data (apply_project_updates writes every unrecognized key; get_pending_approvals reads ~35 fields), gate_submissions.data, project_fields.field_value, audit_history.old_values / new_values (can carry PHI-adjacent payloads).'
+    - 'Email addresses appear throughout (users, project sponsors, meeting organizer/attendees, notification action targets).'
+    - 'Classification posture: treat governance records as PHI-adjacent when clinical/HIPAA-scoped; repo fixtures/seeds are synthetic only (demo users with a shared password; no demo projects seeded).'
+  procedures_functions_triggers_and_jobs:
+    - 'none in the database — no stored procedures, functions, or triggers. Background work is in-process only (see static_analysis.jobs_schedulers_and_queues): the stuck-POC-meeting reaper, the Graph subscription renewer, the startup subscription-ensure task, and three undurable fire-and-forget tokio::spawn calls. project_number_seq is an unused sequence.'
 stored_procedure_disposition:
   routines: []
   allowed_dispositions:
@@ -42,11 +224,48 @@ stored_procedure_disposition:
     - provider_routine_temporary
     - provider_routine_retained
 target_architecture:
-  entities: []
-  relationships: []
-  dto_result_types: []
-  custom_methods: []
-  product_services: []
+  entities:
+    - 'User (users), Project (projects), ProjectStakeholder (project_stakeholders), ProjectField (project_fields), ProjectApproval (project_approvals), GateReview (gate_reviews), GateSubmission (gate_submissions).'
+    - 'WorkflowDefinition (workflow_definitions), WorkflowStageDefinition (workflow_stage_definitions), WorkflowInstance (workflow_instances), WorkflowStage (workflow_stages), WorkflowTask (workflow_tasks), TaskAssignment (task_assignments), ChecklistItem (checklist_items).'
+    - 'RiskItem (risk_items), Attachment (attachments), Comment (comments), Notification (notifications), EmailQueueItem (email_queue — mirror for fidelity; capability likely dropped).'
+    - 'AuditEvent (audit_history) — append-only (standard_methods exclude Update/Delete, ADR 0004); written only by the product audit service for the ~18 named semantic governance events + login/non-entity events. Separate from the framework `audited` facet, which is applied to the regulated mutated entities Project, GateReview, ProjectApproval, Attachment, User, GateSubmission for record-level before/after diffs + hash chain. Both mechanisms are used (plan Q5 / spec 001 decision B / spec 002).'
+    - 'KnowledgeDocument (knowledge_documents), KnowledgeChunk (knowledge_chunks) — mirrored for model fidelity; RAG capability excluded from the first slice.'
+    - 'Meeting (poc_meetings — deliberate RENAME; the legacy table is a standalone POC table, so the legacy-table -> entity-name map is not 1:1), GraphSubscription (graph_subscriptions).'
+    - 'Total ~24 PascalCase entities — the full current data model, including currently-unwired tables (scope ceiling).'
+  relationships:
+    - '~25 foreign-key edges. Notable: Project 1-* GateReview, GateSubmission, ProjectApproval, ProjectField, RiskItem, Attachment, Comment, Notification, AuditEvent, ProjectStakeholder (all project_id, mostly ON DELETE CASCADE).'
+    - 'Project *-* User via ProjectStakeholder; Project.manager -> User (required).'
+    - 'Self-references: Project.duplicate_of -> Project; Comment.parent -> Comment.'
+    - 'Workflow chain: WorkflowDefinition 1-* WorkflowStageDefinition; WorkflowInstance 1-* WorkflowStage 1-* WorkflowTask 1-* (TaskAssignment | ChecklistItem); WorkflowInstance <-> WorkflowStage is circular in the legacy DDL (current_stage_id) — resolve to a nullable one-way reference in the rebuild.'
+    - 'KnowledgeDocument 1-* KnowledgeChunk. Comment optionally references WorkflowTask / GateReview.'
+    - 'Meeting has NO relationship to Project in the legacy schema (standalone) — do not invent Project 1-* Meeting; a link is a net-new decision. GraphSubscription is standalone (tenant-scoped).'
+  dto_result_types:
+    - 'ProjectWorkspacePayload — project + stage order + per-stage submissions/decisions + documents + approvals + audit slice (rebuild of GET /projects/:id/workspace + the review workspace).'
+    - 'DashboardKpiPayload — active/completed/on-hold/total counts, status & priority breakdowns, high-risk count, recent gate reviews, caller''s pending tasks (rebuild of GET /dashboard).'
+    - 'MeetingAiResult — summary, decisions[], action_items[{text,assignee}], agenda_items[{project,department}], contains_process_flow, process_name, optional bpmn_xml + bpmn_status.'
+    - 'PendingApprovalsList — per-approval item: task id, project id/number/name, stage/kind, priority, submitted_by, submitted_date, status, and the wide project_data projection (~35 fields incl. ai_extracted_data keys).'
+  custom_methods:
+    - 'Project.submit_decision — advance/return/defer the approval chain for the caller''s current stage (rebuild of project_service::submit_decision; names indicative, cross-ref spec 002).'
+    - 'Project.pending_approvals — role-scoped list of open approvals.'
+    - 'Project.fast_track_complete — admin-only jump to completion, auto-approving open approvals.'
+    - 'Project.workspace — assemble the ProjectWorkspacePayload.'
+    - 'Project.eligible_gates — compute currently-eligible gates from prerequisites/conditions. NOTE: no working legacy implementation to port — EligibilityEngine is dead code and the Excel gate matrix is missing.'
+    - 'GateReview.decide — record a gate decision (assigned-role or admin).'
+    - 'GateSubmission.save_stage — upsert a stage''s JSONB payload and optionally advance.'
+    - 'Meeting.process_transcript — parse VTT, run AI extraction (+ optional BPMN), persist, with an idempotent claim/reaper for crash recovery. OWNED BY spec 003 (orchestration); the transcript fetch is a governed Graph read (spec 003), the AI extraction goes through spec 004''s single egress boundary + PHI gate.'
+  product_services:
+    - gate_eligibility
+    - approval_state_machine
+    - transition
+    - field_rules
+    - notification
+    - audit
+    - ai_extraction
+    - graph_provider
+    - document_storage
+    - email
+    - meeting_agent
+    - dashboard
   retained_provider_routines: []
   ingress:
     http: true
@@ -54,19 +273,47 @@ target_architecture:
     kafka: false
 frontend_rebuild:
   needed: true
-  routes: []
-  dashboard_or_workbench: null
-  accessibility_and_e2e_evidence: []
+  routes:
+    - /login
+    - /dashboard
+    - /projects
+    - /projects/:id
+    - /team-inbox
+    - /team-inbox/:id/workspace
+    - /intake
+    - /notifications
+    - '/analytics (placeholder — PlaceholderPage in the current app)'
+    - /meeting-center
+    - /meeting-center/:id
+  dashboard_or_workbench: >-
+    Project Workspace (list-detail + document/workflow archetype — the first real instance of that archetype
+    in this rebuild) plus a portfolio Dashboard (KPIs, risk radar, recent activity).
+  accessibility_and_e2e_evidence:
+    - 'none exists in the current app; must be produced. The framework''s frontend CI only runs build + typecheck (rulebook file 05 section 5.8: the test backbone is documented but not enforced in CI).'
 migration_and_parallel_run:
-  migration_plan: null
-  reconciliation_checks: []
-  rollback_checks: []
-  live_api_tests: []
+  migration_plan: >-
+    Fresh generated schema from .appfw/model; no data migration in scope for local/dev. The current app uses
+    a Postgres DB named governance (dev: governance_db); legacy objects live in the `public` schema, so a new
+    `governance` schema would not collide at the object level — but the migration-history table and the enum
+    type names (userrole, projectstatus, ...) WOULD collide in `public`. The rebuild must therefore use a
+    separate database (or at minimum a dedicated schema plus a distinct migrations table and enum namespace)
+    to avoid collision. Local-disk attachments under static/uploads/ on the current Render deploy are already
+    non-durable and are not a migration source.
+  reconciliation_checks:
+    - 'Deferred — applies at Stage, not now. When run: row-count and key-field parity per entity vs a frozen legacy snapshot; verify the enum-casing reconciliation (workflow_stage_status vs WorkflowStageStatus) resolves to one label set.'
+  rollback_checks:
+    - 'Deferred — applies at Stage, not now. Greenfield rebuild in a separate repo/branch; rollback = keep running the current app.'
+  live_api_tests:
+    - 'Deferred — applies at Stage, not now. When run: parity tests for the wired REST surface enumerated in static_analysis (auth, projects CRUD + submit-decision, workspace save/advance, gate-review decision, dashboard, notifications, audit, teams-poc transcript ingest read path).'
 hardening:
-  security_evidence: []
-  performance_evidence: []
-  provider_certification_evidence: []
-  ops_observability_evidence: []
+  security_evidence:
+    - 'Deferred — rulebook file 09 release-gate concern; local/dev only for this slice. (Known items to close later: unauthenticated /teams-poc/* and document-download endpoints, JWT with no aud/iss, hardcoded SECRET_KEY fallback, committed Firebase key, hardcoded demo password, audit_history ON DELETE CASCADE.)'
+  performance_evidence:
+    - 'Deferred — rulebook file 09 release-gate concern; local/dev only for this slice.'
+  provider_certification_evidence:
+    - 'Deferred — rulebook file 09 / file 04 concern; the Microsoft Graph provider certification (read areas + default-deny writes) is out of scope for this local/dev slice.'
+  ops_observability_evidence:
+    - 'Deferred — rulebook file 09 release-gate concern; local/dev only for this slice. (Current app has tracing logs + a /health endpoint kept warm by a GitHub Action; no metrics, no durable job queue.)'
 agent_contract:
   skill: product-legacy-modernization
   canonical_doc: docs/lifecycle/legacy-modernization.md
