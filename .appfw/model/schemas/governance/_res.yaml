@@ -1,0 +1,4 @@
+id: 604d3bb2-9ec2-4eeb-831a-8d82c3922553
+name: governance
+description: Product schema inferred from legacy application evidence.
+data_source_name: pg_primary

@@ -1,0 +1,42 @@
+version: 1
+app:
+  name: governance
+  display_name: 'Project Governance'
+  description: Product intake scaffold generated from a legacy application modernization intake.
+topology:
+  data_sources:
+  - name: pg_primary
+    provider: PostgreSQL
+    role: transactional
+    description: Primary provider selected during product intake.
+  schemas:
+  - name: system
+    data_source_name: pg_primary
+    role: framework
+    description: Runtime metadata schema loaded from generated config.
+  - name: governance
+    data_source_name: pg_primary
+    role: product
+    description: Product schema inferred from legacy application evidence.
+  ingress:
+  - name: governance-http
+    kind: http
+    enabled: true
+    schema: governance
+    path: /governance
+    consumers:
+    - browser
+    - service-api
+  - name: app-mcp
+    kind: mcp
+    enabled: false
+    path: /mcp
+    consumers:
+    - agent
+  - name: governance-events
+    kind: kafka
+    enabled: false
+    schema: governance
+    topic: governance.events
+    consumer_group: governance-events-worker
+    handler: services.governance_events

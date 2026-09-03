@@ -1,0 +1,24 @@
+version: 1
+source: legacy_application
+source_kind: legacy
+app:
+  name: governance
+  display_name: 'Project Governance'
+schema:
+  name: governance
+topology:
+  backend_provider:
+    provider: PostgreSQL
+    data_source_name: pg_primary
+  ingress:
+    mcp_server: false
+    kafka_client: false
+    ui: scaffold
+artifacts:
+  poc_source: ../../Governance/Project-Governance
+  data_artifact: null
+  ui_artifact: null
+agent_contract:
+  skill: product-legacy-modernization
+  sample_reference_only: true
+  next_step: 'Analyze legacy code and data, produce the modernization map and stored procedure disposition, then create .appfw/model source before generation.'

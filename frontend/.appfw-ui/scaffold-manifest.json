@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "profile": "product-intake",
+  "ui_mode": "scaffold",
+  "app": {
+    "name": "governance",
+    "display_name": "Project Governance",
+    "schema": "governance",
+    "provider": "PostgreSQL"
+  },
+  "design_system": {
+    "brand": "PDS Health",
+    "source": "appfw_ui/pds_health",
+    "tokens": "appfw_ui/pds_health/tokens",
+    "components": "appfw_ui/pds_health/components",
+    "package": "@appfw/pds-health-components",
+    "style_import": "@appfw/pds-health-components/styles.css",
+    "provenance": "framework-owned design-system source; product-owned frontend consumes local framework aliases for starter UI",
+    "starter_examples": [
+      "overlay",
+      "analytics",
+      "data-grid",
+      "generated-form"
+    ]
+  },
+  "generated_contract": "src/generated/appfw-ui-contract.ts",
+  "checks": {
+    "offline": "npm run appfw:check",
+    "evidence": "target/appfw/frontend-scaffold-check.json"
+  }
+}

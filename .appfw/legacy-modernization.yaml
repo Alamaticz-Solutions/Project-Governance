@@ -1,0 +1,73 @@
+version: 1
+source: legacy_application
+product:
+  app_name: governance
+  display_name: 'Project Governance'
+  schema: governance
+  provider: PostgreSQL
+  data_source_name: pg_primary
+legacy_evidence:
+  codebase: ../../Governance/Project-Governance
+  data_source_inventory: null
+  ui_inventory: null
+  reviewed_paths: []
+modernization_slice:
+  name: null
+  goals: []
+  excluded_capabilities: []
+  rollback_posture: null
+static_analysis:
+  routes_controllers_pages: []
+  services_and_domain_logic: []
+  orm_raw_sql_and_data_access: []
+  stored_procedure_callers: []
+  jobs_schedulers_and_queues: []
+  auth_roles_claims_and_policy: []
+  configuration_and_secrets: []
+  integrations_reports_and_files: []
+data_discovery:
+  tables_views_and_row_counts: []
+  keys_relationships_constraints_and_indexes: []
+  lookup_values_and_status_codes: []
+  temporal_audit_version_fields: []
+  sensitive_fields_and_classification: []
+  procedures_functions_triggers_and_jobs: []
+stored_procedure_disposition:
+  routines: []
+  allowed_dispositions:
+    - eliminate
+    - generated_query_crud
+    - product_service
+    - custom_method_dto
+    - provider_routine_temporary
+    - provider_routine_retained
+target_architecture:
+  entities: []
+  relationships: []
+  dto_result_types: []
+  custom_methods: []
+  product_services: []
+  retained_provider_routines: []
+  ingress:
+    http: true
+    mcp: false
+    kafka: false
+frontend_rebuild:
+  needed: true
+  routes: []
+  dashboard_or_workbench: null
+  accessibility_and_e2e_evidence: []
+migration_and_parallel_run:
+  migration_plan: null
+  reconciliation_checks: []
+  rollback_checks: []
+  live_api_tests: []
+hardening:
+  security_evidence: []
+  performance_evidence: []
+  provider_certification_evidence: []
+  ops_observability_evidence: []
+agent_contract:
+  skill: product-legacy-modernization
+  canonical_doc: docs/lifecycle/legacy-modernization.md
+  next_step: Complete this inventory before treating generated config as ready.
