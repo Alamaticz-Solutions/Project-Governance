@@ -1,0 +1,45 @@
+version: 1
+source_kind: legacy
+source: legacy_application
+product:
+  app_name: governance
+  display_name: 'Project Governance'
+  schema: governance
+  provider: PostgreSQL
+  ui: scaffold
+detected_signals:
+  - prototype_or_legacy_ui
+  - source_reference
+  - sql_or_routine_source
+  - structured_export
+model_clues:
+  candidate_entities:
+    - docker_compose
+    - package
+    - package_lock
+    - tsconfig
+  candidate_properties:
+    []
+  candidate_routines:
+    - 3_core_workflow_model
+    - 4_workflow_instance
+    - phase_3_workflow_engine
+    - workflow_application_design_specification
+  frontend_views:
+    - 'Project Governance Portal'
+open_questions:
+  - 'Which modernization slice is in scope for the first release?'
+  - 'Which routes/controllers/jobs map to each target product capability?'
+  - 'Which stored procedures are eliminated, replaced, moved to services, wrapped temporarily, or retained?'
+  - 'What are the tenant, auth, role, and data-classification rules?'
+  - 'What migration, reconciliation, rollback, API, frontend, performance, and release evidence is required?'
+recommendations:
+  - 'Complete .appfw/legacy-modernization.yaml before writing final .appfw/model.'
+  - 'Analyze code and database behavior before naming target entities.'
+  - 'Decompose large stored procedures; retain provider routines only with tests and exit criteria.'
+  - 'Plan migration and parallel-run evidence before generated release checks.'
+candidate_model_plan:
+  write_final_config: false
+  source: target/appfw/product-analysis.json
+agent_contract:
+  next_step: 'Complete .appfw/legacy-modernization.yaml, then draft .appfw/model from reviewed modernization evidence.'

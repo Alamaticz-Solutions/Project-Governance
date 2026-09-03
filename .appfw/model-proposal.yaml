@@ -1,0 +1,296 @@
+version: 1
+source: target/appfw/product-analysis.json
+source_kind: legacy
+product:
+  app_name: governance
+  display_name: 'Project Governance'
+  schema: governance
+  provider: PostgreSQL
+  ui: scaffold
+proposal:
+  writes_final_model: false
+  requires_human_review: true
+  candidate_entities:
+    - name: docker_compose
+      classification: needs_review
+      persistence: candidate
+      review_status: proposed
+      semantic_labels:
+        []
+      suggested_domain_names:
+        []
+      candidate_properties:
+        []
+      source_profiles:
+        []
+    
+    - name: package
+      classification: needs_review
+      persistence: candidate
+      review_status: proposed
+      semantic_labels:
+        []
+      suggested_domain_names:
+        []
+      candidate_properties:
+        []
+      source_profiles:
+        []
+    
+    - name: package_lock
+      classification: needs_review
+      persistence: candidate
+      review_status: proposed
+      semantic_labels:
+        []
+      suggested_domain_names:
+        []
+      candidate_properties:
+        []
+      source_profiles:
+        []
+    
+    - name: tsconfig
+      classification: needs_review
+      persistence: candidate
+      review_status: proposed
+      semantic_labels:
+        []
+      suggested_domain_names:
+        []
+      candidate_properties:
+        []
+      source_profiles:
+        []
+    
+  unassigned_properties:
+    []
+  candidate_routines:
+    - 3_core_workflow_model
+    - 4_workflow_instance
+    - phase_3_workflow_engine
+    - workflow_application_design_specification
+  frontend_views:
+    - 'Project Governance Portal'
+  integration_points:
+    []
+  open_questions:
+    - 'Which modernization slice is in scope for the first release?'
+    - 'Which routes/controllers/jobs map to each target product capability?'
+    - 'Which stored procedures are eliminated, replaced, moved to services, wrapped temporarily, or retained?'
+    - 'What are the tenant, auth, role, and data-classification rules?'
+    - 'What migration, reconciliation, rollback, API, frontend, performance, and release evidence is required?'
+implementation_plan:
+  writes_final_model: false
+  schema_source_root: .appfw/model/schemas/governance
+  required_source_files:
+    - path: .appfw/model/schemas/governance/_res.yaml
+      purpose: 'Declare schema metadata, data source binding, and product classification posture.'
+    - path: '.appfw/model/schemas/governance/entity_types/*.yaml'
+      purpose: 'Declare reviewed persisted entities, DTO/read models, lookup entities, properties, facets, and custom methods.'
+    - path: '.appfw/model/schemas/governance/relationships/*.yaml'
+      purpose: 'Declare reviewed NavToOne, NavToMany, and junction-backed many-to-many semantics.'
+    - path: '.appfw/model/schemas/governance/rbac/*.rego'
+      purpose: 'Declare deny-by-default access policy and tenant/data-scope rules for each entity.'
+    - path: 'api_tests/src/schemas/<schema>/*.rs'
+      purpose: 'Add generated/product API scenarios after model generation.'
+  entity_tasks:
+    - entity: docker_compose
+      suggested_source_path: .appfw/model/schemas/governance/entity_types/docker_compose.yaml
+      review:
+        - 'Confirm business noun and display caption.'
+        - 'Separate persisted properties from report-only or derived values.'
+        - 'Choose data types, nullability, defaults, uniqueness, indexes, and classification.'
+        - 'Decide whether this is a table entity, lookup, DTO/read model, or service result.'
+    
+    - entity: package
+      suggested_source_path: .appfw/model/schemas/governance/entity_types/package.yaml
+      review:
+        - 'Confirm business noun and display caption.'
+        - 'Separate persisted properties from report-only or derived values.'
+        - 'Choose data types, nullability, defaults, uniqueness, indexes, and classification.'
+        - 'Decide whether this is a table entity, lookup, DTO/read model, or service result.'
+    
+    - entity: package_lock
+      suggested_source_path: .appfw/model/schemas/governance/entity_types/package_lock.yaml
+      review:
+        - 'Confirm business noun and display caption.'
+        - 'Separate persisted properties from report-only or derived values.'
+        - 'Choose data types, nullability, defaults, uniqueness, indexes, and classification.'
+        - 'Decide whether this is a table entity, lookup, DTO/read model, or service result.'
+    
+    - entity: tsconfig
+      suggested_source_path: .appfw/model/schemas/governance/entity_types/tsconfig.yaml
+      review:
+        - 'Confirm business noun and display caption.'
+        - 'Separate persisted properties from report-only or derived values.'
+        - 'Choose data types, nullability, defaults, uniqueness, indexes, and classification.'
+        - 'Decide whether this is a table entity, lookup, DTO/read model, or service result.'
+    
+  relationship_tasks:
+    - 'Identify parent/child ownership, lookup references, and many-to-many junctions from reviewed source evidence.'
+    - 'Use NavToOne for one reference/parent, NavToMany for child collections, and NavToMany with explicit junction semantics for many-to-many.'
+    - 'Preserve policy, tenant, audit, and QueryIR paths for relationship traversal.'
+  service_and_method_tasks:
+    - 'Move durable calculations, report commands, and workflow actions into product services or custom methods.'
+    - 'Use provider routines only when there is a reviewed database-side reason and tests/evidence keep the path living.'
+  frontend_tasks:
+    - 'Use the PoC UI as intent and the CRM frontend as implementation reference.'
+    - 'Create enterprise dashboards, grids, forms, lookup selectors, validation, dirty-state, dark/light mode, and E2E/a11y evidence when UI is in scope.'
+  evidence_tasks:
+    - 'Complete .appfw/legacy-modernization.yaml with modernization slice, stored procedure disposition, migration posture, and hardening evidence.'
+    - 'Map legacy routes/controllers/jobs/stored procedures to target entities, services, custom methods, or retired behavior.'
+    - 'Plan migration reconciliation, rollback, and parallel-run API evidence before release.'
+  validation_sequence:
+    - 'scripts/appfw product validate --json'
+    - 'scripts/appfw product generate'
+    - 'scripts/appfw product generate --check --json'
+    - 'scripts/appfw product test --fast --json'
+    - 'scripts/appfw product handoff --json'
+  review_checkpoint: 'Human/architect review is required before generated config is treated as product source of truth.'
+review_decisions:
+  writes_final_model: false
+  allowed_decisions:
+  - needs_review
+  - needs_discovery
+  - accept
+  - reject
+  - defer
+  - split
+  - merge
+  decision_states:
+    unresolved:
+    - needs_review
+    - needs_discovery
+    - missing
+    terminal:
+    - accept
+    - reject
+    - defer
+    - split
+    - merge
+  instructions:
+  - Review this ledger before writing .appfw/model.
+  - Keep unresolved ambiguity as needs_review or needs_discovery.
+  - Use defer only as an explicit terminal decision with follow-up notes.
+  - Do not treat this proposal as generated model source.
+  - Set accepted_for_config only after entity, relationship, classification, policy, and evidence decisions are explicit.
+  entity_decisions:
+  - candidate: docker_compose
+    decision: needs_review
+    final_name: null
+    config_kind: entity|lookup|dto|reject|defer
+    classification: needs_review
+    suggested_source_path: .appfw/model/schemas/governance/entity_types/docker_compose.yaml
+    notes: null
+    evidence_to_check:
+    - source rows or table identity
+    - business noun and lifecycle
+    - properties versus derived/report-only fields
+    - classification and access policy
+  - candidate: package
+    decision: needs_review
+    final_name: null
+    config_kind: entity|lookup|dto|reject|defer
+    classification: needs_review
+    suggested_source_path: .appfw/model/schemas/governance/entity_types/package.yaml
+    notes: null
+    evidence_to_check:
+    - source rows or table identity
+    - business noun and lifecycle
+    - properties versus derived/report-only fields
+    - classification and access policy
+  - candidate: package_lock
+    decision: needs_review
+    final_name: null
+    config_kind: entity|lookup|dto|reject|defer
+    classification: needs_review
+    suggested_source_path: .appfw/model/schemas/governance/entity_types/package_lock.yaml
+    notes: null
+    evidence_to_check:
+    - source rows or table identity
+    - business noun and lifecycle
+    - properties versus derived/report-only fields
+    - classification and access policy
+  - candidate: tsconfig
+    decision: needs_review
+    final_name: null
+    config_kind: entity|lookup|dto|reject|defer
+    classification: needs_review
+    suggested_source_path: .appfw/model/schemas/governance/entity_types/tsconfig.yaml
+    notes: null
+    evidence_to_check:
+    - source rows or table identity
+    - business noun and lifecycle
+    - properties versus derived/report-only fields
+    - classification and access policy
+  property_decisions: []
+  relationship_decisions:
+  - candidate: null
+    decision: needs_discovery
+    relationship_kind: NavToOne|NavToMany|NavToManyWithJunction
+    source: reviewed source evidence
+    notes: Add explicit relationship decisions before modeling relationship YAML.
+  routine_decisions:
+  - candidate: 3_core_workflow_model
+    decision: needs_review
+    implementation: custom_method|product_service|provider_routine|generated_query|reject|defer
+    portable_by_default: true
+    tests_required:
+    - unit or API scenario
+    - provider routine evidence when retained
+    notes: null
+  - candidate: 4_workflow_instance
+    decision: needs_review
+    implementation: custom_method|product_service|provider_routine|generated_query|reject|defer
+    portable_by_default: true
+    tests_required:
+    - unit or API scenario
+    - provider routine evidence when retained
+    notes: null
+  - candidate: phase_3_workflow_engine
+    decision: needs_review
+    implementation: custom_method|product_service|provider_routine|generated_query|reject|defer
+    portable_by_default: true
+    tests_required:
+    - unit or API scenario
+    - provider routine evidence when retained
+    notes: null
+  - candidate: workflow_application_design_specification
+    decision: needs_review
+    implementation: custom_method|product_service|provider_routine|generated_query|reject|defer
+    portable_by_default: true
+    tests_required:
+    - unit or API scenario
+    - provider routine evidence when retained
+    notes: null
+  frontend_decisions:
+  - candidate: Project Governance Portal
+    decision: needs_review
+    surface: dashboard|grid|form|report|workflow|defer
+    data_contract: generated entity, custom method, or DTO
+    evidence_required:
+    - route or screenshot intent
+    - E2E/a11y when UI is in scope
+    notes: null
+  integration_decisions: []
+  legacy_review:
+    stored_procedure_disposition_required: true
+    migration_parallel_run_required: true
+    source_inventory_required: true
+  sign_off:
+    model_owner: null
+    reviewed_at_utc: null
+    accepted_for_config: false
+guardrails:
+  - 'Do not write .appfw/model until the proposal is reviewed.'
+  - 'Treat every proposed entity, property, routine, and view as a candidate.'
+  - 'Add classification metadata before validating regulated product config.'
+  - 'Use CRM as an implementation reference only; do not copy CRM residue.'
+next_commands:
+  - 'review .appfw/model-proposal.yaml'
+  - 'resolve review_decisions entries from needs_review/needs_discovery to accept, reject, defer, split, or merge'
+  - 'write .appfw/model from reviewed proposal'
+  - 'scripts/appfw product validate --json'
+  - 'scripts/appfw product generate --check --json'
+  - 'scripts/appfw product handoff --json'
