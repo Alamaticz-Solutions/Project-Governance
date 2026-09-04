@@ -329,5 +329,31 @@ Nine prose/structural deviations were found and remediated:
 
 **Still deferred after this pass** (documented, not silent): Playwright E2E / a11y
 evidence; contract-drift automation in CI (there is no CI); a full
-`appfw_provider_msgraph` provider crate; `product api-test` / `migrate` / `serve`
-evidence against a live backend + DB.
+`appfw_provider_msgraph` provider crate.
+
+### Live run — `product migrate` / `serve`
+
+The app was brought up end to end for the first time (postgres 16 + the generated
+backend serving the API at `/governance` and the SPA at `/`). One further issue
+surfaced that the static gates do not catch:
+
+> **J — the seed-SQL generator cannot emit `jsonb` array literals.**
+> `pg_seed_literal` renders any array-valued seed field as a PostgreSQL
+> `ARRAY[...]` literal. Inserting that into a `jsonb` column fails with
+> *"column … is of type jsonb but expression is of type text[]"*. Governance hits
+> this on `workflow_stage_definitions.assigned_roles` and `checklist_template`
+> (both `property-json`, both seeded as arrays). Object-valued json fields
+> (`prerequisites`, `conditions`) generate correctly.
+>
+> Worked around for the local run by patching the generated `seed.pg.sql`
+> (`ARRAY['admin']` → `'["admin"]'::jsonb`). A durable fix is a framework
+> `pg_seed_literal` change; the product cannot fix it without either modelling
+> those fields as non-arrays (semantically wrong — `gate_eligibility` and the UI
+> treat them as lists) or a post-generate SQL patch (which would fail
+> `generate --check`). Flagged, not silently patched.
+
+Run mechanics (Docker): a `postgres:16` container on a user network; `tables.pg.sql`
++ the patched `seed.pg.sql` applied with `psql`; the backend run with
+`ENV_NAME=local` (auto-admin, no token needed) and the `local` data-source
+`db_host` pointed at the `postgres` network alias for the container. The
+frontend SPA is built into `backend/product_dist` and served at `/`.
