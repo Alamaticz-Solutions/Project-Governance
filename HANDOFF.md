@@ -475,3 +475,57 @@ position, wrong for a filter position — is documented in
 `authContext.ts`'s doc comment so it isn't reintroduced at a filter call
 site). Verified live: `queryProjects(filter:{status:{_eq:"DRAFT"}})` and
 `queryUsers(filter:{role:{_in:["ADMIN","EPMO"]}})` both match now.
+
+### Q — Rego's deny-by-default blocks the product's own service-layer writes, not just client mutations
+
+Chased down after N/P were fixed: `cancel(...)` on a fresh project returned
+`{"status": "CANCELLED", ...}` (the Project update succeeded) but the overall
+GraphQL response carried `error_category: "access_denied"`. Root cause:
+`backend/src/services/audit.rs::record` — called by every governed
+transition (`cancel`, `submit_decision`, `decide`, `start`/`submit`/`skip`,
+`save_stage`, `process_transcript`) after its own write — appends an
+`AuditEvent` through `DataAccess::create_item`, the **same** call path and
+therefore the **same Rego policy check** a generated client mutation goes
+through. There is no "this is an internal service write" bypass. Three
+policies had no `create` (or, for `GateSubmission`, `create`/`update`) rule
+at all — Rego's deny-by-default (file 05 principle: "an entity with no allow
+rule is inaccessible, not wide open") then blocks the service call itself:
+
+- **`audit_event.rego`** — no rule covered `create` at all (not even
+  admin's usual blanket rule, because this file had no blanket-admin rule
+  either); every call to `audit::record` failed. **Confirmed live.**
+- **`notification.rego`** — `notify_user`/`notify_role` (called by
+  `submit_decision` after a decision) had no dedicated create rule; the
+  existing blanket admin rule happened to cover admin, but any other actor
+  would have been denied. Fixed proactively — not yet exercised live (no
+  `ProjectApproval` rows exist to drive `submit_decision` in this session).
+- **`gate_submission.rego`** — `save_stage`'s create/update had no allow
+  path for a non-admin actor either, same shape. Fixed proactively.
+
+Each got an added `create` (or `create`/`update`) rule scoped to "any
+authenticated actor" — matching what the calling service already enforces
+before reaching the write (every caller of `audit::record` /
+`notify_user`/`notify_role` / `save_stage` has already passed `require_user`,
+and the role-gated transitions already checked role before getting there), so
+this does not widen *who can act* — it only lets the append/update that
+already-authorized action produces actually persist. Published into
+`backend/config/generated/schemas/governance/{audit_event,notification,gate_submission}.rego`
+by hand-splicing the new rule into the generator's standard wrapper (verified
+against an untouched sibling file) rather than a full `product generate`
+rebuild; `product generate --check` was re-run afterward to confirm it
+reproduces byte-identical output from the `.appfw/model` source.
+
+**Not audited**: the 17 `*_audit.rego` companion-history policies (the
+`audited` facet's per-entity change-log tables) show the same "no blanket
+create rule" shape under a naive grep, but they are written by the generated
+`audited` facet machinery, not by a product service through `create_item` the
+way `AuditEvent`/`Notification`/`GateSubmission` are — there is no direct
+evidence they are broken, and guessing wrong there risks opening write access
+that should stay closed. Left alone; flagged for the independent reviewer
+(§10) to check with framework-level knowledge of how the `audited` facet
+actually writes its companion rows.
+
+Verified live end to end after the fix: `cancel(projectId, reason)` now
+returns `{"ok": true, ...}` with no error, and
+`queryAuditEvents(filter:{project_id:{_eq:...}})` returns the
+`PROJECT_CANCELLED` row.
