@@ -3,10 +3,45 @@
 //! not framework-generated).
 
 use std::env;
+use std::fmt;
 use std::time::{Duration, Instant};
 
-use appfw_saas_core::oauth::SecretString;
+use serde::{Deserialize, Serialize, Serializer};
 use tokio::sync::RwLock;
+
+/// A string that must never leak into a log line, error message, or
+/// serialized payload. `Debug`/`Serialize` always emit `[REDACTED]`; the
+/// underlying value is reachable only through `expose_secret()`, called at
+/// the one call site that actually needs to send it (the token request
+/// below).
+///
+/// Product-owned (backend framework replacement phase 2 --
+/// docs/architecture/self-owned-backend-plan.md). Previously
+/// `appfw_saas_core::oauth::SecretString`.
+#[derive(Clone, Deserialize)]
+pub struct SecretString(String);
+
+impl SecretString {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    pub fn expose_secret(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Debug for SecretString {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("\"[REDACTED]\"")
+    }
+}
+
+impl Serialize for SecretString {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str("[REDACTED]")
+    }
+}
 
 /// The complete env-var contract. No other Graph env var is read anywhere.
 pub const ENV_TENANT_ID: &str = "GRAPH_TENANT_ID";
@@ -144,5 +179,24 @@ impl GraphToken {
             ttl: Duration::from_secs(ttl_secs),
         });
         Ok(token)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn secret_string_never_debug_prints_the_value() {
+        let secret = SecretString::new("super-secret-value");
+        assert_eq!(format!("{secret:?}"), "\"[REDACTED]\"");
+        assert_eq!(secret.expose_secret(), "super-secret-value");
+    }
+
+    #[test]
+    fn secret_string_never_serializes_the_value() {
+        let secret = SecretString::new("super-secret-value");
+        let json = serde_json::to_string(&secret).unwrap();
+        assert_eq!(json, "\"[REDACTED]\"");
     }
 }
