@@ -24,13 +24,13 @@ Companion documents:
 | Frontend `typecheck` / `vite build` / `appfw:check` / `phi:check` | all green | `f506819` (HEAD) |
 | Frontend `product frontend-test` | N/A — scaffold ships no `test:frontend`; manifest does not require one | — |
 | Independent 11-section review + file-12 verification pass | **not done** — must be a separate reviewer | — |
+| **App actually running (read path)** | verified live — real seeded data through the SPA + GraphQL API | see §11 |
+| **App actually running (write path)** | **blocked** — finding N, a framework provider defect, not fixable from this repo | see §11 |
 
-**Every code change between `937dfbd` (M9) and the M11 tip `ea41685` is under
-`frontend/`.** M12 (`f506819` onward) adds only this document, `docs/evidence/`,
-the PHI lint script, and doc-text edits — no `.appfw/model`, backend, or
-frontend-`src` change. So the M9 backend gate results remain logically valid at
-HEAD — but they were **not re-executed at HEAD** because the framework CLI was
-removed (see §6). The frontend gates *were* re-run at `f506819`.
+The rest of this file predates §11. **§11 is the current, most-verified state** —
+read it for what was actually machine-checked and live-tested, including the
+framework was temporarily restored for that work and the exact commits
+(`25746f2`, `9926424`, `6abfb43`, `a164c65`) it produced.
 
 ---
 
@@ -313,7 +313,10 @@ pass** against this framework build at the audited HEAD:
 | `cargo check -p backend --all-targets` | ok (pre-existing dead-code warnings only) |
 | frontend `typecheck` / `test` / `build` / `appfw:check` / `phi:check` | ok |
 
-Nine prose/structural deviations were found and remediated:
+Ten deviations were found and remediated (A–I from the static audit, K from the
+first live run — see below); M and L (enum casing, `InputProject` required
+fields) and N (a framework write-path defect, not fixable here) follow in the
+live-run section:
 
 | # | Deviation | Fix |
 |---|---|---|
@@ -353,8 +356,59 @@ surfaced that the static gates do not catch:
 > treat them as lists) or a post-generate SQL patch (which would fail
 > `generate --check`). Flagged, not silently patched.
 
+Two backend-startup blockers, cleared to get a first boot at all:
+
+> **Missing `OKTA_ISSUER`.** `appfw_runtime::auth_config` calls `require_env("OKTA_ISSUER")`
+> unconditionally at app-state init — `ENV_NAME=local`'s per-request auth bypass
+> doesn't skip constructing the Okta verifier. Local runs need dummy
+> `OKTA_ISSUER` / `OKTA_AUDIENCE` / `OKTA_CLIENT_ID` env vars; nothing reads
+> real Okta since local dev never verifies the token.
+
+> **K — the generated `backend/Cargo.toml` omits the `provider-postgres` feature.**
+> `backend/src/routes/mod.rs` registers the Postgres runtime client behind
+> `#[cfg(feature = "provider-postgres")]`, but the M2 `product-intake` scaffold
+> never defined that feature (the CRM example does: dep `optional`, feature
+> `provider-postgres = ["dep:appfw_provider_postgres"]`, in `default`). Backend
+> failed at startup with *"provider factory is not registered for postgres"* —
+> present since M2, only surfaced because `product serve` had never run before.
+> Fixed in `backend/Cargo.toml` (commit `6abfb43`).
+
 Run mechanics (Docker): a `postgres:16` container on a user network; `tables.pg.sql`
 + the patched `seed.pg.sql` applied with `psql`; the backend run with
 `ENV_NAME=local` (auto-admin, no token needed) and the `local` data-source
 `db_host` pointed at the `postgres` network alias for the container. The
 frontend SPA is built into `backend/product_dist` and served at `/`.
+
+### Read path fully verified; write path blocked by a framework provider defect
+
+With K fixed the backend serves real data: `queryUsers` returns the 7 seeded
+users, `queryWorkflowStageDefinitions` returns the 19 seeded rows with
+`assigned_roles` as a genuine jsonb array, the SPA loads at `/` with the right
+`<title>`. Findings **M** (enum casing) and **L** (`InputProject` required
+fields) were fixed against this live schema and re-verified (commit `a164c65`).
+
+**N — `create_item` (INSERT) fails for any entity beyond the simplest shape.**
+`createWorkflowDefinition` (5 columns, no jsonb, no FK) succeeds. `createProject`
+and `createWorkflowStageDefinition` (both jsonb columns + a FK + a double-digit
+column count) fail every time with `PostgreSQL insert failed: error serializing
+parameter N` from `tokio-postgres`, reported by
+`backend/src/data/clients/postgres/postgres_client.rs`'s `create_item_json` →
+`build_insert` → the framework's `appfw_provider_postgres::provider_mutation_insert_statement`.
+The failure is **content-independent**: the reported parameter index and total
+param count stay fixed regardless of which field values are supplied (tested
+with fields omitted, explicit booleans, explicit map-shaped JSON) — ruling out
+a UUID-string or JSON-shape bug in any one field and pointing at the
+INSERT-statement / parameter-list construction itself, inside the framework
+provider crate.
+
+This was never caught by any static gate (`generate --check` doesn't run SQL;
+`product api-test` — the gate that would have caught it — has never run against
+a live backend in this rebuild) and is not something introduced by M8/M9/M11:
+`WorkflowDefinition` is generated by the same pipeline and works. **It is not
+fixable from this product repo** — the failing code is inside
+`appfw_provider_postgres`, a framework crate. Practical effect: every read
+screen works against real data; every create/update screen that touches a
+jsonb or multi-column entity (which is most of the product — Project, gate
+workspace, meetings) will show a generic "data store operation failed" error
+until the framework fixes this. Flagged here rather than worked around, since
+there is no product-side workaround that doesn't touch framework source.
