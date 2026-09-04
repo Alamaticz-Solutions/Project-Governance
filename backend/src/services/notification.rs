@@ -8,7 +8,9 @@ use serde_json::json;
 
 use crate::{
     product_api::{DataAccess, HandlerResult, UserAuth},
-    schemas::governance::{InputNotification, NotificationProjection, NotificationType, UserProjection},
+    schemas::governance::{
+        InputNotification, NotificationProjection, NotificationType, UserProjection,
+    },
     services::support::{entity, field, selection},
 };
 
@@ -21,8 +23,7 @@ async fn insert(
     title: &str,
     message: &str,
 ) -> HandlerResult<()> {
-    let ntype_json =
-        serde_json::to_value(&ntype).map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    let ntype_json = serde_json::to_value(&ntype).map_err(|e| anyhow::anyhow!(e.to_string()))?;
     let input = InputNotification {
         id: None,
         recipient_id,
@@ -61,7 +62,16 @@ pub async fn notify_user(
     title: &str,
     message: &str,
 ) -> HandlerResult<()> {
-    insert(data_access, user, recipient_id, project_id, ntype, title, message).await
+    insert(
+        data_access,
+        user,
+        recipient_id,
+        project_id,
+        ntype,
+        title,
+        message,
+    )
+    .await
 }
 
 /// Notify every active user holding `role` (SCREAMING_SNAKE, e.g. "EPMO").
@@ -97,8 +107,8 @@ pub async fn notify_role(
             // ntype is Copy-free; rebuild per recipient via serde round-trip
             let ntype_json =
                 serde_json::to_value(&ntype).map_err(|e| anyhow::anyhow!(e.to_string()))?;
-            let n: NotificationType = serde_json::from_value(ntype_json)
-                .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+            let n: NotificationType =
+                serde_json::from_value(ntype_json).map_err(|e| anyhow::anyhow!(e.to_string()))?;
             insert(data_access, user, id, project_id.clone(), n, title, message).await?;
         }
     }

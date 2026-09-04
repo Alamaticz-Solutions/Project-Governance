@@ -4592,7 +4592,17 @@
   - Create
   - Update
   - Delete
-  custom_methods: null
+  custom_methods:
+  - name: process_transcript
+    kind: Mutation
+    args:
+    - name: meeting_id
+      arg_type: String
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+    mcp_enabled: false
+    provider_routine: null
   props:
   - id: 939299736a307a62
     name: id

@@ -12,6 +12,19 @@
   is_table: true
   facets: [audited, concurrency]
   indexes: [graph_online_meeting_id, status]
+  # spec 003 — governed transcript pipeline. No provider_routine -> generator
+  # emits a process_transcript_impl stub in handlers/governance/meeting.rs.
+  custom_methods:
+  - name: process_transcript
+    kind: Mutation
+    mcp_enabled: false
+    args:
+    - name: meeting_id
+      arg_type: String
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+
   props:
 
   - name: id

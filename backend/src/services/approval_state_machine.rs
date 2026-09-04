@@ -12,19 +12,18 @@ use serde_json::json;
 
 use crate::{
     product_api::{DataAccess, EntityType, HandlerResult, JsonValue, UserAuth},
+    schemas::governance::NotificationType,
     schemas::governance::{
         InputProject, InputProjectApproval, ProjectApprovalProjection, ProjectPriority,
         ProjectProjection, ProjectStatus,
     },
     services::{
-        audit,
-        notification,
+        audit, notification,
         support::{
             entity, field, has_any_role, has_role, primary_role, require_user, resolve_user_id,
             selection,
         },
     },
-    schemas::governance::NotificationType,
 };
 
 fn role_str(role: &crate::schemas::governance::UserRole) -> String {
@@ -155,7 +154,13 @@ pub async fn submit_decision(
 
     let sel = selection(
         "project_approval",
-        &[field("id"), field("status"), field("decision"), field("sequence_order"), field("version")],
+        &[
+            field("id"),
+            field("status"),
+            field("decision"),
+            field("sequence_order"),
+            field("version"),
+        ],
     );
     let updated = data_access
         .update_item::<InputProjectApproval, ProjectApprovalProjection>(
@@ -390,7 +395,10 @@ pub async fn fast_track_complete(
             input.comments = Some("fast-tracked by admin".to_string());
             input.approved_by = approver_id.clone();
             input.approved_at = Some(Utc::now());
-            let sel = selection("project_approval", &[field("id"), field("status"), field("version")]);
+            let sel = selection(
+                "project_approval",
+                &[field("id"), field("status"), field("version")],
+            );
             data_access
                 .update_item::<InputProjectApproval, ProjectApprovalProjection>(
                     approvals_type.clone(),
@@ -430,7 +438,9 @@ pub async fn fast_track_complete(
     )
     .await?;
 
-    Ok(json!({ "ok": true, "project_id": project_id, "approvals_auto_approved": approved, "status": "COMPLETED" }))
+    Ok(
+        json!({ "ok": true, "project_id": project_id, "approvals_auto_approved": approved, "status": "COMPLETED" }),
+    )
 }
 
 /// Legacy "delete" == status transition to CANCELLED (000-INDEX reconciled
@@ -443,7 +453,9 @@ pub async fn cancel(
 ) -> HandlerResult<JsonValue> {
     let actor = require_user(user)?;
     if !has_any_role(&actor, &["admin", "epmo"]) {
-        return Err(anyhow::anyhow!("cancelling a project requires admin or epmo"));
+        return Err(anyhow::anyhow!(
+            "cancelling a project requires admin or epmo"
+        ));
     }
     let project_type = entity(data_access, "Project")?;
     let project = load_project(data_access, user, &project_type, &project_id).await?;
@@ -471,5 +483,7 @@ pub async fn cancel(
     )
     .await?;
 
-    Ok(json!({ "ok": true, "project_id": project_id, "status": "CANCELLED", "version": updated.version }))
+    Ok(
+        json!({ "ok": true, "project_id": project_id, "status": "CANCELLED", "version": updated.version }),
+    )
 }

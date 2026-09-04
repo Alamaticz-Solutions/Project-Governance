@@ -6405,6 +6405,34 @@ impl GovernanceMutation {
         }
     }
 
+    async fn process_transcript(
+        &self,
+        ctx: &Context<'_>,
+        meeting_id: String,
+        payload: serde_json::Value,
+    ) -> FieldResult<serde_json::Value> {
+        // Custom-method context: do NOT parse selections against the calling entity's props,
+        // because the return type is `serde_json::Value` whose fields generally do not
+        // exist on `Meeting`. Resolver receives Null selections.
+        let handler_context = from_context_without_selections(ctx, "governance", "Meeting")?;
+        let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+
+        let res = meeting::process_transcript_impl(
+            user,
+            &data_access,
+            &entity_type,
+            selections,
+            meeting_id,
+            payload,
+        )
+        .await;
+
+        match res {
+            Ok(res) => Ok(res),
+            Err(e) => Err(e.into()),
+        }
+    }
+
     async fn create_meeting_audit(
         &self,
         ctx: &Context<'_>,

@@ -367,13 +367,8 @@ impl DataAccess {
         // Apply all configured rules. If applicable, sets initial version on record to persist.
         let evaluated_input =
             rules::evaluate(entity_type.clone(), input, AccessAction::Create, &user)?;
-        self.validate_primary_key_available(
-            entity_type.clone(),
-            &evaluated_input,
-            &user,
-            &access,
-        )
-        .await?;
+        self.validate_primary_key_available(entity_type.clone(), &evaluated_input, &user, &access)
+            .await?;
         self.validate_foreign_keys(entity_type.clone(), &evaluated_input, &user)
             .await?;
         self.validate_uniqueness(entity_type.clone(), &evaluated_input, &user, &access)
@@ -1629,11 +1624,9 @@ impl DataAccess {
             let target = self
                 .app_config
                 .get_entity_type(&target_schema, &foreign_key.type_name)?;
-            let target_access = self.app_config.evaluate_user_access(
-                target.clone(),
-                AccessAction::Read,
-                user,
-            )?;
+            let target_access =
+                self.app_config
+                    .evaluate_user_access(target.clone(), AccessAction::Read, user)?;
             let provider = self.runtime_provider();
             runtime_data_access::validate_foreign_key_exists(
                 &provider,

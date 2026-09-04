@@ -39,7 +39,10 @@ fn stage_selection() -> JsonValue {
     )
 }
 
-fn stage_input(p: &WorkflowStageProjection, status: WorkflowStageStatus) -> HandlerResult<InputWorkflowStage> {
+fn stage_input(
+    p: &WorkflowStageProjection,
+    status: WorkflowStageStatus,
+) -> HandlerResult<InputWorkflowStage> {
     Ok(InputWorkflowStage {
         id: p.id.clone(),
         workflow_instance_id: p
@@ -100,7 +103,10 @@ async fn apply(
     data_access
         .update_item::<InputWorkflowStage, WorkflowStageProjection>(
             stage_type,
-            selection("workflow_stage", &[field("id"), field("status"), field("version")]),
+            selection(
+                "workflow_stage",
+                &[field("id"), field("status"), field("version")],
+            ),
             input,
             user.clone(),
         )
@@ -116,7 +122,10 @@ pub async fn start(
     require_user(user)?;
     let (stage_type, stage) = load_stage(data_access, user, &stage_id).await?;
     let cur = stage.status.unwrap_or(WorkflowStageStatus::LOCKED);
-    if !matches!(cur, WorkflowStageStatus::ELIGIBLE | WorkflowStageStatus::CHANGES_REQUESTED) {
+    if !matches!(
+        cur,
+        WorkflowStageStatus::ELIGIBLE | WorkflowStageStatus::CHANGES_REQUESTED
+    ) {
         return Err(anyhow::anyhow!(
             "cannot start a stage in status {cur:?} (must be ELIGIBLE or CHANGES_REQUESTED)"
         ));
@@ -133,7 +142,9 @@ pub async fn start(
         Some(json!({ "stage_code": stage.stage_code })),
     )
     .await?;
-    Ok(json!({ "ok": true, "stage_id": stage_id, "status": "IN_PROGRESS", "version": updated.version }))
+    Ok(
+        json!({ "ok": true, "stage_id": stage_id, "status": "IN_PROGRESS", "version": updated.version }),
+    )
 }
 
 pub async fn submit(
@@ -165,7 +176,9 @@ pub async fn submit(
         Some(json!({ "stage_code": stage.stage_code })),
     )
     .await?;
-    Ok(json!({ "ok": true, "stage_id": stage_id, "status": "PENDING_APPROVAL", "version": updated.version }))
+    Ok(
+        json!({ "ok": true, "stage_id": stage_id, "status": "PENDING_APPROVAL", "version": updated.version }),
+    )
 }
 
 pub async fn skip(
@@ -180,7 +193,10 @@ pub async fn skip(
     }
     let (stage_type, stage) = load_stage(data_access, user, &stage_id).await?;
     let cur = stage.status.unwrap_or(WorkflowStageStatus::LOCKED);
-    if matches!(cur, WorkflowStageStatus::APPROVED | WorkflowStageStatus::SKIPPED) {
+    if matches!(
+        cur,
+        WorkflowStageStatus::APPROVED | WorkflowStageStatus::SKIPPED
+    ) {
         return Err(anyhow::anyhow!("stage is already {cur:?}"));
     }
     let mut input = stage_input(&stage, WorkflowStageStatus::SKIPPED)?;
@@ -296,13 +312,19 @@ pub async fn save_stage(
     let saved = if created {
         data_access
             .create_item::<InputGateSubmission, GateSubmissionProjection>(
-                sub_type, sel, input, user.clone(),
+                sub_type,
+                sel,
+                input,
+                user.clone(),
             )
             .await
     } else {
         data_access
             .update_item::<InputGateSubmission, GateSubmissionProjection>(
-                sub_type, sel, input, user.clone(),
+                sub_type,
+                sel,
+                input,
+                user.clone(),
             )
             .await
     }

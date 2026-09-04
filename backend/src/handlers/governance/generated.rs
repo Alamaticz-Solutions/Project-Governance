@@ -2664,6 +2664,19 @@ pub(crate) mod meeting {
             .await?;
         Ok(res)
     }
+    #[allow(unused)]
+    pub(crate) async fn process_transcript_impl(
+        user: Option<UserAuth>,
+        data_access: &Arc<DataAccess>,
+        entity_type: &Arc<EntityType>,
+        selections: JsonValue,
+        meeting_id: String,
+        payload: serde_json::Value,
+    ) -> HandlerResult<serde_json::Value> {
+        Err(anyhow::anyhow!(
+            "custom method `process_transcript` is not implemented yet"
+        ))
+    }
 }
 pub(crate) mod meeting_audit {
     #[allow(unused_imports)]

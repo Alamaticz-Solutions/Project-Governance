@@ -13,7 +13,9 @@ use crate::{
     schemas::governance::{ApprovalDecision, GateReviewProjection, InputGateReview},
     services::{
         audit,
-        support::{entity, field, has_role, primary_role, require_user, resolve_user_id, selection},
+        support::{
+            entity, field, has_role, primary_role, require_user, resolve_user_id, selection,
+        },
     },
 };
 
@@ -85,9 +87,11 @@ pub async fn decide(
     let (decision, status_str, event) = match raw.as_str() {
         "approved" | "approve" => (ApprovalDecision::APPROVED, "approved", audit::GATE_APPROVED),
         "rejected" | "reject" => (ApprovalDecision::REJECTED, "rejected", audit::GATE_REJECTED),
-        "needs_info" | "changes_requested" => {
-            (ApprovalDecision::NEEDS_INFO, "changes_requested", audit::GATE_RETURNED)
-        }
+        "needs_info" | "changes_requested" => (
+            ApprovalDecision::NEEDS_INFO,
+            "changes_requested",
+            audit::GATE_RETURNED,
+        ),
         "deferred" | "defer" => (ApprovalDecision::DEFERRED, "deferred", audit::GATE_RETURNED),
         other => return Err(anyhow::anyhow!("unknown gate decision `{other}`")),
     };
@@ -126,7 +130,15 @@ pub async fn decide(
     let updated = data_access
         .update_item::<InputGateReview, GateReviewProjection>(
             review_type,
-            selection("gate_review", &[field("id"), field("status"), field("decision"), field("version")]),
+            selection(
+                "gate_review",
+                &[
+                    field("id"),
+                    field("status"),
+                    field("decision"),
+                    field("version"),
+                ],
+            ),
             input,
             user.clone(),
         )

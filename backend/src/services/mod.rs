@@ -15,6 +15,8 @@ pub mod approval_state_machine;
 pub mod audit;
 pub mod gate_eligibility;
 pub mod gate_review;
+pub mod graph;
+pub mod meeting_agent;
 pub mod notification;
 pub mod support;
 pub mod transition;

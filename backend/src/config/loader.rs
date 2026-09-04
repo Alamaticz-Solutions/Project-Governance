@@ -6,11 +6,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use appfw_mssql_auth::{self, FieldPresence};
 use appfw_runtime::{
     connection_security::{self, Provider},
     secrets::{EnvSecretProvider, SecretError, SecretProvider},
 };
-use appfw_mssql_auth::{self, FieldPresence};
 
 use crate::{
     routes::app_error::{AppError, ConfigError},

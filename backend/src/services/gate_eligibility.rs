@@ -82,7 +82,12 @@ pub async fn compute(
             subs_type,
             selection(
                 "gate_submissions",
-                &[field("id"), field("stage"), field("status"), field("decision")],
+                &[
+                    field("id"),
+                    field("stage"),
+                    field("status"),
+                    field("decision"),
+                ],
             ),
             Some(json!({ "project_id": { "_eq": project_id } })),
             None,

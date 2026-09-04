@@ -50,6 +50,10 @@ opentelemetry_sdk = { version = "0.32", features = ["metrics", "rt-tokio", "trac
 postgres-types = { version = "0.2", features = ["derive", "with-chrono-0_4"] }
 regorus = "0.2"
 regex = "1"
+# Product-owned: outbound HTTP for the governed Microsoft Graph provider
+# (backend/src/services/graph, spec 003). Version pinned to the one already in
+# the workspace lock (pulled transitively via opentelemetry-otlp).
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
