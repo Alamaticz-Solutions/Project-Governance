@@ -513,7 +513,6 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "anyhow",
- "appfw-mssql-auth",
  "appfw-provider-postgres",
  "appfw-runtime",
  "appfw-saas-core",

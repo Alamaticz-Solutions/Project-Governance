@@ -27,7 +27,6 @@ provider-postgres = ["dep:appfw_provider_postgres"]
 anyhow = "1.0"
 appfw_runtime = { package = "appfw-runtime", path = "../../app-framework/appfw_runtime", default-features = false }
 appfw_provider_postgres = { package = "appfw-provider-postgres", path = "../../app-framework/appfw_provider_postgres", optional = true }
-appfw_mssql_auth = { package = "appfw-mssql-auth", path = "../../app-framework/appfw_mssql_auth" }
 # Framework-owned SaaS connector primitives (redaction / retry-after parsing /
 # OAuth M2M token cache / request plan). The governed Microsoft Graph provider
 # in backend/src/services/graph builds on these instead of re-implementing them

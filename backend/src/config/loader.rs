@@ -6,7 +6,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use appfw_mssql_auth::{self, FieldPresence};
 use appfw_runtime::{
     connection_security::{self, Provider},
     secrets::{EnvSecretProvider, SecretError, SecretProvider},
@@ -142,23 +141,21 @@ fn add_secrets(mut data_source: DataSource) -> Result<DataSource, AppError> {
                     .map_err(map_secret_error)?,
             );
         }
-        DataSourceType::MsSqlServer => {
-            apply_mssql_family_secrets(
-                se,
-                appfw_mssql_auth::PROVIDER_MSSQL,
-                &secrets,
-                map_secret_error,
-                true,
-            )?;
-        }
-        DataSourceType::FabricSqlAnalytics => {
-            apply_mssql_family_secrets(
-                se,
-                appfw_mssql_auth::PROVIDER_FABRIC,
-                &secrets,
-                map_secret_error,
-                true,
-            )?;
+        // Not a supported data source for this product (Postgres-only --
+        // see docs/architecture/self-owned-backend-plan.md phase 1). This
+        // previously routed through the framework's `appfw_mssql_auth`
+        // crate to resolve MS SQL / Fabric auth secrets; that crate has
+        // been dropped since no configured data source ever exercised it
+        // (`backend/config/generated/data_sources.yaml` only ever lists
+        // `pg_primary`, a PostgreSQL source). If MS SQL support is ever
+        // needed, this arm needs a real (product-owned) implementation,
+        // not a framework dependency restored.
+        DataSourceType::MsSqlServer | DataSourceType::FabricSqlAnalytics => {
+            return Err(ConfigError::Load(format!(
+                "data source `{}` is of type {:?}, which this product does not support (Postgres-only)",
+                data_source.name, data_source_type
+            ))
+            .into());
         }
         DataSourceType::Snowflake => {
             se.service_account_name = secrets
@@ -238,78 +235,6 @@ fn map_secret_error(error: SecretError) -> AppError {
         ))
         .into(),
     }
-}
-
-fn apply_mssql_family_secrets(
-    se: &mut crate::schemas::system::DataSourceEnvironment,
-    provider: &str,
-    secrets: &impl SecretProvider,
-    map_err: fn(SecretError) -> AppError,
-    model_strict: bool,
-) -> Result<(), AppError> {
-    let auth_mode_key = appfw_mssql_auth::auth_mode_env_key(provider).ok_or_else(|| {
-        ConfigError::Load(format!(
-            "unsupported MS SQL family provider `{provider}` for secret loading"
-        ))
-    })?;
-    let default_mode = appfw_mssql_auth::default_mode_for(provider).ok_or_else(|| {
-        ConfigError::Load(format!(
-            "unsupported MS SQL family provider `{provider}` for secret loading"
-        ))
-    })?;
-    let auth_mode = secrets
-        .get_secret(auth_mode_key)
-        .map_err(map_err)?
-        .or_else(|| se.auth_mode.clone())
-        .unwrap_or_else(|| default_mode.to_string());
-    if model_strict {
-        appfw_mssql_auth::validate_model_mode_for_provider(provider, &auth_mode)
-            .map_err(|e| ConfigError::Load(e.message))?;
-    }
-    let mode = appfw_mssql_auth::resolve_mode(provider, Some(auth_mode.as_str()))
-        .map_err(|e| ConfigError::Load(e.message))?;
-    se.auth_mode = Some(mode.to_string());
-
-    let bindings = appfw_mssql_auth::secret_bindings(provider, mode)
-        .map_err(|e| ConfigError::Load(e.message))?;
-
-    if let Some(scope_key) = bindings.entra_token_scope {
-        se.entra_token_scope = secrets
-            .get_secret(scope_key)
-            .map_err(map_err)?
-            .or_else(|| se.entra_token_scope.clone());
-    }
-
-    if let Some(tenant) = bindings.entra_tenant_id {
-        se.entra_tenant_id = match tenant.presence {
-            FieldPresence::Required => {
-                Some(secrets.require_secret(tenant.env_key).map_err(map_err)?)
-            }
-            FieldPresence::Optional => secrets.get_secret(tenant.env_key).map_err(map_err)?,
-        };
-    }
-
-    se.service_account_name = match bindings.service_account_name.presence {
-        FieldPresence::Required => Some(
-            secrets
-                .require_secret(bindings.service_account_name.env_key)
-                .map_err(map_err)?,
-        ),
-        FieldPresence::Optional => secrets
-            .get_secret(bindings.service_account_name.env_key)
-            .map_err(map_err)?,
-    };
-    se.service_account_password = match bindings.service_account_password.presence {
-        FieldPresence::Required => Some(
-            secrets
-                .require_secret(bindings.service_account_password.env_key)
-                .map_err(map_err)?,
-        ),
-        FieldPresence::Optional => secrets
-            .get_secret(bindings.service_account_password.env_key)
-            .map_err(map_err)?,
-    };
-    Ok(())
 }
 
 fn validate_environment_security(
