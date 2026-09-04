@@ -10,6 +10,7 @@ import { useApp, useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';
 import type { AppfwClient, AppfwRecord } from '../../lib/appfwClient';
 import { AsyncSection, EnumBadge, formatDate } from '../../components/ui';
+import { roleToEnumValue } from '../../lib/authContext';
 
 const projectEntity = entityByType('Project');
 const approvalEntity = entityByType('ProjectApproval');
@@ -22,9 +23,9 @@ async function countWhere(client: AppfwClient, filter: unknown): Promise<number>
 async function loadDashboard(client: AppfwClient, roles: readonly string[]) {
   const [total, active, inDelivery, cancelled, recent, approvals] = await Promise.all([
     countWhere(client, undefined),
-    countWhere(client, { status: { _eq: 'ACTIVE' } }),
-    countWhere(client, { status: { _eq: 'IN_DELIVERY' } }),
-    countWhere(client, { status: { _eq: 'CANCELLED' } }),
+    countWhere(client, { status: { _eq: 'Active' } }),
+    countWhere(client, { status: { _eq: 'InDelivery' } }),
+    countWhere(client, { status: { _eq: 'Cancelled' } }),
     client.queryList(projectEntity, {
       limit: 8,
       sort: [{ created_at: 'desc' }],
@@ -45,7 +46,7 @@ async function loadDashboard(client: AppfwClient, roles: readonly string[]) {
             filter: {
               _and: [
                 { status: { _eq: 'PENDING' } },
-                { assigned_role: { _in: roles.map((r) => r.toUpperCase()) } }
+                { assigned_role: { _in: roles.map(roleToEnumValue) } }
               ]
             },
             sort: [{ created_at: 'asc' }],

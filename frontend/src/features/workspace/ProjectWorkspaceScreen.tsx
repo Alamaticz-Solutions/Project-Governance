@@ -18,8 +18,8 @@ import { useAction, useApp, useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';
 import type { AppfwClient, AppfwRecord } from '../../lib/appfwClient';
 import { AsyncSection, EnumBadge, asText, formatDate } from '../../components/ui';
-import { hasAnyRole } from '../../lib/authContext';
-import { APPROVAL_DECISION } from '../shared/enums';
+import { hasAnyRole, roleKey } from '../../lib/authContext';
+import { APPROVAL_DECISION, WORKFLOW_STAGE_STATUS as WSS } from '../shared/enums';
 
 const projectEntity = entityByType('Project');
 const instanceEntity = entityByType('WorkflowInstance');
@@ -27,15 +27,17 @@ const stageEntity = entityByType('WorkflowStage');
 const submissionEntity = entityByType('GateSubmission');
 const approvalEntity = entityByType('ProjectApproval');
 
+// WorkflowStage.status is the real WorkflowStageStatus GraphQL enum
+// (PascalCase wire values — see shared/enums.ts).
 const STEP_STATUS: Record<string, ProcessStepStatus> = {
-  APPROVED: 'complete',
-  SKIPPED: 'complete',
-  IN_PROGRESS: 'current',
-  PENDING_APPROVAL: 'current',
-  ELIGIBLE: 'upcoming',
-  CHANGES_REQUESTED: 'current',
-  REJECTED: 'blocked',
-  LOCKED: 'upcoming'
+  [WSS.APPROVED]: 'complete',
+  [WSS.SKIPPED]: 'complete',
+  [WSS.IN_PROGRESS]: 'current',
+  [WSS.PENDING_APPROVAL]: 'current',
+  [WSS.ELIGIBLE]: 'upcoming',
+  [WSS.CHANGES_REQUESTED]: 'current',
+  [WSS.REJECTED]: 'blocked',
+  [WSS.LOCKED]: 'upcoming'
 };
 
 async function loadWorkspace(client: AppfwClient, projectId: string) {
@@ -139,12 +141,12 @@ export function ProjectWorkspaceScreen() {
     <AsyncSection state={state} isEmpty={(data) => !data.project}>
       {(data) => {
         const project = data.project as AppfwRecord;
-        const primaryRole = (auth.roles[0] ?? '').toLowerCase();
+        const primaryRole = roleKey(auth.roles[0]);
         const privileged = hasAnyRole(auth, ['admin', 'epmo']);
         const primaryRoleHasPending = data.approvals.some(
           (row) =>
             String(row.status).toLowerCase() === 'pending' &&
-            String(row.assigned_role ?? '').toLowerCase() === primaryRole
+            roleKey(String(row.assigned_role ?? '')) === primaryRole
         );
         // The row submit_decision will actually act on: the caller's pending
         // role row, or (admin/EPMO) the first pending row.
@@ -152,7 +154,7 @@ export function ProjectWorkspaceScreen() {
           (row) =>
             String(row.status).toLowerCase() === 'pending' &&
             (primaryRoleHasPending
-              ? String(row.assigned_role ?? '').toLowerCase() === primaryRole
+              ? roleKey(String(row.assigned_role ?? '')) === primaryRole
               : privileged)
         );
         const steps: ProcessStepItem[] = data.stages.map((stage) => ({
@@ -238,7 +240,7 @@ export function ProjectWorkspaceScreen() {
                           <td>
                             {canOperate && (
                               <div className="inline-actions">
-                                {(status === 'ELIGIBLE' || status === 'CHANGES_REQUESTED') && (
+                                {(status === WSS.ELIGIBLE || status === WSS.CHANGES_REQUESTED) && (
                                   <Button
                                     size="sm"
                                     variant="secondary"
@@ -252,7 +254,7 @@ export function ProjectWorkspaceScreen() {
                                     Start
                                   </Button>
                                 )}
-                                {status === 'IN_PROGRESS' && (
+                                {status === WSS.IN_PROGRESS && (
                                   <>
                                     <Button
                                       size="sm"
@@ -278,7 +280,7 @@ export function ProjectWorkspaceScreen() {
                                     </Button>
                                   </>
                                 )}
-                                {status !== 'APPROVED' && status !== 'SKIPPED' && (
+                                {status !== WSS.APPROVED && status !== WSS.SKIPPED && (
                                   <Button
                                     size="sm"
                                     variant="quiet"
@@ -330,8 +332,7 @@ export function ProjectWorkspaceScreen() {
                     {data.approvals.map((row) => {
                       const mine =
                         String(row.status).toLowerCase() === 'pending' &&
-                        (privileged ||
-                          primaryRole === String(row.assigned_role ?? '').toLowerCase());
+                        (privileged || primaryRole === roleKey(String(row.assigned_role ?? '')));
                       return (
                         <li key={String(row.id)}>
                           <Badge tone={mine ? 'accent' : 'warning'}>

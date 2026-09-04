@@ -11,14 +11,16 @@ import { useApp, useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';
 import type { AppfwClient, AppfwRecord } from '../../lib/appfwClient';
 import { AsyncSection, EnumBadge, formatDate } from '../../components/ui';
+import { roleToEnumValue } from '../../lib/authContext';
 import { useState } from 'react';
 
 const approvalEntity = entityByType('ProjectApproval');
 const gateReviewEntity = entityByType('GateReview');
 
 async function loadInbox(client: AppfwClient, roles: readonly string[]) {
-  const upperRoles = roles.map((role) => role.toUpperCase());
-  const roleFilter = upperRoles.length ? { assigned_role: { _in: upperRoles } } : undefined;
+  // assigned_role is the UserRole GraphQL enum (PascalCase wire values).
+  const enumRoles = roles.map(roleToEnumValue);
+  const roleFilter = enumRoles.length ? { assigned_role: { _in: enumRoles } } : undefined;
 
   const [approvals, reviews] = await Promise.all([
     client

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Button,
@@ -12,16 +12,25 @@ import {
   TextField,
   ValidationSummary
 } from '@appfw/pds-health-components';
-import { useAction } from '../../app/providers';
+import { useAction, useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';
 import type { AppfwRecord } from '../../lib/appfwClient';
 import { PROJECT_PRIORITY, PROJECT_RISK } from '../shared/enums';
 
 const projectEntity = entityByType('Project');
+const userEntity = entityByType('User');
+
+function newProjectNumber(): string {
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `GOV-${stamp}-${suffix}`;
+}
 
 type Draft = {
+  project_number: string;
   project_name: string;
   business_unit: string;
+  manager_id: string;
   department: string;
   sponsor_name: string;
   sponsor_email: string;
@@ -38,47 +47,74 @@ type Draft = {
   vendor_required: boolean;
 };
 
-const EMPTY: Draft = {
-  project_name: '',
-  business_unit: '',
-  department: '',
-  sponsor_name: '',
-  sponsor_email: '',
-  requestor_name: '',
-  request_type: '',
-  problem_statement: '',
-  business_value: '',
-  desired_outcome: '',
-  priority: 'MEDIUM',
-  risk_level: 'MEDIUM',
-  budget_estimated: '',
-  has_phi_data: false,
-  is_clinical: false,
-  vendor_required: false
-};
+function emptyDraft(): Draft {
+  return {
+    project_number: newProjectNumber(),
+    project_name: '',
+    business_unit: '',
+    manager_id: '',
+    department: '',
+    sponsor_name: '',
+    sponsor_email: '',
+    requestor_name: '',
+    request_type: '',
+    problem_statement: '',
+    business_value: '',
+    desired_outcome: '',
+    priority: 'Medium',
+    risk_level: 'Medium',
+    budget_estimated: '',
+    has_phi_data: false,
+    is_clinical: false,
+    vendor_required: false
+  };
+}
 
 export function IntakeScreen() {
   const navigate = useNavigate();
-  const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [clientErrors, setClientErrors] = useState<string[]>([]);
   const create = useAction((client, input: AppfwRecord) =>
     client.saveRecord(projectEntity, 'create', input)
   );
+
+  // Project.manager_id is a required FK; offer the seeded users as candidates.
+  const managers = useAsync(
+    (client) =>
+      client.queryList(userEntity, {
+        limit: 100,
+        sort: [{ full_name: 'asc' }],
+        selection: ['id', 'full_name', 'email', 'role']
+      }),
+    []
+  );
+  useEffect(() => {
+    if (managers.status === 'ready' && !draft.manager_id) {
+      const first = managers.data?.rows[0];
+      if (first && typeof first.id === 'string') set('manager_id', first.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [managers.status]);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((prev) => ({ ...prev, [key]: value }));
 
   const submit = async () => {
     const errors: string[] = [];
+    if (!draft.project_number.trim()) errors.push('Project number is required.');
     if (!draft.project_name.trim()) errors.push('Project name is required.');
+    if (!draft.business_unit.trim()) errors.push('Business unit is required.');
+    if (!draft.manager_id) errors.push('A manager is required.');
     if (!draft.problem_statement.trim()) errors.push('Problem statement is required.');
     if (!draft.priority) errors.push('Priority is required.');
     setClientErrors(errors);
     if (errors.length) return;
 
     const input: AppfwRecord = {
+      project_number: draft.project_number.trim(),
       project_name: draft.project_name.trim(),
-      business_unit: draft.business_unit.trim() || null,
+      business_unit: draft.business_unit.trim(),
+      manager_id: draft.manager_id,
       department: draft.department.trim() || null,
       sponsor_name: draft.sponsor_name.trim() || null,
       sponsor_email: draft.sponsor_email.trim() || null,
@@ -93,7 +129,8 @@ export function IntakeScreen() {
       has_phi_data: draft.has_phi_data,
       is_clinical: draft.is_clinical,
       vendor_required: draft.vendor_required,
-      status: 'DRAFT'
+      status: 'Draft',
+      created_at: new Date().toISOString()
     };
     const created = await create.run(input);
     if (created && typeof created.id === 'string') {
@@ -101,11 +138,16 @@ export function IntakeScreen() {
     }
   };
 
+  const managerOptions = (managers.data?.rows ?? []).map((row) => ({
+    value: String(row.id),
+    label: `${String(row.full_name ?? row.email ?? row.id)} (${String(row.role ?? '')})`
+  }));
+
   return (
     <>
       <PageHeader
         title="New intake"
-        subtitle="Capture a governance request. It starts in DRAFT; the workflow engine advances it through the gate DAG."
+        subtitle="Capture a governance request. It starts in Draft; the workflow engine advances it through the gate DAG."
       />
       <Surface>
         {clientErrors.length > 0 && (
@@ -132,7 +174,7 @@ export function IntakeScreen() {
           columns="two"
           footer={
             <>
-              <Button variant="quiet" onClick={() => setDraft(EMPTY)}>
+              <Button variant="quiet" onClick={() => setDraft(emptyDraft())}>
                 Reset
               </Button>
               <Button variant="primary" isLoading={create.pending} onClick={submit}>
@@ -141,6 +183,13 @@ export function IntakeScreen() {
             </>
           }
         >
+          <TextField
+            label="Project number"
+            required
+            value={draft.project_number}
+            onChange={(event) => set('project_number', event.target.value)}
+            hint="Pre-filled; edit if your org has a numbering convention."
+          />
           <TextField
             label="Project name"
             required
@@ -154,6 +203,7 @@ export function IntakeScreen() {
           />
           <TextField
             label="Business unit"
+            required
             value={draft.business_unit}
             onChange={(event) => set('business_unit', event.target.value)}
           />
@@ -161,6 +211,14 @@ export function IntakeScreen() {
             label="Department"
             value={draft.department}
             onChange={(event) => set('department', event.target.value)}
+          />
+          <SelectField
+            label="Manager"
+            required
+            value={draft.manager_id}
+            onChange={(event) => set('manager_id', event.target.value)}
+            options={managerOptions}
+            placeholder={managers.status === 'loading' ? 'Loading users…' : 'Select a manager'}
           />
           <TextField
             label="Sponsor name"

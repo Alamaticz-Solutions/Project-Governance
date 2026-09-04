@@ -88,6 +88,30 @@ export function hasRole(auth: GovernanceIdentity, role: string): boolean {
   return auth.roles.includes(role.toLowerCase());
 }
 
+/**
+ * Letters-only lowercase key for comparing a role across sources that use
+ * different casing conventions for the same role: this app's own
+ * snake_case session vocabulary (`project_manager`) vs the GraphQL `UserRole`
+ * enum's PascalCase wire values (`ProjectManager`, from `assigned_role`
+ * fields). Both normalize to `projectmanager`.
+ */
+export function roleKey(role: string | null | undefined): string {
+  return (role ?? '').toLowerCase().replace(/[^a-z]/g, '');
+}
+
+/**
+ * Convert this app's snake_case role vocabulary (`project_manager`) to the
+ * `UserRole` GraphQL enum's PascalCase wire value (`ProjectManager`), for
+ * building filters against `assigned_role` fields.
+ */
+export function roleToEnumValue(role: string): string {
+  return role
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join('');
+}
+
 export function hasAnyRole(auth: GovernanceIdentity, roles: readonly string[]): boolean {
   return roles.some((role) => hasRole(auth, role));
 }

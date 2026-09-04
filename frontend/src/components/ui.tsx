@@ -84,18 +84,31 @@ const ENUM_TONE: Record<string, PdsTone> = {
   CANCELLED: 'danger'
 };
 
+// Normalize any enum wire casing to SCREAMING_SNAKE: the GraphQL enums come
+// back PascalCase (async-graphql's default rename — e.g. "InProgress"), while
+// free-string status fields this product writes itself use snake_case
+// ("in_progress") or SCREAMING_SNAKE audit action constants. One canonical form
+// makes lookups and display consistent regardless of source.
+function canonicalEnumKey(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[-\s]+/g, '_')
+    .toUpperCase();
+}
+
 export function humanizeEnum(value: unknown): string {
   if (typeof value !== 'string' || !value) return '—';
-  return value
+  return canonicalEnumKey(value)
     .toLowerCase()
     .split('_')
+    .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 }
 
 export function EnumBadge({ value }: { value: unknown }) {
   if (typeof value !== 'string' || !value) return <span>—</span>;
-  return <Badge tone={ENUM_TONE[value] ?? 'neutral'}>{humanizeEnum(value)}</Badge>;
+  return <Badge tone={ENUM_TONE[canonicalEnumKey(value)] ?? 'neutral'}>{humanizeEnum(value)}</Badge>;
 }
 
 export function formatDate(value: unknown): string {

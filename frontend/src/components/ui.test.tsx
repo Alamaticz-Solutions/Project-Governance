@@ -9,6 +9,14 @@ describe('value formatters', () => {
     expect(humanizeEnum(null)).toBe('—');
   });
 
+  it('humanizeEnum also handles the PascalCase GraphQL wire values', () => {
+    // async-graphql renames the model's SCREAMING_SNAKE enum members to
+    // PascalCase (confirmed live: ProjectStatus.InProgress, not IN_PROGRESS).
+    expect(humanizeEnum('InProgress')).toBe('In Progress');
+    expect(humanizeEnum('OnHold')).toBe('On Hold');
+    expect(humanizeEnum('Draft')).toBe('Draft');
+  });
+
   it('formatDate handles missing / invalid values', () => {
     expect(formatDate(null)).toBe('—');
     expect(formatDate('not-a-date')).toBe('not-a-date');
@@ -23,8 +31,13 @@ describe('value formatters', () => {
 });
 
 describe('EnumBadge', () => {
-  it('renders humanized enum text', () => {
+  it('renders humanized enum text for the model authoring casing', () => {
     render(<EnumBadge value="CHANGES_REQUESTED" />);
+    expect(screen.getByText('Changes Requested')).toBeInTheDocument();
+  });
+
+  it('renders humanized enum text for the live PascalCase wire casing', () => {
+    render(<EnumBadge value="ChangesRequested" />);
     expect(screen.getByText('Changes Requested')).toBeInTheDocument();
   });
 });

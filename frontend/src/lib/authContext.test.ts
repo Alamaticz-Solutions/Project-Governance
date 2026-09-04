@@ -3,6 +3,8 @@ import {
   hasAnyRole,
   hasRole,
   readSessionAuthContext,
+  roleKey,
+  roleToEnumValue,
   type GovernanceIdentity
 } from './authContext';
 
@@ -31,6 +33,18 @@ describe('role helpers', () => {
   it('hasAnyRole matches any listed role', () => {
     expect(hasAnyRole(identity(['viewer']), ['admin', 'viewer'])).toBe(true);
     expect(hasAnyRole(identity(['viewer']), ['admin', 'epmo'])).toBe(false);
+  });
+
+  it('roleKey normalizes this app\'s snake_case vocabulary and the live PascalCase UserRole wire value to the same key', () => {
+    expect(roleKey('project_manager')).toBe(roleKey('ProjectManager'));
+    expect(roleKey('vendor_screening')).toBe(roleKey('VendorScreening'));
+    expect(roleKey('admin')).toBe(roleKey('Admin'));
+  });
+
+  it('roleToEnumValue produces the live UserRole wire value from this app\'s vocabulary', () => {
+    expect(roleToEnumValue('project_manager')).toBe('ProjectManager');
+    expect(roleToEnumValue('vendor_screening')).toBe('VendorScreening');
+    expect(roleToEnumValue('admin')).toBe('Admin');
   });
 });
 

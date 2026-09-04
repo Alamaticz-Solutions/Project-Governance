@@ -1,37 +1,54 @@
 // Option lists mirrored from .appfw/model/schemas/governance/gql_enum_types/*.
-// Values are the SCREAMING_SNAKE enum members the API expects; labels are the
-// captions from the model.
-
+//
+// The model authors SCREAMING_SNAKE enum members, but the generated GraphQL
+// schema (async-graphql's default enum rename) exposes them as PascalCase —
+// confirmed against the live schema via introspection (`__type(name: "...")
+// { enumValues { name } }`). These option lists use the wire values, not the
+// model's authoring casing. This resolves open decision Q7 empirically.
 export type Option = { value: string; label: string };
 
 export const PROJECT_STATUS: Option[] = [
-  { value: 'DRAFT', label: 'Draft' },
-  { value: 'ACTIVE', label: 'Active' },
-  { value: 'ON_HOLD', label: 'On Hold' },
-  { value: 'IN_DELIVERY', label: 'In Delivery' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-  { value: 'ARCHIVED', label: 'Archived' }
+  { value: 'Draft', label: 'Draft' },
+  { value: 'Active', label: 'Active' },
+  { value: 'OnHold', label: 'On Hold' },
+  { value: 'InDelivery', label: 'In Delivery' },
+  { value: 'Completed', label: 'Completed' },
+  { value: 'Cancelled', label: 'Cancelled' },
+  { value: 'Archived', label: 'Archived' }
 ];
 
 export const PROJECT_PRIORITY: Option[] = [
-  { value: 'CRITICAL', label: 'Critical' },
-  { value: 'HIGH', label: 'High' },
-  { value: 'MEDIUM', label: 'Medium' },
-  { value: 'LOW', label: 'Low' }
+  { value: 'Critical', label: 'Critical' },
+  { value: 'High', label: 'High' },
+  { value: 'Medium', label: 'Medium' },
+  { value: 'Low', label: 'Low' }
 ];
 
 export const PROJECT_RISK: Option[] = [
-  { value: 'VERY_HIGH', label: 'Very High' },
-  { value: 'HIGH', label: 'High' },
-  { value: 'MEDIUM', label: 'Medium' },
-  { value: 'LOW', label: 'Low' }
+  { value: 'VeryHigh', label: 'Very High' },
+  { value: 'High', label: 'High' },
+  { value: 'Medium', label: 'Medium' },
+  { value: 'Low', label: 'Low' }
 ];
 
-// Decisions the workflow engine's `submit_decision` accepts (it lowercases and
-// matches approve/approved, reject/rejected, needs_info/changes_requested/return).
-// `DEFERRED` exists in the ApprovalDecision enum but is not a submit_decision
-// verb, so it is intentionally absent here.
+// `WorkflowStage.status` (the real WorkflowStageStatus GraphQL enum, PascalCase
+// wire values). Used by the workspace screen's per-stage transition guards.
+export const WORKFLOW_STAGE_STATUS = {
+  LOCKED: 'Locked',
+  ELIGIBLE: 'Eligible',
+  IN_PROGRESS: 'InProgress',
+  PENDING_APPROVAL: 'PendingApproval',
+  APPROVED: 'Approved',
+  CHANGES_REQUESTED: 'ChangesRequested',
+  REJECTED: 'Rejected',
+  SKIPPED: 'Skipped'
+} as const;
+
+// `decision` payload text for the submit_decision / decide custom methods.
+// These are NOT the ApprovalDecision GraphQL enum — the service lowercases and
+// pattern-matches this string itself (approval_state_machine::submit_decision,
+// gate_review::decide), so the values here stay lowercase-matchable regardless
+// of wire enum casing.
 export const APPROVAL_DECISION: Option[] = [
   { value: 'APPROVED', label: 'Approve' },
   { value: 'REJECTED', label: 'Reject' },
@@ -39,14 +56,13 @@ export const APPROVAL_DECISION: Option[] = [
 ];
 
 export const NOTIFICATION_TYPE: Option[] = [
-  { value: 'PROJECT_CREATED', label: 'Project created' },
-  { value: 'TASK_ASSIGNED', label: 'Task assigned' },
-  { value: 'TASK_COMPLETED', label: 'Task completed' },
-  { value: 'APPROVAL_REQUIRED', label: 'Approval required' },
-  { value: 'APPROVED', label: 'Approved' },
-  { value: 'REJECTED', label: 'Rejected' },
-  { value: 'OVERDUE', label: 'Overdue' },
-  { value: 'STAGE_ADVANCED', label: 'Stage advanced' },
-  { value: 'COMMENT_ADDED', label: 'Comment added' }
+  { value: 'ProjectCreated', label: 'Project created' },
+  { value: 'TaskAssigned', label: 'Task assigned' },
+  { value: 'TaskCompleted', label: 'Task completed' },
+  { value: 'ApprovalRequired', label: 'Approval required' },
+  { value: 'Approved', label: 'Approved' },
+  { value: 'Rejected', label: 'Rejected' },
+  { value: 'Overdue', label: 'Overdue' },
+  { value: 'StageAdvanced', label: 'Stage advanced' },
+  { value: 'CommentAdded', label: 'Comment added' }
 ];
-
