@@ -1,0 +1,1167 @@
+[
+
+
+  {
+    "collection": "users",
+    "documents": [
+
+      {
+
+        "id": "b0000000-0000-4000-8000-000000000001",
+
+
+        "email": "admin@abchealth.com",
+
+
+        "username": "admin",
+
+
+        "full_name": "Alex Administrator",
+
+
+        "hashed_password": "$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE",
+
+
+        "role": "ADMIN",
+
+
+        "is_active": true,
+
+
+        "is_verified": true,
+
+
+        "created_at": "2026-01-01T00:00:00Z"
+
+
+      },
+
+
+      {
+
+        "id": "b0000000-0000-4000-8000-000000000002",
+
+
+        "email": "pm@abchealth.com",
+
+
+        "username": "pm_user",
+
+
+        "full_name": "Priya Manager",
+
+
+        "hashed_password": "$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE",
+
+
+        "role": "PROJECT_MANAGER",
+
+
+        "is_active": true,
+
+
+        "is_verified": true,
+
+
+        "created_at": "2026-01-01T00:00:00Z"
+
+
+      },
+
+
+      {
+
+        "id": "b0000000-0000-4000-8000-000000000003",
+
+
+        "email": "bta@abchealth.com",
+
+
+        "username": "bta_user",
+
+
+        "full_name": "Bailey Alignment",
+
+
+        "hashed_password": "$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE",
+
+
+        "role": "BTA",
+
+
+        "is_active": true,
+
+
+        "is_verified": true,
+
+
+        "created_at": "2026-01-01T00:00:00Z"
+
+
+      },
+
+
+      {
+
+        "id": "b0000000-0000-4000-8000-000000000004",
+
+
+        "email": "epmo@abchealth.com",
+
+
+        "username": "epmo_user",
+
+
+        "full_name": "Emery Pmo",
+
+
+        "hashed_password": "$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE",
+
+
+        "role": "EPMO",
+
+
+        "is_active": true,
+
+
+        "is_verified": true,
+
+
+        "created_at": "2026-01-01T00:00:00Z"
+
+
+      },
+
+
+      {
+
+        "id": "b0000000-0000-4000-8000-000000000005",
+
+
+        "email": "eac@abchealth.com",
+
+
+        "username": "eac_user",
+
+
+        "full_name": "Ellis Architecture",
+
+
+        "hashed_password": "$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE",
+
+
+        "role": "EAC",
+
+
+        "is_active": true,
+
+
+        "is_verified": true,
+
+
+        "created_at": "2026-01-01T00:00:00Z"
+
+
+      },
+
+
+      {
+
+        "id": "b0000000-0000-4000-8000-000000000006",
+
+
+        "email": "pic@abchealth.com",
+
+
+        "username": "pic_user",
+
+
+        "full_name": "Pat Investment",
+
+
+        "hashed_password": "$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE",
+
+
+        "role": "PIC",
+
+
+        "is_active": true,
+
+
+        "is_verified": true,
+
+
+        "created_at": "2026-01-01T00:00:00Z"
+
+
+      },
+
+
+      {
+
+        "id": "b0000000-0000-4000-8000-000000000007",
+
+
+        "email": "finance@abchealth.com",
+
+
+        "username": "finance_user",
+
+
+        "full_name": "Frankie Finance",
+
+
+        "hashed_password": "$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE",
+
+
+        "role": "FINANCE",
+
+
+        "is_active": true,
+
+
+        "is_verified": true,
+
+
+        "created_at": "2026-01-01T00:00:00Z"
+
+
+      }
+
+
+    ]
+  },
+
+
+
+  {
+    "collection": "workflow_definitions",
+    "documents": [
+
+      {
+
+        "id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "name": "Standard Project Lifecycle v2",
+
+
+        "definition_version": 1,
+
+
+        "description": "The 5-phase DAG process for project governance (PROVISIONAL — pending the Excel gate/field matrix, spec 002 P5).",
+
+
+        "is_active": true
+
+
+      }
+
+
+    ]
+  },
+
+
+
+  {
+    "collection": "workflow_stage_definitions",
+    "documents": [
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000001",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "Intake-BTA",
+
+
+        "stage_code": "INTAKE_BTA",
+
+
+        "sequence_order": 1,
+
+
+        "description": "BTA Intake review",
+
+
+        "phase_name": "Intake-BTA",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": null,
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000002",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "Intake-EPMO",
+
+
+        "stage_code": "INTAKE_EPMO",
+
+
+        "sequence_order": 1,
+
+
+        "description": "EPMO Intake review",
+
+
+        "phase_name": "Intake-EPMO",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": null,
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000003",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "BTA-Meeting",
+
+
+        "stage_code": "BTA_MEETING",
+
+
+        "sequence_order": 2,
+
+
+        "description": "BTA Meeting alignment",
+
+
+        "phase_name": "BTA-Meeting",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["INTAKE_BTA"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000004",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "PM",
+
+
+        "stage_code": "PM_ASSIGN",
+
+
+        "sequence_order": 2,
+
+
+        "description": "Project Manager assignment",
+
+
+        "phase_name": "PM",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["INTAKE_EPMO"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000005",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "VCR",
+
+
+        "stage_code": "VCR_REVIEW",
+
+
+        "sequence_order": 3,
+
+
+        "description": "Vendor Compliance Review",
+
+
+        "phase_name": "VCR",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["BTA_MEETING","PM_ASSIGN"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000006",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "VRA",
+
+
+        "stage_code": "VRA_REVIEW",
+
+
+        "sequence_order": 4,
+
+
+        "description": "Vendor Risk Assessment",
+
+
+        "phase_name": "VRA",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["VCR_REVIEW"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000007",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "EAC",
+
+
+        "stage_code": "EAC_REVIEW",
+
+
+        "sequence_order": 4,
+
+
+        "description": "Enterprise Architecture Committee",
+
+
+        "phase_name": "EAC",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["VCR_REVIEW"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000008",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "PIC",
+
+
+        "stage_code": "PIC_REVIEW",
+
+
+        "sequence_order": 4,
+
+
+        "description": "Project Investment Committee",
+
+
+        "phase_name": "PIC",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["VCR_REVIEW"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000009",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "Intake-TRC",
+
+
+        "stage_code": "INTAKE_TRC",
+
+
+        "sequence_order": 5,
+
+
+        "description": "TRC Intake",
+
+
+        "phase_name": "Intake-TRC",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["VRA_REVIEW","EAC_REVIEW","PIC_REVIEW"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000010",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "Intake-SRA",
+
+
+        "stage_code": "INTAKE_SRA",
+
+
+        "sequence_order": 5,
+
+
+        "description": "SRA Intake",
+
+
+        "phase_name": "Intake-SRA",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["VRA_REVIEW","EAC_REVIEW","PIC_REVIEW"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000011",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "TRC",
+
+
+        "stage_code": "TRC_REVIEW",
+
+
+        "sequence_order": 6,
+
+
+        "description": "Technical Review Committee",
+
+
+        "phase_name": "TRC",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["INTAKE_TRC"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000012",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "SRA",
+
+
+        "stage_code": "SRA_REVIEW",
+
+
+        "sequence_order": 6,
+
+
+        "description": "Security Risk Assessment",
+
+
+        "phase_name": "SRA",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["INTAKE_SRA"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000013",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "APM",
+
+
+        "stage_code": "APM_REVIEW",
+
+
+        "sequence_order": 7,
+
+
+        "description": "Application Portfolio Management",
+
+
+        "phase_name": "APM",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["TRC_REVIEW","SRA_REVIEW"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000014",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "Intake-ST",
+
+
+        "stage_code": "INTAKE_ST",
+
+
+        "sequence_order": 8,
+
+
+        "description": "Service Transition Intake",
+
+
+        "phase_name": "Intake-ST",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["APM_REVIEW"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000015",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "ST-Runbook",
+
+
+        "stage_code": "ST_RUNBOOK",
+
+
+        "sequence_order": 9,
+
+
+        "description": "Service Transition Runbook",
+
+
+        "phase_name": "ST-Runbook",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["INTAKE_ST"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000016",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "TechRB",
+
+
+        "stage_code": "TECH_RB",
+
+
+        "sequence_order": 9,
+
+
+        "description": "Technical Runbook",
+
+
+        "phase_name": "TechRB",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["INTAKE_ST"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000017",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "Vendor ST",
+
+
+        "stage_code": "VENDOR_ST",
+
+
+        "sequence_order": 9,
+
+
+        "description": "Vendor Service Transition",
+
+
+        "phase_name": "Vendor ST",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["INTAKE_ST"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000018",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "CAB-CT",
+
+
+        "stage_code": "CAB_CT",
+
+
+        "sequence_order": 10,
+
+
+        "description": "Change Advisory Board - CT",
+
+
+        "phase_name": "CAB-CT",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["ST_RUNBOOK","TECH_RB","VENDOR_ST"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      },
+
+
+      {
+
+        "id": "c1000000-0000-4000-8000-000000000019",
+
+
+        "workflow_id": "c0000000-0000-4000-8000-000000000001",
+
+
+        "stage_name": "CAB-ER",
+
+
+        "stage_code": "CAB_ER",
+
+
+        "sequence_order": 11,
+
+
+        "description": "Change Advisory Board - ER",
+
+
+        "phase_name": "CAB-ER",
+
+
+        "assigned_roles": ["admin"],
+
+
+        "prerequisites": {"gates":["CAB_CT"]},
+
+
+        "conditions": {"rules":[]},
+
+
+        "parallel_execution": false,
+
+
+        "auto_advance": false,
+
+
+        "sla_days": 5,
+
+
+        "checklist_template": []
+
+
+      }
+
+
+    ]
+  }
+
+
+]

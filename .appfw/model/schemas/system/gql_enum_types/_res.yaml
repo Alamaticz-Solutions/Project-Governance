@@ -52,10 +52,24 @@
     caption: Mongo D B
   - value: MsSqlServer
     caption: Ms Sql Server
+  - value: FabricSqlAnalytics
+    caption: Fabric Sql Analytics
   - value: Snowflake
     caption: Snowflake
   - value: Neo4j
-    caption: Neo4j
+    caption: Neo4 J
+  - value: ServiceNow
+    caption: Service Now
+  - value: Workday
+    caption: Workday
+  - value: Icims
+    caption: Icims
+  - value: Salesforce
+    caption: Salesforce
+  - value: Anaplan
+    caption: Anaplan
+  - value: OracleFinancials
+    caption: Oracle Financials
 
 
 

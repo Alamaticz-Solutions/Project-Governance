@@ -1,6 +1,5 @@
 .DS_Store
 .appfw/local.env
-Cargo.lock
 target/
 backend/target/
 database/target/
