@@ -1,0 +1,154 @@
+import type { ReactNode } from 'react';
+import { Badge, Button, FeedbackState, type PdsTone } from '@appfw/pds-health-components';
+import type { AppfwClientError } from '../lib/appfwClient';
+import type { AsyncState } from '../app/providers';
+
+// ---------------------------------------------------------------------------
+// Error / empty / loading presentation. Everything routes through the design
+// system's FeedbackState so a11y + tone stay consistent, and policy denials
+// render as a distinct "denied" kind (fail closed — never show the action).
+// ---------------------------------------------------------------------------
+
+export function ClientErrorView({
+  error,
+  onRetry
+}: {
+  error: AppfwClientError;
+  onRetry?: () => void;
+}) {
+  const denied = error.details.category === 'policy_denied' || error.details.category === 'auth';
+  return (
+    <FeedbackState
+      kind={denied ? 'denied' : 'error'}
+      title={denied ? 'This action is restricted' : 'Request failed'}
+      detail={error.message}
+      metadata={
+        error.details.requestId ? { requestId: error.details.requestId } : undefined
+      }
+      action={
+        !denied && onRetry ? (
+          <Button variant="secondary" onClick={onRetry}>
+            Try again
+          </Button>
+        ) : undefined
+      }
+    />
+  );
+}
+
+export function AsyncSection<T>({
+  state,
+  children,
+  emptyTitle = 'Nothing to show',
+  emptyDetail,
+  isEmpty
+}: {
+  state: AsyncState<T>;
+  children: (data: T) => ReactNode;
+  emptyTitle?: string;
+  emptyDetail?: ReactNode;
+  isEmpty?: (data: T) => boolean;
+}) {
+  if (state.status === 'loading' || state.status === 'idle') {
+    return <FeedbackState kind="loading" title="Loading…" />;
+  }
+  if (state.status === 'error' && state.error) {
+    return <ClientErrorView error={state.error} onRetry={state.reload} />;
+  }
+  const data = state.data as T;
+  if (isEmpty?.(data)) {
+    return <FeedbackState kind="empty" title={emptyTitle} detail={emptyDetail} />;
+  }
+  return <>{children(data)}</>;
+}
+
+// ---------------------------------------------------------------------------
+// Value formatting
+// ---------------------------------------------------------------------------
+
+const ENUM_TONE: Record<string, PdsTone> = {
+  APPROVED: 'success',
+  ACTIVE: 'success',
+  COMPLETED: 'success',
+  IN_PROGRESS: 'accent',
+  IN_DELIVERY: 'accent',
+  PENDING_APPROVAL: 'warning',
+  CHANGES_REQUESTED: 'warning',
+  NEEDS_INFO: 'warning',
+  ON_HOLD: 'warning',
+  DRAFT: 'neutral',
+  LOCKED: 'neutral',
+  SKIPPED: 'neutral',
+  ARCHIVED: 'neutral',
+  REJECTED: 'danger',
+  CANCELLED: 'danger'
+};
+
+export function humanizeEnum(value: unknown): string {
+  if (typeof value !== 'string' || !value) return '—';
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+export function EnumBadge({ value }: { value: unknown }) {
+  if (typeof value !== 'string' || !value) return <span>—</span>;
+  return <Badge tone={ENUM_TONE[value] ?? 'neutral'}>{humanizeEnum(value)}</Badge>;
+}
+
+export function formatDate(value: unknown): string {
+  if (typeof value !== 'string' && typeof value !== 'number') return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
+export function formatDateTime(value: unknown): string {
+  if (typeof value !== 'string' && typeof value !== 'number') return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  });
+}
+
+export function asText(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return JSON.stringify(value);
+}
+
+// ---------------------------------------------------------------------------
+// Small layout helpers (token-only styling)
+// ---------------------------------------------------------------------------
+
+export type DefinitionItem = { label: string; value: ReactNode };
+
+export function DefinitionList({ items }: { items: readonly DefinitionItem[] }) {
+  return (
+    <dl className="def-list">
+      {items.map((item) => (
+        <div key={item.label} className="def-list__row">
+          <dt>{item.label}</dt>
+          <dd>{item.value ?? '—'}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+export function CardGrid({ children }: { children: ReactNode }) {
+  return <div className="card-grid">{children}</div>;
+}
+
+export function InlineActions({ children }: { children: ReactNode }) {
+  return <div className="inline-actions">{children}</div>;
+}
