@@ -17,8 +17,8 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@appfw/pds-health-components": ["../../app-framework/appfw_ui/pds_health/components/src/index.ts"],
-      "@appfw/pds-health-components/styles.css": ["../../app-framework/appfw_ui/pds_health/components/src/styles.css"],
+      "@appfw/pds-health-components": ["node_modules/@appfw/pds-health-components/dist/index.d.ts"],
+      "@appfw/pds-health-components/styles.css": ["node_modules/@appfw/pds-health-components/dist/styles.css"],
       "react-dom": ["node_modules/@types/react-dom/index.d.ts"]
     }
   },

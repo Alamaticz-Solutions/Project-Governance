@@ -26,8 +26,19 @@ import {
   type PdsDataGridColumn,
   type PdsDensity
 } from '@appfw/pds-health-components';
-import { appUiContract } from './generated/appfw-ui-contract';
+import { governanceUiContract } from './generated/appfw-ui-contract';
 import './styles.css';
+
+// Product-owned view adapter over the generated UI contract. The generated
+// `governanceUiContract` is the source of truth; this shapes the few fields the
+// starter shell renders. Replace with real feature screens under `src/features/**`.
+const appUiContract = {
+  schema: governanceUiContract.schemaName,
+  schemaLabel: 'Governance',
+  displayName: 'Governance',
+  provider: governanceUiContract.provider.dataSourceType,
+  modelStatus: `${governanceUiContract.entities.length} entities · contract v${governanceUiContract.version}`
+};
 
 type StarterRow = Record<string, unknown> & {
   id: string;

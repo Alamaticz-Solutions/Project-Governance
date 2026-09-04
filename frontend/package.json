@@ -10,6 +10,10 @@
     "appfw:check": "node scripts/check-scaffold.mjs"
   },
   "dependencies": {
+    "@appfw/pds-health-components": "file:vendor/appfw-pds-health-components-0.12.0.tgz",
+    "@appfw/pds-ix-presentation-contract": "file:vendor/appfw-pds-ix-presentation-contract-0.2.0.tgz",
+    "@assistant-ui/react": "^0.11.0",
+    "@xyflow/react": "^12.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

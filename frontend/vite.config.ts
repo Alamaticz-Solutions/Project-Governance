@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../../app-framework/', import.meta.url));
 const frontendRoot = fileURLToPath(new URL('./', import.meta.url));
-const pdsComponentsRoot = fileURLToPath(new URL('../../app-framework/appfw_ui/pds_health/components/src/', import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
@@ -13,11 +12,8 @@ export default defineConfig({
     outDir: '../backend/product_dist',
     emptyOutDir: true
   },
+  // '@appfw/pds-health-components' resolves from node_modules (file:vendor/*.tgz).
   resolve: {
-    alias: {
-      '@appfw/pds-health-components/styles.css': `${pdsComponentsRoot}styles.css`,
-      '@appfw/pds-health-components': `${pdsComponentsRoot}index.ts`
-    },
     dedupe: ['react', 'react-dom']
   },
   server: {
