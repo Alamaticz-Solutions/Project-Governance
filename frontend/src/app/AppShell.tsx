@@ -11,7 +11,7 @@ import {
   SelectField,
   TextArea,
   type CommandPaletteItem
-} from '@appfw/pds-health-components';
+} from '@ui-kit';
 import { governanceUiContract } from '../generated/appfw-ui-contract';
 import { useApp } from './providers';
 import { GOVERNANCE_ROLES, ROLE_CAPTIONS } from '../lib/authContext';
@@ -192,7 +192,7 @@ function SessionDialog({
           }))}
         />
       </FormLayout>
-      <p style={{ marginTop: 'var(--pds-space-3)' }}>
+      <p style={{ marginTop: 'var(--gov-space-3)' }}>
         <Badge tone="neutral">Local only</Badge>
       </p>
     </Dialog>

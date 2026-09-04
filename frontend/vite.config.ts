@@ -2,7 +2,6 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 
-const repoRoot = fileURLToPath(new URL('../../app-framework/', import.meta.url));
 const frontendRoot = fileURLToPath(new URL('./', import.meta.url));
 
 export default defineConfig({
@@ -12,13 +11,17 @@ export default defineConfig({
     outDir: '../backend/product_dist',
     emptyOutDir: true
   },
-  // '@appfw/pds-health-components' resolves from node_modules (file:vendor/*.tgz).
+  // '@ui-kit' is the product's own UI component library (src/ui/kit.tsx) --
+  // no vendor/client-owned frontend package is used.
   resolve: {
-    dedupe: ['react', 'react-dom']
+    dedupe: ['react', 'react-dom'],
+    alias: {
+      '@ui-kit': fileURLToPath(new URL('./src/ui/kit.tsx', import.meta.url))
+    }
   },
   server: {
     fs: {
-      allow: [frontendRoot, repoRoot]
+      allow: [frontendRoot]
     },
     port: 5173,
     proxy: {

@@ -122,61 +122,65 @@ function residueMatches(relativePath, text) {
 }
 
 const missing = required.filter((path) => !fs.existsSync(scaffoldUrl(path)));
+// Checks that the product's own UI kit (src/ui/kit.tsx, no client-owned
+// design-system dependency) is actually wired up, in place of the original
+// app_gen-generated checks that asserted the vendor @appfw/pds-health-components
+// package was wired up.
 const pdsChecks = [
   {
-    id: 'pds-component-import',
+    id: 'ui-kit-component-import',
     path: 'src/main.tsx',
-    pattern: '@appfw/pds-health-components'
+    pattern: "from '@ui-kit'"
   },
   {
-    id: 'pds-command-palette',
+    id: 'ui-kit-command-palette',
     path: 'src/main.tsx',
     pattern: 'CommandPalette'
   },
   {
-    id: 'pds-app-shell',
+    id: 'ui-kit-app-shell',
     path: 'src/main.tsx',
     pattern: 'AppShell'
   },
   {
-    id: 'pds-overlay-example',
+    id: 'ui-kit-overlay-example',
     path: 'src/main.tsx',
     pattern: 'Dialog'
   },
   {
-    id: 'pds-analytics-example',
+    id: 'ui-kit-analytics-example',
     path: 'src/main.tsx',
     pattern: 'KpiTile'
   },
   {
-    id: 'pds-data-grid-example',
+    id: 'ui-kit-data-grid-example',
     path: 'src/main.tsx',
     pattern: 'DataGridShell'
   },
   {
-    id: 'pds-generated-form-example',
+    id: 'ui-kit-generated-form-example',
     path: 'src/main.tsx',
     pattern: 'FormLayout'
   },
   {
-    id: 'pds-style-import',
+    id: 'ui-kit-style-import',
     path: 'src/styles.css',
-    pattern: '@appfw/pds-health-components/styles.css'
+    pattern: './ui/kit.css'
   },
   {
-    id: 'pds-tsconfig-alias',
+    id: 'ui-kit-tsconfig-alias',
     path: 'tsconfig.json',
-    pattern: '@appfw/pds-health-components'
+    pattern: '@ui-kit'
   },
   {
-    id: 'pds-vite-alias',
+    id: 'ui-kit-vite-alias',
     path: 'vite.config.ts',
-    pattern: '@appfw/pds-health-components'
+    pattern: '@ui-kit'
   },
   {
-    id: 'pds-manifest-package',
+    id: 'no-client-owned-design-system',
     path: '.appfw-ui/scaffold-manifest.json',
-    pattern: '@appfw/pds-health-components'
+    pattern: 'self-owned'
   }
 ];
 const missingPdsChecks = pdsChecks.filter((check) => {
@@ -227,7 +231,7 @@ if (!report.ok) {
     console.error(`Frontend scaffold contains sample residue; see ${artifactUrl.pathname}`);
   }
   if (missingPdsChecks.length > 0) {
-    console.error(`Frontend scaffold is missing PDS design-system wiring; see ${artifactUrl.pathname}`);
+    console.error(`Frontend scaffold is missing UI kit wiring; see ${artifactUrl.pathname}`);
   }
   process.exit(1);
 }

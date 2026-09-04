@@ -10,7 +10,7 @@ import {
   Surface,
   TextArea,
   TextField
-} from '@appfw/pds-health-components';
+} from '@ui-kit';
 import { useApp } from '../../app/providers';
 import { GOVERNANCE_ROLES, ROLE_CAPTIONS } from '../../lib/authContext';
 
@@ -48,7 +48,7 @@ export function SignInScreen() {
   };
 
   return (
-    <div style={{ maxWidth: 560, margin: '0 auto', padding: 'var(--pds-space-6)' }}>
+    <div style={{ maxWidth: 560, margin: '0 auto', padding: 'var(--gov-space-6)' }}>
       <PageHeader
         eyebrow="Governance"
         title="Sign in"
@@ -96,7 +96,7 @@ export function SignInScreen() {
             }))}
           />
         </FormLayout>
-        <p style={{ marginTop: 'var(--pds-space-3)' }}>
+        <p style={{ marginTop: 'var(--gov-space-3)' }}>
           <Badge tone="neutral">Local only</Badge>
         </p>
       </Surface>

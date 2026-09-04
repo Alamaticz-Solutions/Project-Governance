@@ -24,7 +24,7 @@ import {
   ValidationSummary,
   type CommandPaletteItem,
   type PdsDataGridColumn
-} from '@appfw/pds-health-components';
+} from '@ui-kit';
 import { AppProviders } from './app/providers';
 import { ErrorBoundary } from './app/ErrorBoundary';
 import { AppRoot } from './app/App';
@@ -34,8 +34,8 @@ import './styles.css';
 // ---------------------------------------------------------------------------
 // The product SPA. Feature screens live under `src/features/**`; the shared
 // client / routing / auth layer under `src/lib` + `src/app`. `ScaffoldReference`
-// below is the generated design-system reference screen — reachable at
-// `/scaffold` and kept so `npm run appfw:check` can assert the PDS wiring.
+// below is a reference screen for the product's own UI kit (src/ui/kit.tsx),
+// reachable at `/scaffold`.
 // ---------------------------------------------------------------------------
 
 type StarterRow = Record<string, unknown> & {
@@ -69,7 +69,7 @@ const referenceCommands: CommandPaletteItem[] = [
   { id: 'ref:evidence', group: 'Reference', label: 'Scaffold check evidence', detail: 'target/appfw/frontend-scaffold-check.json' }
 ];
 
-/** Framework-owned design-system reference. Not part of the product IA. */
+/** Product-owned UI kit reference. Not part of the product IA. */
 export function ScaffoldReference() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [approvalRequired, setApprovalRequired] = useState(true);
@@ -100,19 +100,19 @@ export function ScaffoldReference() {
     >
       <PageHeader
         eyebrow="Reference"
-        title="Design system reference"
+        title="UI kit reference"
         subtitle={`${governanceUiContract.entities.length} entities in contract v${governanceUiContract.version}`}
         actions={<Badge tone="accent">{governanceUiContract.provider.dataSourceType}</Badge>}
       />
       <div className="app-kpi-grid" id="components">
         <KpiTile
           label="Design system"
-          value="PDS"
-          detail="Framework-owned package"
+          value="Self-owned"
+          detail="src/ui/kit.tsx"
           tone="accent"
-          trend={<MetricTrend value="Ready" label="vendored" tone="positive" direction="up" />}
+          trend={<MetricTrend value="Ready" label="in-repo" tone="positive" direction="up" />}
         />
-        <KpiTile label="Tokens" value="--pds-*" detail="No raw hex" tone="success" />
+        <KpiTile label="Tokens" value="--gov-*" detail="No raw hex" tone="success" />
         <KpiTile label="Routing" value="react-router" detail="src/app/App.tsx" tone="neutral" />
       </div>
 
@@ -190,7 +190,7 @@ export function ScaffoldReference() {
           </Button>
         }
       >
-        <p>This screen is a framework-owned reference, not part of the product navigation.</p>
+        <p>This screen is a UI kit reference, not part of the product navigation.</p>
       </Dialog>
     </AppShell>
   );

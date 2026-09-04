@@ -1,78 +1,80 @@
-@import "@appfw/pds-health-components/styles.css";
+@import "./ui/kit.css";
 
 body {
   margin: 0;
-  background: var(--pds-gradient-canvas);
-  color: var(--pds-color-text-default);
-  font-family: var(--pds-font-family-sans);
-}
-
-.pds-app-shell__main {
-  display: grid;
-  align-content: start;
-  gap: var(--pds-space-5);
+  background: var(--gov-bg);
+  color: var(--gov-text);
+  font-family: var(--gov-font);
 }
 
 .app-brand,
 .app-nav,
 .app-shell-footer {
   display: grid;
-  gap: var(--pds-space-2);
+  gap: var(--gov-space-2);
 }
 
 .app-brand strong {
-  color: var(--pds-color-text-default);
-  font-size: var(--pds-font-size-base);
+  color: var(--gov-text);
+  font-size: 14px;
 }
 
 .app-brand span,
 .app-shell-footer {
-  color: var(--pds-color-text-muted);
-  font-size: var(--pds-font-size-sm);
+  color: var(--gov-text-muted);
+  font-size: 12px;
 }
 
 .app-nav a {
-  padding: var(--pds-space-2) var(--pds-space-3);
-  border-radius: var(--pds-radius-md);
-  color: var(--pds-color-text-muted);
-  font-size: var(--pds-font-size-md);
-  font-weight: var(--pds-font-weight-semibold);
+  padding: var(--gov-space-2) var(--gov-space-3);
+  border-radius: var(--gov-radius-md);
+  color: var(--gov-text-muted);
+  font-size: 14px;
+  font-weight: 600;
   text-decoration: none;
 }
 
 .app-nav a:hover,
 .app-nav a:focus-visible {
-  background: var(--pds-color-state-accent-soft);
-  color: var(--pds-color-brand-blue-deep);
+  background: var(--gov-accent-soft);
+  color: var(--gov-accent);
+}
+
+.app-nav a[aria-current='page'] {
+  background: var(--gov-accent-soft);
+  color: var(--gov-accent);
 }
 
 .app-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--gov-space-3);
   width: min(100%, 420px);
 }
 
-.app-topbar .pds-command-palette,
-.app-topbar .pds-command-palette__trigger {
+.app-topbar .gov-command-palette,
+.app-topbar .gov-command-palette__trigger {
   width: 100%;
 }
 
 .app-status-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--pds-space-4);
+  gap: var(--gov-space-4);
 }
 
 .app-status-grid p {
   min-height: 40px;
-  margin: 0 0 var(--pds-space-3);
-  color: var(--pds-color-text-muted);
-  font-size: var(--pds-font-size-md);
+  margin: 0 0 var(--gov-space-3);
+  color: var(--gov-text-muted);
+  font-size: 14px;
   overflow-wrap: anywhere;
 }
 
 .app-kpi-grid,
 .app-work-grid {
   display: grid;
-  gap: var(--pds-space-4);
+  gap: var(--gov-space-4);
 }
 
 .app-kpi-grid {
@@ -87,68 +89,53 @@ body {
 .app-search {
   width: 100%;
   min-height: 36px;
-  padding: 0 var(--pds-space-3);
-  border: 1px solid var(--pds-color-border-default);
-  border-radius: var(--pds-radius-md);
-  background: var(--pds-gradient-control);
-  color: var(--pds-color-text-default);
+  padding: 0 var(--gov-space-3);
+  border: 1px solid var(--gov-border);
+  border-radius: var(--gov-radius-md);
+  background: var(--gov-bg-elevated);
+  color: var(--gov-text);
   font: inherit;
 }
 
 .app-search:focus {
-  border-color: transparent;
-  background:
-    var(--pds-gradient-control) padding-box,
-    var(--pds-gradient-border-accent) border-box;
-  box-shadow: var(--pds-shadow-control);
-  outline: 3px solid var(--pds-color-state-focus);
+  border-color: var(--gov-accent);
+  outline: 3px solid var(--gov-accent-soft);
   outline-offset: 2px;
 }
 
 .app-chart-bars {
   display: grid;
-  gap: var(--pds-space-3);
+  gap: var(--gov-space-3);
 }
 
 .app-chart-bar {
   min-height: 34px;
   display: flex;
   align-items: center;
-  padding-inline: var(--pds-space-3);
-  border: 1px solid var(--pds-color-border-default);
-  border-radius: var(--pds-radius-md);
-  background: var(--pds-color-surface-panel-soft);
-  color: var(--pds-color-text-default);
+  padding-inline: var(--gov-space-3);
+  border: 1px solid var(--gov-border);
+  border-radius: var(--gov-radius-md);
+  background: var(--gov-bg-elevated-soft);
+  color: var(--gov-text);
 }
 
 .app-chart-bar b {
-  font-size: var(--pds-font-size-sm);
+  font-size: 12px;
 }
 
 .app-chart-bar.is-ready {
   width: 72%;
-  border-color: var(--pds-color-state-success);
-  background: var(--pds-color-state-success-bg);
+  border-color: var(--gov-success);
+  background: var(--gov-success-bg);
 }
 
 .app-chart-bar.is-review {
   width: 44%;
-  background: color-mix(in srgb, var(--pds-color-state-gold) 14%, var(--pds-color-surface-panel-soft));
+  background: color-mix(in srgb, var(--gov-warning) 14%, var(--gov-bg-elevated-soft));
 }
 
 .app-chart-bar.is-draft {
   width: 28%;
-}
-
-.app-topbar {
-  display: flex;
-  align-items: center;
-  gap: var(--pds-space-3);
-}
-
-.app-nav a[aria-current='page'] {
-  background: var(--pds-color-state-accent-soft);
-  color: var(--pds-color-brand-blue-deep);
 }
 
 /* product screen helpers ------------------------------------------------- */
@@ -157,37 +144,37 @@ body {
 .app-kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--pds-space-4);
+  gap: var(--gov-space-4);
 }
 
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--pds-space-5);
+  gap: var(--gov-space-5);
 }
 
 .inline-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--pds-space-2);
+  gap: var(--gov-space-2);
   align-items: center;
 }
 
 .def-list {
   margin: 0;
   display: grid;
-  gap: var(--pds-space-2);
+  gap: var(--gov-space-2);
 }
 
 .def-list__row {
   display: grid;
   grid-template-columns: minmax(120px, 30%) 1fr;
-  gap: var(--pds-space-3);
+  gap: var(--gov-space-3);
 }
 
 .def-list__row dt {
-  color: var(--pds-color-text-muted);
-  font-size: var(--pds-font-size-sm);
+  color: var(--gov-text-muted);
+  font-size: 12px;
 }
 
 .def-list__row dd {
@@ -198,20 +185,20 @@ body {
 .record-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--pds-font-size-sm);
+  font-size: 12px;
 }
 
 .record-table th,
 .record-table td {
   text-align: left;
-  padding: var(--pds-space-2) var(--pds-space-3);
-  border-bottom: 1px solid var(--pds-color-border-default);
+  padding: var(--gov-space-2) var(--gov-space-3);
+  border-bottom: 1px solid var(--gov-border);
   vertical-align: top;
 }
 
 .record-table th {
-  color: var(--pds-color-text-muted);
-  font-weight: var(--pds-font-weight-semibold);
+  color: var(--gov-text-muted);
+  font-weight: 600;
 }
 
 .notification-list {
@@ -219,25 +206,25 @@ body {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--pds-space-3);
+  gap: var(--gov-space-3);
 }
 
 .notification-list li {
   display: flex;
   justify-content: space-between;
-  gap: var(--pds-space-4);
-  padding: var(--pds-space-3);
-  border: 1px solid var(--pds-color-border-default);
-  border-radius: var(--pds-radius-md);
+  gap: var(--gov-space-4);
+  padding: var(--gov-space-3);
+  border: 1px solid var(--gov-border);
+  border-radius: var(--gov-radius-md);
 }
 
 .notification-list li[data-read='false'] {
-  background: var(--pds-color-state-accent-soft);
+  background: var(--gov-accent-soft);
 }
 
 .notification-list p {
-  margin: var(--pds-space-1) 0;
-  color: var(--pds-color-text-muted);
+  margin: var(--gov-space-1) 0;
+  color: var(--gov-text-muted);
 }
 
 .transcript {
@@ -245,37 +232,15 @@ body {
   word-break: break-word;
   max-height: 320px;
   overflow: auto;
-  padding: var(--pds-space-3);
-  background: var(--pds-color-surface-panel-soft);
-  border-radius: var(--pds-radius-md);
-  font-size: var(--pds-font-size-sm);
-}
-
-/*
- * Opt out of the vendor design system's experimental `appearance:
- * base-select` picker (@appfw/pds-health-components/dist/styles.css,
- * "Customizable select picker" block). That feature renders every
- * <select>'s option list as a custom in-page top-layer popover instead of
- * the browser's native dropdown -- and it is still unreliable in shipping
- * Chrome builds: clicking an option can fail to fire the change/select and
- * leave the popover open (confirmed live on the sign-in screen's "Primary
- * role" select, and it affects every SelectField in the app the same way,
- * since they all share the .pds-select class this rule targets). Forcing
- * `appearance: auto` here falls back to the plain OS/browser-native select
- * popup, which does not have this bug. This is a product-side override of
- * vendored framework CSS (not a framework fix -- the vendor package is a
- * prebuilt dependency, not something we can patch and rebuild), so it must
- * be reapplied if the vendored styles.css is ever regenerated/upgraded.
- */
-@supports (appearance: base-select) {
-  .pds-select:not([multiple], [size]) {
-    appearance: auto !important;
-  }
+  padding: var(--gov-space-3);
+  background: var(--gov-bg-elevated-soft);
+  border-radius: var(--gov-radius-md);
+  font-size: 12px;
 }
 
 @media (max-width: 860px) {
-  .app-topbar .pds-command-palette,
-  .app-topbar .pds-command-palette__trigger {
+  .app-topbar .gov-command-palette,
+  .app-topbar .gov-command-palette__trigger {
     width: 100%;
     max-width: none;
   }
@@ -288,7 +253,7 @@ body {
 
   .def-list__row {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--pds-space-1);
+    gap: var(--gov-space-1);
   }
 
   .app-chart-bar {

@@ -6,7 +6,7 @@ import {
   PageHeader,
   SwitchField,
   Surface
-} from '@appfw/pds-health-components';
+} from '@ui-kit';
 import { useState } from 'react';
 import { useAction, useApp, useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';

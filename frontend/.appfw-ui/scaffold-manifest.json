@@ -5,12 +5,13 @@
   "generatedContract": "src/generated/appfw-ui-contract.ts",
   "ownershipManifest": ".appfw-ui/ownership.json",
   "designSystem": {
-    "brand": "PDS Health",
-    "source": "appfw_ui/pds_health",
-    "tokens": "appfw_ui/pds_health/tokens",
-    "components": "appfw_ui/pds_health/components",
-    "package": "@appfw/pds-health-components",
-    "styleImport": "@appfw/pds-health-components/styles.css"
+    "brand": "Governance UI kit",
+    "source": "src/ui/kit.tsx",
+    "tokens": "src/ui/kit.css",
+    "components": "src/ui/kit.tsx",
+    "package": "none (self-owned, no external/client-owned design-system dependency)",
+    "styleImport": "./ui/kit.css",
+    "note": "Originally scaffolded against the client's PDS Health design system (@appfw/pds-health-components); replaced with a self-owned in-repo kit so the product carries no client-owned frontend code and can be reused for other clients."
   },
   "schemaNames": [
     "governance"

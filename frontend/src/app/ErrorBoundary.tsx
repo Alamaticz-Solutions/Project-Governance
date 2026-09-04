@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { FeedbackState, Button } from '@appfw/pds-health-components';
+import { FeedbackState, Button } from '@ui-kit';
 
 type Props = { children: ReactNode };
 type State = { error: Error | null };
@@ -21,7 +21,7 @@ export class ErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     if (!this.state.error) return this.props.children;
     return (
-      <div style={{ padding: 'var(--pds-space-6)', maxWidth: 640, margin: '0 auto' }}>
+      <div style={{ padding: 'var(--gov-space-6)', maxWidth: 640, margin: '0 auto' }}>
         <FeedbackState
           kind="error"
           title="The workspace hit an unexpected error"

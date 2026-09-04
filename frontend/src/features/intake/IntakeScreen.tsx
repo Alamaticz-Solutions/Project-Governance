@@ -11,7 +11,7 @@ import {
   TextArea,
   TextField,
   ValidationSummary
-} from '@appfw/pds-health-components';
+} from '@ui-kit';
 import { useAction, useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';
 import type { AppfwRecord } from '../../lib/appfwClient';

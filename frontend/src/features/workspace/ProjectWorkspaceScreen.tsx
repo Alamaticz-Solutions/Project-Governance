@@ -13,7 +13,7 @@ import {
   TextArea,
   type ProcessStepItem,
   type ProcessStepStatus
-} from '@appfw/pds-health-components';
+} from '@ui-kit';
 import { useAction, useApp, useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';
 import type { AppfwClient, AppfwRecord } from '../../lib/appfwClient';

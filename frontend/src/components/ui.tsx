@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Badge, Button, FeedbackState, type PdsTone } from '@appfw/pds-health-components';
+import { Badge, Button, FeedbackState, type PdsTone } from '@ui-kit';
 import type { AppfwClientError } from '../lib/appfwClient';
 import type { AsyncState } from '../app/providers';
 

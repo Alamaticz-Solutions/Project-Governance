@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
-import { ForbiddenState } from '@appfw/pds-health-components';
+import { ForbiddenState } from '@ui-kit';
 import { useApp } from './providers';
 import { hasAnyRole, ROLE_CAPTIONS, type GovernanceRole } from '../lib/authContext';
 

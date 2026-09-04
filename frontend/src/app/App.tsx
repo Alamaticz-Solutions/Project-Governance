@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { AppShell } from './AppShell';
 import { RequireAuth } from './RequireAuth';
-import { PageHeader, FeedbackState } from '@appfw/pds-health-components';
+import { PageHeader, FeedbackState } from '@ui-kit';
 import { SignInScreen } from '../features/auth/SignInScreen';
 import { DashboardScreen } from '../features/dashboard/DashboardScreen';
 import { ProjectListScreen } from '../features/projects/ProjectListScreen';

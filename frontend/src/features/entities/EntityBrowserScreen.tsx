@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { PageHeader, SelectField, Surface } from '@appfw/pds-health-components';
+import { PageHeader, SelectField, Surface } from '@ui-kit';
 import {
   EntityWorkspace,
   findEntityContract,
