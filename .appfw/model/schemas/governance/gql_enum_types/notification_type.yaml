@@ -1,0 +1,14 @@
+# NotificationType — legacy Postgres enum `notificationtype`.
+# SCREAMING_SNAKE values (000-INDEX provisional decision); mirrors sea_orm_active_enums.rs.
+
+- name: NotificationType
+  items:
+  - value: PROJECT_CREATED
+  - value: TASK_ASSIGNED
+  - value: TASK_COMPLETED
+  - value: APPROVAL_REQUIRED
+  - value: APPROVED
+  - value: REJECTED
+  - value: OVERDUE
+  - value: STAGE_ADVANCED
+  - value: COMMENT_ADDED

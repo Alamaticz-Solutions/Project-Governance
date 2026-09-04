@@ -1,0 +1,53 @@
+# Legacy table `audit_history` -> entity AuditEvent (rename). SET C.
+# It IS the append-only audit store, so it carries NO facets (facets: []).
+# standard_methods exclude Update/Delete (append-only, ADR 0004) — only the product
+# `audit` service writes it; clients never Create either, but Create stays on the
+# method list so the service path is generated.
+# Scalars + physical FK columns only — NavTo* projected from relationships/03-supporting.yaml.
+
+- name: AuditEvent
+  id: 7a1c9e40-0000-4000-8000-000000000c04
+  caption: Audit Event
+  is_table: true
+  facets: []
+  standard_methods: [FindById, GetAll, Query, Create]
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  # Nullable. Relationship project_audit_events MUST NOT cascade-delete —
+  # see 000-INDEX findings (legacy ON DELETE CASCADE would destroy the audit trail).
+  - name: project_id
+    data_type: Uuid
+    foreign_key:
+      type_name: Project
+
+  - name: entity_type
+    fragment: property-string-required
+
+  - name: entity_id
+    fragment: property-string-required
+
+  - name: action
+    fragment: property-string-caption
+
+  - name: old_values
+    fragment: property-json
+
+  - name: new_values
+    fragment: property-json
+
+  - name: performed_by_id
+    data_type: Uuid
+    foreign_key:
+      type_name: User
+
+  - name: ip_address
+    fragment: property-string
+
+  - name: user_agent
+    fragment: property-string
+
+  - name: performed_at
+    fragment: property-date-time-required

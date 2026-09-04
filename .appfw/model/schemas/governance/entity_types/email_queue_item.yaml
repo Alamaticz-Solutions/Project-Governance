@@ -1,0 +1,64 @@
+# Legacy table `email_queue` -> entity EmailQueueItem (rename). SET C. No audit facet.
+# Mirrored for schema fidelity ONLY — the table is fully unwired in legacy and the
+# rebuild keeps SMTP send synchronous (spec 004); there is NO writer for this entity.
+# Scalars only — standalone, no relationships.
+
+- name: EmailQueueItem
+  id: 7a1c9e40-0000-4000-8000-000000000c06
+  caption: Email Queue Item
+  is_table: true
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  # Redact in audit even though this entity is not `audited` — spec instruction;
+  # harmless no-op unless the facet is ever added.
+  - name: to_email
+    fragment: property-string-email
+    is_required: true
+    meta:
+      audit:
+        redact: true
+
+  - name: to_name
+    fragment: property-string
+
+  - name: subject
+    fragment: property-string-caption
+
+  - name: template_name
+    fragment: property-string
+
+  - name: template_data
+    fragment: property-json
+
+  - name: html_body
+    fragment: property-string-stringmax-xl
+
+  - name: text_body
+    fragment: property-string-stringmax-xl
+
+  - name: status
+    fragment: property-string
+    default_value: pending
+
+  - name: attempts
+    fragment: property-int-md
+    default_value: 0
+
+  - name: max_attempts
+    fragment: property-int-md
+    default_value: 3
+
+  - name: error_message
+    fragment: property-string-stringmax-lg
+
+  - name: scheduled_at
+    fragment: property-date-time
+
+  - name: sent_at
+    fragment: property-date-time
+
+  - name: created_at
+    fragment: property-date-time

@@ -1,0 +1,68 @@
+# Generated API scenarios for Project — chained create -> find -> stale-version conflict,
+# mirroring the framework CRM reference (examples/products/crm .../tests/accounts.yaml pattern,
+# file 02 §6). manager_id references the seeded admin user (seeds/01_users.yaml).
+#
+# auth_token `pdsh_admin` follows the CRM reference; confirm the actual generated test-token
+# name once `scripts/appfw product api-test` can run (no framework CLI on this machine).
+- name: create_project
+  description: create a project as admin
+  auth_token: pdsh_admin
+  graphql:
+    schema: governance
+    type: mutation
+    name: createProject
+    variables:
+    - name: input
+      type: InputProject!
+      yaml_value:
+        project_number: 'GOV-TEST-0001'
+        project_name: 'Test Governance Project'
+        business_unit: 'Information Technology'
+        manager_id: 'b0000000-0000-4000-8000-000000000001'
+        priority: MEDIUM
+        status: DRAFT
+        version: 0
+    select: 'id,project_number,project_name,business_unit,manager_id,status,priority,version'
+  expect:
+    data:
+      project_number: 'GOV-TEST-0001'
+      project_name: 'Test Governance Project'
+      business_unit: 'Information Technology'
+      status: DRAFT
+  result_object_name: create_project_result
+
+- name: find_project
+  description: find the project with its NavToOne manager
+  auth_token: pdsh_admin
+  graphql:
+    schema: governance
+    type: query
+    name: findProject
+    variables:
+    - name: id
+      type: String!
+      reference_value_property: create_project_result.id
+    select: 'id,project_name,manager_id,manager { id,email },version'
+  expect:
+    data:
+      project_name: 'Test Governance Project'
+      manager_id: 'b0000000-0000-4000-8000-000000000001'
+  result_object_name: find_project_result
+
+- name: update_project_with_stale_version
+  description: a stale optimistic-lock version is rejected (concurrency facet)
+  auth_token: pdsh_admin
+  graphql:
+    schema: governance
+    type: mutation
+    name: updateProject
+    variables:
+    - name: input
+      type: InputProject!
+      reference_value: create_project_result
+      overwrite:
+        business_unit: 'Finance'
+        version: 1
+    select: 'id,business_unit,version'
+  expect:
+    error: { "message": "invalid key or version", "path": ["updateProject"] }

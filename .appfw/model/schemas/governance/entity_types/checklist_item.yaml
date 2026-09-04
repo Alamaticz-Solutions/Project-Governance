@@ -1,0 +1,38 @@
+# Legacy table: checklist_items (fully unwired — schema fidelity only).
+# completed_by_id FK -> User (Set A / spec 001); referenced here only.
+- name: ChecklistItem
+  id: 7b1e4a20-0007-4a10-9c07-a0b1c2d3e4f6
+  is_table: true
+  facets: [audited]
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: task_id
+    caption: Task
+    data_type: Uuid
+    is_required: true
+    foreign_key:
+      type_name: WorkflowTask
+
+  - name: item_text
+    caption: Item Text
+    fragment: property-string-caption
+
+  - name: is_completed
+    fragment: property-boolean-toggle
+    default_value: false
+
+  - name: completed_by_id
+    caption: Completed By
+    data_type: Uuid
+    foreign_key:
+      type_name: User
+
+  - name: completed_at
+    fragment: property-date-time
+
+  - name: sequence_order
+    fragment: property-int-md
+    default_value: 0

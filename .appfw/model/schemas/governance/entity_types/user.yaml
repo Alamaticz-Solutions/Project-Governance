@@ -1,0 +1,71 @@
+# User — legacy table `users`. SET A (identity + project core).
+# facets: audited -> generates UserAudit companion (+ audit_records nav); see user_audit.rego
+#         concurrency -> injects optimistic-lock `version` (do not author it here)
+# NavToOne/NavToMany fields (managed_projects, stakeholder_entries, updated_project_fields)
+# are projected from relationships/01-identity-project.yaml — never authored here.
+
+- id: 8b1d4c2e-6f3a-4a71-9c2b-1e7d5a9f0c31
+  name: User
+  is_table: true
+  facets:
+  - audited
+  - concurrency
+  indexes:
+  - email
+  - username
+  execution:
+    prepared_statements: true
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: email
+    fragment: property-string-email
+    is_required: true
+
+  - name: username
+    fragment: property-string-required
+
+  - name: full_name
+    fragment: property-string-caption
+
+  - name: hashed_password
+    fragment: property-string-secret
+    is_required: true
+    meta:
+      audit:
+        redact: true
+
+  - name: role
+    fragment: property-enum-required
+    enum_type_name: UserRole
+
+  - name: department
+    fragment: property-string
+
+  - name: job_title
+    fragment: property-string
+
+  - name: phone
+    fragment: property-string
+
+  - name: avatar_url
+    fragment: property-string
+
+  - name: is_active
+    fragment: property-boolean-toggle-required
+    default_value: true
+
+  - name: is_verified
+    fragment: property-boolean-toggle-required
+    default_value: false
+
+  - name: last_login
+    fragment: property-date-time
+
+  - name: created_at
+    fragment: property-date-time-required
+
+  - name: updated_at
+    fragment: property-date-time

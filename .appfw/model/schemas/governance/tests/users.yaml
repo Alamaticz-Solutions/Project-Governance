@@ -1,0 +1,19 @@
+# Generated API scenario for User — find a seeded demo user (seeds/01_users.yaml).
+- name: find_seeded_admin_user
+  description: the seeded admin demo user is retrievable
+  auth_token: pdsh_admin
+  graphql:
+    schema: governance
+    type: query
+    name: findUser
+    variables:
+    - name: id
+      type: String!
+      yaml_value: 'b0000000-0000-4000-8000-000000000001'
+    select: 'id,email,username,role,is_active'
+  expect:
+    data:
+      email: admin@abchealth.com
+      username: admin
+      role: ADMIN
+      is_active: true

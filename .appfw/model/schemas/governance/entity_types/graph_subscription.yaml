@@ -1,0 +1,41 @@
+# Legacy table `graph_subscriptions`. SET C. No audit facet.
+# Fully standalone — NO FKs. Tracks the tenant-wide Graph transcript subscription.
+# uq: subscription_id (legacy #[sea_orm(unique)]). The relationship/entity grammar
+# has no unique-constraint knob (`constraints` is reserved with no documented shape)
+# — recorded here as a comment, flagged for the framework-gap list.
+# client_state is a shared secret -> meta.audit.redact: true (spec 003 / ADR 0004).
+
+- name: GraphSubscription
+  id: 7a1c9e40-0000-4000-8000-000000000c0a
+  caption: Graph Subscription
+  is_table: true
+  indexes: [resource]
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  # uq in legacy — no unique grammar available; flagged.
+  - name: subscription_id
+    fragment: property-string-required
+
+  - name: resource
+    fragment: property-string-required
+
+  - name: notification_url
+    fragment: property-string-required
+
+  - name: client_state
+    fragment: property-string-required
+    meta:
+      audit:
+        redact: true
+
+  - name: expiration_date_time
+    fragment: property-date-time-required
+
+  - name: created_at
+    fragment: property-date-time-required
+
+  - name: updated_at
+    fragment: property-date-time

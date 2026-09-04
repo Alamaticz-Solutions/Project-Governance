@@ -1,0 +1,56 @@
+# Legacy table `risk_items`. SET C.
+# Q5 audit: facets: [audited] (record-level before/after diff + hash chain, ADR 0004).
+# Scalars + physical FK columns only — NavTo* projected from relationships/03-supporting.yaml.
+
+- name: RiskItem
+  id: 7a1c9e40-0000-4000-8000-000000000c01
+  caption: Risk Item
+  is_table: true
+  facets: [audited]
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: project_id
+    is_required: true
+    data_type: Uuid
+    foreign_key:
+      type_name: Project
+
+  - name: risk_title
+    fragment: property-string-caption
+
+  - name: risk_description
+    fragment: property-string-stringmax-lg
+
+  - name: risk_category
+    fragment: property-string
+
+  - name: severity
+    fragment: property-enum-required
+    enum_type_name: ProjectRisk
+
+  - name: probability
+    fragment: property-string
+
+  - name: impact
+    fragment: property-string
+
+  - name: mitigation_plan
+    fragment: property-string-stringmax-lg
+
+  - name: owner_id
+    data_type: Uuid
+    foreign_key:
+      type_name: User
+
+  - name: status
+    fragment: property-string
+    default_value: open
+
+  - name: identified_at
+    fragment: property-date-time
+
+  - name: resolved_at
+    fragment: property-date-time

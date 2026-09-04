@@ -1,0 +1,76 @@
+# Demo users — one per role, mirrors legacy backend/src/seed.rs seed_demo_users().
+# Synthetic data only (rulebook file 05 §5.7 / file 10). No demo projects are seeded
+# (legacy behaviour).
+#
+# hashed_password: the legacy seed hashes the plaintext "Demo1234!" with Argon2 at
+# runtime. The framework path needs the hash produced OUT OF BAND — never a plaintext
+# literal in config (file 10). The value below is a PLACEHOLDER Argon2id string and
+# MUST be replaced with a real Argon2 hash of the demo password before `product migrate`,
+# or set by a post-seed hook. It is not a live credential.
+- entity_type: User
+  schema: governance
+  columns: [id, email, username, full_name, hashed_password, role, is_active, is_verified, created_at]
+  records:
+  - id: b0000000-0000-4000-8000-000000000001
+    email: admin@abchealth.com
+    username: admin
+    full_name: Alex Administrator
+    hashed_password: '$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE'
+    role: ADMIN
+    is_active: true
+    is_verified: true
+    created_at: '2026-01-01T00:00:00Z'
+  - id: b0000000-0000-4000-8000-000000000002
+    email: pm@abchealth.com
+    username: pm_user
+    full_name: Priya Manager
+    hashed_password: '$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE'
+    role: PROJECT_MANAGER
+    is_active: true
+    is_verified: true
+    created_at: '2026-01-01T00:00:00Z'
+  - id: b0000000-0000-4000-8000-000000000003
+    email: bta@abchealth.com
+    username: bta_user
+    full_name: Bailey Alignment
+    hashed_password: '$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE'
+    role: BTA
+    is_active: true
+    is_verified: true
+    created_at: '2026-01-01T00:00:00Z'
+  - id: b0000000-0000-4000-8000-000000000004
+    email: epmo@abchealth.com
+    username: epmo_user
+    full_name: Emery Pmo
+    hashed_password: '$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE'
+    role: EPMO
+    is_active: true
+    is_verified: true
+    created_at: '2026-01-01T00:00:00Z'
+  - id: b0000000-0000-4000-8000-000000000005
+    email: eac@abchealth.com
+    username: eac_user
+    full_name: Ellis Architecture
+    hashed_password: '$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE'
+    role: EAC
+    is_active: true
+    is_verified: true
+    created_at: '2026-01-01T00:00:00Z'
+  - id: b0000000-0000-4000-8000-000000000006
+    email: pic@abchealth.com
+    username: pic_user
+    full_name: Pat Investment
+    hashed_password: '$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE'
+    role: PIC
+    is_active: true
+    is_verified: true
+    created_at: '2026-01-01T00:00:00Z'
+  - id: b0000000-0000-4000-8000-000000000007
+    email: finance@abchealth.com
+    username: finance_user
+    full_name: Frankie Finance
+    hashed_password: '$argon2id$v=19$m=19456,t=2,p=1$REPLACE_WITH_REAL_HASH_OF_DEMO1234$REPLACE'
+    role: FINANCE
+    is_active: true
+    is_verified: true
+    created_at: '2026-01-01T00:00:00Z'

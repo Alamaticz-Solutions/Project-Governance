@@ -1,0 +1,38 @@
+# ProjectStakeholder — legacy table `project_stakeholders`. SET A.
+# First-class entity (carries payload: role, added_at), NOT a ManyToMany junction — two
+# OneToMany edges (project_stakeholders, user_stakeholder_entries) in
+# relationships/01-identity-project.yaml. Nav fields (project, user) projected there.
+# facets: audited -> generates ProjectStakeholderAudit companion; see project_stakeholder_audit.rego
+# Legacy UNIQUE (project_id, user_id) [uq_project_stakeholder] — framework `constraints`
+# is reserved metadata only; documented here, enforcement TBD at generate time.
+
+- id: c47e9a52-8d10-4b6f-9127-5e3a8c6d2f94
+  name: ProjectStakeholder
+  is_table: true
+  facets:
+  - audited
+  execution:
+    prepared_statements: true
+  constraints: []
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: project_id
+    data_type: Uuid
+    is_required: true
+    foreign_key:
+      type_name: Project
+
+  - name: user_id
+    data_type: Uuid
+    is_required: true
+    foreign_key:
+      type_name: User
+
+  - name: role
+    fragment: property-string
+
+  - name: added_at
+    fragment: property-date-time

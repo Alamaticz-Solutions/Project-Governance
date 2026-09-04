@@ -1,0 +1,53 @@
+# Legacy table `attachments`. SET C.
+# Q5 audit: facets: [audited, concurrency] (PHI-adjacent uploaded intake docs).
+# Scalars + physical FK columns only — NavTo* projected from relationships/03-supporting.yaml.
+
+- name: Attachment
+  id: 7a1c9e40-0000-4000-8000-000000000c02
+  caption: Attachment
+  is_table: true
+  facets: [audited, concurrency]
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: project_id
+    is_required: true
+    data_type: Uuid
+    foreign_key:
+      type_name: Project
+
+  - name: file_name
+    fragment: property-string-caption
+
+  - name: file_type
+    fragment: property-string
+
+  - name: file_size
+    fragment: property-int-md
+
+  - name: s3_key
+    fragment: property-string
+
+  - name: s3_url
+    fragment: property-string
+
+  - name: upload_status
+    fragment: property-string
+    default_value: pending
+
+  - name: uploaded_by_id
+    data_type: Uuid
+    foreign_key:
+      type_name: User
+
+  - name: ai_extracted
+    fragment: property-boolean-toggle
+    default_value: false
+
+  - name: ai_extraction_data
+    fragment: property-json
+
+  - name: uploaded_at
+    fragment: property-date-time

@@ -1,0 +1,84 @@
+# SET A relationships — identity + project core. OneToMany edges only; the generator
+# projects the NavToOne/NavToMany fields onto each endpoint entity (file 02 §3, ADR 0003).
+# Storage FK columns are the scalar Uuid props authored in the entity files.
+# ProjectStakeholder is modelled as a first-class entity with two OneToMany edges
+# (project_stakeholders + user_stakeholder_entries), NOT a ManyToMany junction — it
+# carries payload (role, added_at).
+
+- name: project_manager
+  kind: OneToMany
+  one:
+    entity: User
+    field: managed_projects
+  many:
+    entity: Project
+    field: manager
+  storage:
+    type: ForeignKey
+    owner: Project
+    field: manager_id
+
+- name: project_duplicate_of
+  kind: OneToMany
+  one:
+    entity: Project
+    field: duplicates
+  many:
+    entity: Project
+    field: duplicate_of
+  storage:
+    type: ForeignKey
+    owner: Project
+    field: duplicate_of_id
+
+- name: project_stakeholders
+  kind: OneToMany
+  one:
+    entity: Project
+    field: stakeholders
+  many:
+    entity: ProjectStakeholder
+    field: project
+  storage:
+    type: ForeignKey
+    owner: ProjectStakeholder
+    field: project_id
+
+- name: user_stakeholder_entries
+  kind: OneToMany
+  one:
+    entity: User
+    field: stakeholder_entries
+  many:
+    entity: ProjectStakeholder
+    field: user
+  storage:
+    type: ForeignKey
+    owner: ProjectStakeholder
+    field: user_id
+
+- name: project_fields
+  kind: OneToMany
+  one:
+    entity: Project
+    field: fields
+  many:
+    entity: ProjectField
+    field: project
+  storage:
+    type: ForeignKey
+    owner: ProjectField
+    field: project_id
+
+- name: project_field_updated_by
+  kind: OneToMany
+  one:
+    entity: User
+    field: updated_project_fields
+  many:
+    entity: ProjectField
+    field: updated_by
+  storage:
+    type: ForeignKey
+    owner: ProjectField
+    field: updated_by_id

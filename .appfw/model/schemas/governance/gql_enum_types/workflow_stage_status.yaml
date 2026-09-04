@@ -1,0 +1,12 @@
+# Gate / stage state machine vocabulary — design-doc §7 model (spec 002 Q7).
+# Original migration-0001 DDL vocabulary with `completed` renamed `APPROVED`.
+- name: WorkflowStageStatus
+  items:
+  - value: LOCKED
+  - value: ELIGIBLE
+  - value: IN_PROGRESS
+  - value: PENDING_APPROVAL
+  - value: APPROVED
+  - value: CHANGES_REQUESTED
+  - value: REJECTED
+  - value: SKIPPED

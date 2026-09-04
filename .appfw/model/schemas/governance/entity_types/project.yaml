@@ -1,0 +1,239 @@
+# Project — legacy table `projects`. SET A (identity + project core).
+# facets: audited -> generates ProjectAudit companion (+ audit_records nav); see project_audit.rego
+#         concurrency -> injects optimistic-lock `version` (do not author it here)
+# Legacy "delete" = status -> CANCELLED (a transition), so NO `soft-deleted` facet.
+# project_number is generated in the human-owned Create _impl (spec 002 / project_number_seq),
+# so it is a plain writable String, NOT `computed`.
+# NavToOne/NavToMany fields (manager, duplicates, duplicate_of, stakeholders, fields)
+# are projected from relationships/01-identity-project.yaml — never authored here.
+
+- id: 3f9a7b10-2c84-4d63-8e15-9a6b4c2d7e08
+  name: Project
+  is_table: true
+  facets:
+  - audited
+  - concurrency
+  indexes:
+  - project_number
+  - manager_id
+  - status
+  - created_at
+  execution:
+    prepared_statements: true
+
+  # Workflow-engine operations (spec 002 §3). No provider_routine -> the generator
+  # emits a one-time `<name>_impl` stub in backend/src/handlers/governance/project.rs
+  # which is then hand-written against backend/src/services (route->handler->impl->service->DataAccess).
+  custom_methods:
+  - name: submit_decision
+    kind: Mutation
+    mcp_enabled: false
+    args:
+    - name: project_id
+      arg_type: String
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+  - name: pending_approvals
+    kind: Query
+    mcp_enabled: false
+    args:
+    - name: project_id
+      arg_type: String
+    return_type: serde_json::Value
+  - name: fast_track_complete
+    kind: Mutation
+    mcp_enabled: false
+    args:
+    - name: project_id
+      arg_type: String
+    return_type: serde_json::Value
+  - name: workspace
+    kind: Query
+    mcp_enabled: false
+    args:
+    - name: project_id
+      arg_type: String
+    return_type: serde_json::Value
+  - name: eligible_gates
+    kind: Query
+    mcp_enabled: false
+    args:
+    - name: project_id
+      arg_type: String
+    return_type: serde_json::Value
+  # Legacy "delete" is a status transition to CANCELLED, not a row delete
+  # (000-INDEX.md reconciled point 3; spec 001 Project row; spec 002 standard-operation overrides).
+  - name: cancel
+    kind: Mutation
+    mcp_enabled: false
+    args:
+    - name: project_id
+      arg_type: String
+    - name: reason
+      arg_type: String
+    return_type: serde_json::Value
+
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: project_number
+    fragment: property-string-required
+    is_read_only: false
+
+  - name: project_name
+    fragment: property-string-caption
+
+  - name: business_unit
+    fragment: property-string-required
+
+  - name: department
+    fragment: property-string
+
+  - name: manager_id
+    data_type: Uuid
+    is_required: true
+    foreign_key:
+      type_name: User
+
+  - name: sponsor_name
+    fragment: property-string
+
+  - name: sponsor_email
+    fragment: property-string
+
+  - name: description
+    fragment: property-string-stringmax-xl
+
+  - name: problem_statement
+    fragment: property-string-stringmax-xl
+
+  - name: business_value
+    fragment: property-string-stringmax-xl
+
+  - name: strategic_alignment
+    fragment: property-string-stringmax-xl
+
+  - name: requestor_name
+    fragment: property-string
+
+  - name: request_type
+    fragment: property-string
+
+  - name: desired_outcome
+    fragment: property-string-stringmax-xl
+
+  - name: what_do_you_do_today
+    fragment: property-string-stringmax-xl
+
+  - name: what_transpires_if_nothing
+    fragment: property-string-stringmax-xl
+
+  - name: notes
+    fragment: property-string-stringmax-xl
+
+  - name: budget_estimated
+    fragment: property-float64
+
+  - name: budget_approved
+    fragment: property-float64
+
+  - name: budget_type
+    fragment: property-string
+
+  - name: requested_start_date
+    fragment: property-date-time
+
+  - name: requested_end_date
+    fragment: property-date-time
+
+  - name: actual_start_date
+    fragment: property-date-time
+
+  - name: actual_end_date
+    fragment: property-date-time
+
+  - name: priority
+    fragment: property-enum-required
+    enum_type_name: ProjectPriority
+    default_value: MEDIUM
+
+  - name: risk_level
+    fragment: property-enum
+    enum_type_name: ProjectRisk
+    default_value: MEDIUM
+
+  - name: status
+    fragment: property-enum-required
+    enum_type_name: ProjectStatus
+    default_value: DRAFT
+
+  - name: it_involvement
+    fragment: property-boolean-toggle
+    default_value: false
+
+  - name: vendor_required
+    fragment: property-boolean-toggle
+    default_value: false
+
+  - name: has_phi_data
+    fragment: property-boolean-toggle
+    default_value: false
+
+  - name: is_clinical
+    fragment: property-boolean-toggle
+    default_value: false
+
+  - name: is_hipaa_applicable
+    fragment: property-boolean-toggle
+    default_value: false
+
+  - name: smartsheet_row_id
+    fragment: property-string
+
+  - name: smartsheet_sheet_url
+    fragment: property-string
+
+  - name: jira_ticket_id
+    fragment: property-string
+
+  - name: duplicate_of_id
+    data_type: Uuid
+    foreign_key:
+      type_name: Project
+
+  - name: is_duplicate
+    fragment: property-boolean-toggle
+    default_value: false
+
+  - name: ai_extracted_data
+    fragment: property-json
+
+  - name: current_stage
+    fragment: property-string
+
+  - name: current_status
+    fragment: property-string
+
+  - name: current_owner_role
+    fragment: property-string
+
+  - name: last_stage_completed
+    fragment: property-string
+
+  - name: workflow_status
+    fragment: property-string
+
+  - name: submitted_at
+    fragment: property-date-time
+
+  - name: created_at
+    fragment: property-date-time-required
+
+  - name: updated_at
+    fragment: property-date-time
+
+  - name: archived_at
+    fragment: property-date-time

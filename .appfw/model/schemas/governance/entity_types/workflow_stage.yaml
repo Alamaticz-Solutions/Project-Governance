@@ -1,0 +1,83 @@
+# Legacy table: workflow_stages (GraphQL-only; no REST row-creation path today).
+# status enum WorkflowStageStatus is the design-doc 8-value state model (spec 002 Q7).
+# Legacy index ix_wf_stage_status is on status.
+# custom_methods start / submit / skip declared per .appfw/specs/002 §3 (net-new engine surface).
+- name: WorkflowStage
+  id: 7b1e4a20-0004-4a10-9c04-a0b1c2d3e4f3
+  is_table: true
+  facets: [audited, concurrency]
+  indexes: [status]
+
+  custom_methods:
+  - name: start
+    kind: Mutation
+    mcp_enabled: false
+    args:
+    - name: stage_id
+      arg_type: String
+    return_type: serde_json::Value
+  - name: submit
+    kind: Mutation
+    mcp_enabled: false
+    args:
+    - name: stage_id
+      arg_type: String
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+  - name: skip
+    kind: Mutation
+    mcp_enabled: false
+    args:
+    - name: stage_id
+      arg_type: String
+    - name: reason
+      arg_type: String
+    return_type: serde_json::Value
+
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: workflow_instance_id
+    caption: Workflow Instance
+    data_type: Uuid
+    is_required: true
+    foreign_key:
+      type_name: WorkflowInstance
+
+  - name: stage_definition_id
+    caption: Stage Definition
+    data_type: Uuid
+    is_required: true
+    foreign_key:
+      type_name: WorkflowStageDefinition
+
+  - name: stage_name
+    caption: Stage Name
+    fragment: property-string-caption
+
+  - name: stage_code
+    fragment: property-string-required
+
+  - name: sequence_order
+    fragment: property-int-md
+    is_required: true
+
+  - name: status
+    fragment: property-enum-required
+    enum_type_name: WorkflowStageStatus
+    default_value: LOCKED
+
+  - name: started_at
+    fragment: property-date-time
+
+  - name: completed_at
+    fragment: property-date-time
+
+  - name: due_date
+    fragment: property-date-time
+
+  - name: notes
+    fragment: property-string-stringmax-lg

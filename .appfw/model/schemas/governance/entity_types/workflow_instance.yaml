@@ -1,0 +1,41 @@
+# Legacy table: workflow_instances (fully unwired — schema fidelity only).
+# current_stage_id is the circular-FK half (workflow_instances.current_stage_id -> workflow_stages.id,
+# added by ALTER TABLE after both tables exist). Per .appfw/specs/002 Risks it is kept as a plain
+# scalar Uuid with NO foreign_key block and NO relationship. Real containment is
+# WorkflowInstance 1-* WorkflowStage via workflow_stages.workflow_instance_id (see relationships/02-workflow.yaml).
+- name: WorkflowInstance
+  id: 7b1e4a20-0003-4a10-9c03-a0b1c2d3e4f2
+  is_table: true
+  facets: [audited]
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: project_id
+    caption: Project
+    data_type: Uuid
+    is_required: true
+    foreign_key:
+      type_name: Project
+
+  - name: definition_id
+    caption: Workflow Definition
+    data_type: Uuid
+    is_required: true
+    foreign_key:
+      type_name: WorkflowDefinition
+
+  - name: current_stage_id
+    caption: Current Stage
+    data_type: Uuid
+
+  - name: status
+    fragment: property-string
+    default_value: "active"
+
+  - name: started_at
+    fragment: property-date-time
+
+  - name: completed_at
+    fragment: property-date-time

@@ -1,0 +1,18 @@
+# Provisional workflow definition — mirrors legacy seed.rs seed_workflow_definitions()
+# ("Standard Project Lifecycle v2"). This config is EXPLICITLY PROVISIONAL: the
+# authoritative Excel gate/field matrix (governance_workflow_design.md §9) is not in
+# the repo — see spec 002 Open decision P5. The exact gate list, codes, and inter-gate
+# dependencies are pending that matrix; the rows here are a placeholder so the engine
+# has something to run against.
+#
+# `version` is renamed `definition_version` because the `concurrency` facet injects its
+# own `version` (000-INDEX.md; spec 002 Q7 note).
+- entity_type: WorkflowDefinition
+  schema: governance
+  columns: [id, name, definition_version, description, is_active]
+  records:
+  - id: c0000000-0000-4000-8000-000000000001
+    name: Standard Project Lifecycle v2
+    definition_version: 1
+    description: The 5-phase DAG process for project governance (PROVISIONAL — pending the Excel gate/field matrix, spec 002 P5).
+    is_active: true

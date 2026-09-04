@@ -1,0 +1,67 @@
+# Legacy table: gate_submissions (migration m20260101_000002; REST-wired via /projects/:id/workspace/:stage).
+# Constraint (not structurally expressible here): UNIQUE (project_id, stage) = uq_gate_submission_stage.
+# Legacy index ix_gate_submissions_project is on project_id.
+# `data` is the free-form gate form payload (JSONB sink). `status` is a plain string
+#   vocabulary (in_progress / submitted). Legacy struct has `status: String` (non-null) and
+#   `created_at: DateTimeWithTimeZone` (non-null) — modelled required here.
+# custom_method `save_stage` declared per .appfw/specs/002 §3.
+- name: GateSubmission
+  id: 7b1e4a20-0009-4a10-9c09-a0b1c2d3e4f8
+  is_table: true
+  facets: [audited, concurrency]
+  indexes: [project_id]
+
+  custom_methods:
+  - name: save_stage
+    kind: Mutation
+    mcp_enabled: false
+    args:
+    - name: project_id
+      arg_type: String
+    - name: stage
+      arg_type: String
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: project_id
+    caption: Project
+    data_type: Uuid
+    is_required: true
+    foreign_key:
+      type_name: Project
+
+  - name: stage
+    fragment: property-string-required
+
+  - name: status
+    fragment: property-string
+    is_required: true
+    default_value: "in_progress"
+
+  - name: decision
+    fragment: property-string
+
+  - name: data
+    caption: Payload
+    fragment: property-json-required
+
+  - name: submitted_by
+    caption: Submitted By
+    data_type: Uuid
+    foreign_key:
+      type_name: User
+
+  - name: submitted_at
+    fragment: property-date-time
+
+  - name: created_at
+    fragment: property-date-time-required
+
+  - name: updated_at
+    fragment: property-date-time

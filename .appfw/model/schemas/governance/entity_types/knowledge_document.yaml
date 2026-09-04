@@ -1,0 +1,24 @@
+# Legacy table `knowledge_documents`. SET C. No audit facet.
+# Mirrored for model fidelity; RAG capability deferred (Q3). Unwired in legacy.
+# Scalars + physical FK columns only — NavTo* projected from relationships/03-supporting.yaml.
+
+- name: KnowledgeDocument
+  id: 7a1c9e40-0000-4000-8000-000000000c07
+  caption: Knowledge Document
+  is_table: true
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: title
+    fragment: property-string-caption
+
+  - name: document_type
+    fragment: property-string-required
+
+  - name: source_url
+    fragment: property-string
+
+  - name: created_at
+    fragment: property-date-time

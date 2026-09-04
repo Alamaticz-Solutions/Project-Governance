@@ -1,0 +1,55 @@
+# Legacy table `comments`. SET C.
+# Q5 audit: facets: [audited].
+# Self-referential (parent_id -> Comment), plus nullable FKs to WorkflowTask / GateReview.
+# Scalars + physical FK columns only — NavTo* projected from relationships/03-supporting.yaml.
+
+- name: Comment
+  id: 7a1c9e40-0000-4000-8000-000000000c03
+  caption: Comment
+  is_table: true
+  facets: [audited]
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: project_id
+    is_required: true
+    data_type: Uuid
+    foreign_key:
+      type_name: Project
+
+  - name: task_id
+    data_type: Uuid
+    foreign_key:
+      type_name: WorkflowTask
+
+  - name: gate_review_id
+    data_type: Uuid
+    foreign_key:
+      type_name: GateReview
+
+  - name: author_id
+    is_required: true
+    data_type: Uuid
+    foreign_key:
+      type_name: User
+
+  - name: content
+    is_required: true
+    fragment: property-string-stringmax-xl
+
+  - name: parent_id
+    data_type: Uuid
+    foreign_key:
+      type_name: Comment
+
+  - name: is_internal
+    fragment: property-boolean-toggle
+    default_value: false
+
+  - name: created_at
+    fragment: property-date-time
+
+  - name: updated_at
+    fragment: property-date-time

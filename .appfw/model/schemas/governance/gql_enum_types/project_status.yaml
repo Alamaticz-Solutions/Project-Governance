@@ -1,0 +1,18 @@
+# project_status — 7-value set (entity layer adds IN_DELIVERY over the 6 in m20260101_000001).
+# SCREAMING_SNAKE authoritative; see 000-INDEX.md provisional decision Q7.
+- name: ProjectStatus
+  items:
+  - value: DRAFT
+    caption: Draft
+  - value: ACTIVE
+    caption: Active
+  - value: ON_HOLD
+    caption: On Hold
+  - value: IN_DELIVERY
+    caption: In Delivery
+  - value: COMPLETED
+    caption: Completed
+  - value: CANCELLED
+    caption: Cancelled
+  - value: ARCHIVED
+    caption: Archived

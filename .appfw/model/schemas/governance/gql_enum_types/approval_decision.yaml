@@ -1,0 +1,7 @@
+# Legacy Postgres enum approval_decision / entity ApprovalDecision.
+- name: ApprovalDecision
+  items:
+  - value: APPROVED
+  - value: REJECTED
+  - value: NEEDS_INFO
+  - value: DEFERRED

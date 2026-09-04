@@ -1,0 +1,191 @@
+# SET C — supporting-entity relationships. All OneToMany.
+# Directional nav fields (one.field / many.field) are projected onto the participating
+# entities by app_gen (ADR 0003) — never hand-authored as NavTo* props.
+# Endpoint field names checked against legacy entity structs for
+# relationship_field_conflicts_with_native_property — no collisions.
+
+- name: project_risks
+  kind: OneToMany
+  one:
+    entity: Project
+    field: risks
+  many:
+    entity: RiskItem
+    field: project
+  storage:
+    type: ForeignKey
+    owner: RiskItem
+    field: project_id
+
+- name: user_owned_risks
+  kind: OneToMany
+  one:
+    entity: User
+    field: owned_risks
+  many:
+    entity: RiskItem
+    field: owner
+  storage:
+    type: ForeignKey
+    owner: RiskItem
+    field: owner_id
+
+- name: project_attachments
+  kind: OneToMany
+  one:
+    entity: Project
+    field: attachments
+  many:
+    entity: Attachment
+    field: project
+  storage:
+    type: ForeignKey
+    owner: Attachment
+    field: project_id
+
+- name: user_uploaded_attachments
+  kind: OneToMany
+  one:
+    entity: User
+    field: uploaded_attachments
+  many:
+    entity: Attachment
+    field: uploaded_by
+  storage:
+    type: ForeignKey
+    owner: Attachment
+    field: uploaded_by_id
+
+- name: project_comments
+  kind: OneToMany
+  one:
+    entity: Project
+    field: comments
+  many:
+    entity: Comment
+    field: project
+  storage:
+    type: ForeignKey
+    owner: Comment
+    field: project_id
+
+- name: user_authored_comments
+  kind: OneToMany
+  one:
+    entity: User
+    field: authored_comments
+  many:
+    entity: Comment
+    field: author
+  storage:
+    type: ForeignKey
+    owner: Comment
+    field: author_id
+
+# Self-referential: a comment's replies point back at their parent comment.
+- name: comment_replies
+  kind: OneToMany
+  one:
+    entity: Comment
+    field: replies
+  many:
+    entity: Comment
+    field: parent
+  storage:
+    type: ForeignKey
+    owner: Comment
+    field: parent_id
+
+- name: workflow_task_comments
+  kind: OneToMany
+  one:
+    entity: WorkflowTask
+    field: comments
+  many:
+    entity: Comment
+    field: task
+  storage:
+    type: ForeignKey
+    owner: Comment
+    field: task_id
+
+- name: gate_review_comments
+  kind: OneToMany
+  one:
+    entity: GateReview
+    field: comments
+  many:
+    entity: Comment
+    field: gate_review
+  storage:
+    type: ForeignKey
+    owner: Comment
+    field: gate_review_id
+
+# MUST NOT cascade-delete — see 000-INDEX findings (legacy ON DELETE CASCADE on
+# audit_history.project_id would destroy the audit trail on project delete).
+# The grammar has no cascade knob in `storage`; this comment is the control.
+- name: project_audit_events
+  kind: OneToMany
+  one:
+    entity: Project
+    field: audit_events
+  many:
+    entity: AuditEvent
+    field: project
+  storage:
+    type: ForeignKey
+    owner: AuditEvent
+    field: project_id
+
+- name: user_audit_events
+  kind: OneToMany
+  one:
+    entity: User
+    field: audit_events
+  many:
+    entity: AuditEvent
+    field: performed_by
+  storage:
+    type: ForeignKey
+    owner: AuditEvent
+    field: performed_by_id
+
+- name: user_notifications
+  kind: OneToMany
+  one:
+    entity: User
+    field: notifications
+  many:
+    entity: Notification
+    field: recipient
+  storage:
+    type: ForeignKey
+    owner: Notification
+    field: recipient_id
+
+- name: project_notifications
+  kind: OneToMany
+  one:
+    entity: Project
+    field: notifications
+  many:
+    entity: Notification
+    field: project
+  storage:
+    type: ForeignKey
+    owner: Notification
+    field: project_id
+
+- name: knowledge_document_chunks
+  kind: OneToMany
+  one:
+    entity: KnowledgeDocument
+    field: chunks
+  many:
+    entity: KnowledgeChunk
+    field: document
+  storage:
+    type: ForeignKey
+    owner: KnowledgeChunk
+    field: document_id

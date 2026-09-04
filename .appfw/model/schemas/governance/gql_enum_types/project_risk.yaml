@@ -1,0 +1,11 @@
+# project_risk — SCREAMING_SNAKE authoritative; see 000-INDEX.md.
+- name: ProjectRisk
+  items:
+  - value: VERY_HIGH
+    caption: Very High
+  - value: HIGH
+    caption: High
+  - value: MEDIUM
+    caption: Medium
+  - value: LOW
+    caption: Low

@@ -1,0 +1,23 @@
+# Legacy Postgres enum gate_code (20 values: A..S plus CAB), migration m20260101_000001.
+- name: GateCode
+  items:
+  - value: A
+  - value: B
+  - value: C
+  - value: D
+  - value: E
+  - value: F
+  - value: G
+  - value: H
+  - value: I
+  - value: J
+  - value: K
+  - value: L
+  - value: M
+  - value: N
+  - value: O
+  - value: P
+  - value: Q
+  - value: R
+  - value: S
+  - value: CAB

@@ -1,0 +1,31 @@
+# Legacy table: workflow_definitions (seeded every boot; read by nothing today).
+# Business column `version INTEGER` (definition version, starts 1) is renamed here to
+# `definition_version` (Int32) to avoid colliding with the Int64 `version` property that
+# the [concurrency] facet injects. See .appfw/specs/000-INDEX.md "WorkflowDefinition.version COLLISION".
+- name: WorkflowDefinition
+  id: 7b1e4a20-0001-4a10-9c01-a0b1c2d3e4f0
+  is_table: true
+  facets: [concurrency]
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: name
+    caption: Workflow Name
+    fragment: property-string-caption
+
+  - name: description
+    fragment: property-string-stringmax-xl
+
+  - name: definition_version
+    caption: Definition Version
+    fragment: property-int-md
+    default_value: 1
+
+  - name: is_active
+    fragment: property-boolean-toggle
+    default_value: true
+
+  - name: created_at
+    fragment: property-date-time

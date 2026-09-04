@@ -1,0 +1,48 @@
+# Legacy table `notifications`. SET C. No audit facet.
+# Writer (workflow engine call site) is net-new — owned by spec 002, not preserved.
+# Scalars + physical FK columns only — NavTo* projected from relationships/03-supporting.yaml.
+
+- name: Notification
+  id: 7a1c9e40-0000-4000-8000-000000000c05
+  caption: Notification
+  is_table: true
+  indexes: [recipient_id]
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: recipient_id
+    is_required: true
+    data_type: Uuid
+    foreign_key:
+      type_name: User
+
+  - name: project_id
+    data_type: Uuid
+    foreign_key:
+      type_name: Project
+
+  - name: notification_type
+    fragment: property-enum-required
+    enum_type_name: NotificationType
+
+  - name: title
+    fragment: property-string-caption
+
+  - name: message
+    is_required: true
+    fragment: property-string-stringmax-lg
+
+  - name: action_url
+    fragment: property-string
+
+  - name: is_read
+    fragment: property-boolean-toggle
+    default_value: false
+
+  - name: created_at
+    fragment: property-date-time
+
+  - name: read_at
+    fragment: property-date-time

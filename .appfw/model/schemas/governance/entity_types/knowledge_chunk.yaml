@@ -1,0 +1,29 @@
+# Legacy table `knowledge_chunks`. SET C. No audit facet.
+# Q3: the `embedding vector(1536)` column is OMITTED entirely — no vector type in the
+# grammar, RAG deferred. Keep chunk_text, metadata, sequence_order only.
+# Scalars + physical FK columns only — NavTo* projected from relationships/03-supporting.yaml.
+
+- name: KnowledgeChunk
+  id: 7a1c9e40-0000-4000-8000-000000000c08
+  caption: Knowledge Chunk
+  is_table: true
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: document_id
+    is_required: true
+    data_type: Uuid
+    foreign_key:
+      type_name: KnowledgeDocument
+
+  - name: chunk_text
+    is_required: true
+    fragment: property-string-stringmax-xl
+
+  - name: metadata
+    fragment: property-json
+
+  - name: sequence_order
+    fragment: property-int-md

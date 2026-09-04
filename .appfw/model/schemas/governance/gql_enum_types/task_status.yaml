@@ -1,0 +1,8 @@
+# Legacy Postgres enum task_status / entity TaskStatus (labels match apart from casing).
+- name: TaskStatus
+  items:
+  - value: PENDING
+  - value: IN_PROGRESS
+  - value: COMPLETED
+  - value: OVERDUE
+  - value: CANCELLED

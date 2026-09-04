@@ -1,0 +1,51 @@
+# ProjectField — legacy table `project_fields`. SET A.
+# facets: audited -> generates ProjectFieldAudit companion; see project_field_audit.rego
+# Legacy UNIQUE (project_id, field_name) [uq_project_field] — framework `constraints` is
+# reserved metadata only; documented here, enforcement TBD at generate time.
+# Nav fields (project, updated_by) projected from relationships/01-identity-project.yaml.
+
+- id: a6218f70-4e93-4c05-b8d1-7f2c9a5e6b03
+  name: ProjectField
+  is_table: true
+  facets:
+  - audited
+  execution:
+    prepared_statements: true
+  constraints: []
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: project_id
+    data_type: Uuid
+    is_required: true
+    foreign_key:
+      type_name: Project
+
+  - name: field_name
+    fragment: property-string-caption
+
+  - name: field_value
+    fragment: property-json
+
+  - name: is_ai_suggested
+    fragment: property-boolean-toggle
+    default_value: false
+
+  - name: ai_confidence
+    fragment: property-float64
+
+  - name: ai_source_document
+    fragment: property-string
+
+  - name: ai_extracted_text
+    fragment: property-string-stringmax-xl
+
+  - name: updated_at
+    fragment: property-date-time
+
+  - name: updated_by_id
+    data_type: Uuid
+    foreign_key:
+      type_name: User

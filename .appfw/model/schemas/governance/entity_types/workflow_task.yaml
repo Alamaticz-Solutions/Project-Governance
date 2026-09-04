@@ -1,0 +1,57 @@
+# Legacy table: workflow_tasks (fully unwired — schema fidelity only).
+# assigned_role uses the UserRole enum (owned by Set A / spec 001); referenced here only.
+# status enum TaskStatus (owned by this set). Legacy index ix_task_stage_status is (stage_id, status).
+- name: WorkflowTask
+  id: 7b1e4a20-0005-4a10-9c05-a0b1c2d3e4f4
+  is_table: true
+  facets: [audited]
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: stage_id
+    caption: Stage
+    data_type: Uuid
+    is_required: true
+    foreign_key:
+      type_name: WorkflowStage
+
+  - name: task_name
+    caption: Task Name
+    fragment: property-string-caption
+
+  - name: task_description
+    fragment: property-string-stringmax-lg
+
+  - name: task_type
+    fragment: property-string
+
+  - name: assigned_role
+    fragment: property-enum
+    enum_type_name: UserRole
+
+  - name: status
+    fragment: property-enum-required
+    enum_type_name: TaskStatus
+    default_value: PENDING
+
+  - name: is_required
+    fragment: property-boolean-toggle
+    default_value: true
+
+  - name: sequence_order
+    fragment: property-int-md
+    default_value: 0
+
+  - name: due_date
+    fragment: property-date-time
+
+  - name: completed_at
+    fragment: property-date-time
+
+  - name: notes
+    fragment: property-string
+
+  - name: metadata
+    fragment: property-json

@@ -1,0 +1,83 @@
+# Legacy table: gate_reviews (REST-wired via /gate-reviews/*).
+# gate_code enum GateCode (this set). assigned_role -> UserRole, priority -> ProjectPriority
+#   (both owned by Set A / spec 001; referenced here only).
+# status is a plain string vocabulary (pending / approved / rejected / ...), not an enum.
+# Legacy indexes: ix_gate_review_status (status), ix_gate_review_project_gate (project_id, gate_code).
+#   Only the single-column `status` index is expressible in `indexes:`.
+# custom_method `decide` declared per .appfw/specs/002 §3.
+- name: GateReview
+  id: 7b1e4a20-0008-4a10-9c08-a0b1c2d3e4f7
+  is_table: true
+  facets: [audited, concurrency]
+  indexes: [status]
+
+  custom_methods:
+  - name: decide
+    kind: Mutation
+    mcp_enabled: false
+    args:
+    - name: gate_id
+      arg_type: String
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: project_id
+    caption: Project
+    data_type: Uuid
+    is_required: true
+    foreign_key:
+      type_name: Project
+
+  - name: gate_code
+    fragment: property-enum-required
+    enum_type_name: GateCode
+
+  - name: gate_name
+    caption: Gate Name
+    fragment: property-string-caption
+
+  - name: committee
+    fragment: property-string
+
+  - name: assigned_role
+    fragment: property-enum
+    enum_type_name: UserRole
+
+  - name: status
+    fragment: property-string
+    default_value: "pending"
+
+  - name: decision
+    fragment: property-enum
+    enum_type_name: ApprovalDecision
+
+  - name: decision_by_id
+    caption: Decision By
+    data_type: Uuid
+    foreign_key:
+      type_name: User
+
+  - name: decision_at
+    fragment: property-date-time
+
+  - name: decision_notes
+    fragment: property-string-stringmax-lg
+
+  - name: checklist_items
+    fragment: property-json
+
+  - name: submitted_at
+    fragment: property-date-time
+
+  - name: due_date
+    fragment: property-date-time
+
+  - name: priority
+    fragment: property-enum
+    enum_type_name: ProjectPriority

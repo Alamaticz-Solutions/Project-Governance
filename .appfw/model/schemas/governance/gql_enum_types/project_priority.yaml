@@ -1,0 +1,11 @@
+# project_priority — SCREAMING_SNAKE authoritative; see 000-INDEX.md.
+- name: ProjectPriority
+  items:
+  - value: CRITICAL
+    caption: Critical
+  - value: HIGH
+    caption: High
+  - value: MEDIUM
+    caption: Medium
+  - value: LOW
+    caption: Low

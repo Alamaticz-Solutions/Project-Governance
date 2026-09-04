@@ -1,0 +1,31 @@
+# user_role — 14 values. SCREAMING_SNAKE authoritative (entity layer + m20260902); see 000-INDEX.md.
+- name: UserRole
+  items:
+  - value: ADMIN
+    caption: Administrator
+  - value: PROJECT_MANAGER
+    caption: Project Manager
+  - value: BTA
+    caption: Business Technology Analyst
+  - value: EPMO
+    caption: EPMO
+  - value: FINANCE
+    caption: Finance
+  - value: VENDOR_SCREENING
+    caption: Vendor Screening
+  - value: ANALYSIS_TEAM
+    caption: Analysis Team
+  - value: EAC
+    caption: EAC
+  - value: CAB
+    caption: Change Advisory Board
+  - value: SECURITY
+    caption: Security
+  - value: TAF
+    caption: TAF
+  - value: TRC
+    caption: TRC
+  - value: PIC
+    caption: PIC
+  - value: VIEWER
+    caption: Viewer

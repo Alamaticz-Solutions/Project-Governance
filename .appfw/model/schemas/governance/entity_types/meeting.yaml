@@ -1,0 +1,104 @@
+# Legacy table `poc_meetings` -> entity Meeting (deliberate rename; the legacy table
+# is a standalone PoC table, map is not 1:1). SET C.
+# Q5 audit: facets: [audited, concurrency].
+# DELIBERATELY STANDALONE — NO relationship to Project (none exists in legacy). No FKs.
+# Column set is the union across migrations 000003 + 000006 + 000007 (000004's
+# drop/rename of graph_organizer_id is NOT applied here — see report).
+# transcript_text / transcript_vtt / summary are PHI-risk free text (inventory).
+
+- name: Meeting
+  id: 7a1c9e40-0000-4000-8000-000000000c09
+  caption: Meeting
+  is_table: true
+  facets: [audited, concurrency]
+  indexes: [graph_online_meeting_id, status]
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  - name: subject
+    fragment: property-string-caption
+
+  - name: source
+    fragment: property-string-required
+    default_value: local_stub
+
+  - name: status
+    fragment: property-string-required
+    default_value: scheduled
+
+  - name: start_time
+    fragment: property-date-time
+
+  - name: end_time
+    fragment: property-date-time
+
+  - name: organizer_email
+    fragment: property-string-email
+
+  - name: graph_online_meeting_id
+    fragment: property-string
+
+  # Present in migration 000003, dropped by 000004, absent from the current entity
+  # struct — carried here because the task's column list names it explicitly. Flag for review.
+  - name: graph_organizer_id
+    fragment: property-string
+
+  - name: graph_organizer_user_id
+    fragment: property-string
+
+  - name: graph_transcript_id
+    fragment: property-string
+
+  - name: graph_event_id
+    fragment: property-string
+
+  - name: join_url
+    fragment: property-string
+
+  - name: external_ref
+    fragment: property-string
+
+  - name: transcript_vtt
+    fragment: property-string-stringmax-xl
+
+  - name: transcript_text
+    fragment: property-string-stringmax-xl
+
+  - name: summary
+    fragment: property-string-stringmax-xl
+
+  - name: decisions
+    fragment: property-json-array
+
+  - name: action_items
+    fragment: property-json-array
+
+  - name: agenda_items
+    fragment: property-json-array
+
+  - name: attendees
+    fragment: property-json-array
+
+  - name: contains_process_flow
+    fragment: property-boolean-toggle
+    default_value: false
+
+  - name: process_name
+    fragment: property-string
+
+  - name: bpmn_xml
+    fragment: property-string-stringmax-xl
+
+  - name: bpmn_status
+    fragment: property-string
+
+  - name: error_message
+    fragment: property-string-stringmax-lg
+
+  - name: created_at
+    fragment: property-date-time
+
+  - name: updated_at
+    fragment: property-date-time
