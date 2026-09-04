@@ -32,7 +32,7 @@ export function MeetingCenterScreen() {
     (client) =>
       client.queryList(meetingEntity, {
         limit: 50,
-        sort: [{ created_at: 'desc' }],
+        sort: { created_at: 'desc' },
         selection: [
           'id',
           'subject',

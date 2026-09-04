@@ -21,7 +21,7 @@ async function loadNotifications(client: AppfwClient, recipientId: string | unde
   if (unreadOnly) clauses.push({ is_read: { _eq: false } });
   const result = await client.queryList(notificationEntity, {
     limit: 100,
-    sort: [{ created_at: 'desc' }],
+    sort: { created_at: 'desc' },
     filter: clauses.length ? { _and: clauses } : undefined,
     selection: [
       'id',

@@ -55,7 +55,7 @@ async function loadWorkspace(client: AppfwClient, projectId: string) {
       ? client
           .queryList(stageEntity, {
             filter: { workflow_instance_id: { _eq: instanceId } },
-            sort: [{ sequence_order: 'asc' }],
+            sort: { sequence_order: 'asc' },
             selection: [
               'id',
               'stage_name',
@@ -74,7 +74,7 @@ async function loadWorkspace(client: AppfwClient, projectId: string) {
     client
       .queryList(submissionEntity, {
         filter: { project_id: { _eq: projectId } },
-        sort: [{ created_at: 'asc' }],
+        sort: { created_at: 'asc' },
         selection: ['id', 'stage', 'status', 'decision', 'data', 'submitted_at'],
         limit: 100
       })
@@ -82,7 +82,7 @@ async function loadWorkspace(client: AppfwClient, projectId: string) {
     client
       .queryList(approvalEntity, {
         filter: { project_id: { _eq: projectId } },
-        sort: [{ sequence_order: 'asc' }],
+        sort: { sequence_order: 'asc' },
         selection: ['id', 'approval_stage', 'assigned_role', 'status', 'decision', 'comments'],
         limit: 100
       })

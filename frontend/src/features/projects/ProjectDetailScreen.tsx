@@ -44,7 +44,7 @@ async function loadProject(client: AppfwClient, id: string) {
     client
       .queryList(approvalEntity, {
         filter: { project_id: { _eq: id } },
-        sort: [{ sequence_order: 'asc' }],
+        sort: { sequence_order: 'asc' },
         selection: [
           'id',
           'approval_stage',
@@ -61,7 +61,7 @@ async function loadProject(client: AppfwClient, id: string) {
     client
       .queryList(gateSubmissionEntity, {
         filter: { project_id: { _eq: id } },
-        sort: [{ created_at: 'asc' }],
+        sort: { created_at: 'asc' },
         selection: ['id', 'stage', 'status', 'decision', 'submitted_at', 'created_at'],
         limit: 50
       })

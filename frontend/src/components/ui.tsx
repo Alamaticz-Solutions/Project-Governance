@@ -85,16 +85,25 @@ const ENUM_TONE: Record<string, PdsTone> = {
 };
 
 // Normalize any enum wire casing to SCREAMING_SNAKE: the GraphQL enums come
-// back PascalCase (async-graphql's default rename — e.g. "InProgress"), while
-// free-string status fields this product writes itself use snake_case
-// ("in_progress") or SCREAMING_SNAKE audit action constants. One canonical form
-// makes lookups and display consistent regardless of source.
-function canonicalEnumKey(value: string): string {
+// back PascalCase on read/mutation (async-graphql's default rename — e.g.
+// "InProgress"), while free-string status fields this product writes itself
+// use snake_case ("in_progress") or SCREAMING_SNAKE audit action constants.
+// One canonical form makes lookups and display consistent regardless of
+// source — and it is also what `filter` arguments need: the generated
+// `filter`/`sort` GraphQL args are untyped JSON, so enum comparisons bypass
+// the schema's PascalCase rename entirely and compare the raw stored text,
+// which is the model's original SCREAMING_SNAKE (confirmed live:
+// `queryUsers(filter:{role:{_eq:"ADMIN"}})` matches, `_eq:"Admin"` does not).
+// Exported as `toEnumFilterValue` for building filter clauses.
+export function canonicalEnumKey(value: string): string {
   return value
     .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
     .replace(/[-\s]+/g, '_')
     .toUpperCase();
 }
+
+/** Alias read at filter-building call sites — same conversion, named for intent. */
+export const toEnumFilterValue = canonicalEnumKey;
 
 export function humanizeEnum(value: unknown): string {
   if (typeof value !== 'string' || !value) return '—';

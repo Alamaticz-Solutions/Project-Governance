@@ -11,22 +11,22 @@ import { useApp, useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';
 import type { AppfwClient, AppfwRecord } from '../../lib/appfwClient';
 import { AsyncSection, EnumBadge, formatDate } from '../../components/ui';
-import { roleToEnumValue } from '../../lib/authContext';
 import { useState } from 'react';
 
 const approvalEntity = entityByType('ProjectApproval');
 const gateReviewEntity = entityByType('GateReview');
 
 async function loadInbox(client: AppfwClient, roles: readonly string[]) {
-  // assigned_role is the UserRole GraphQL enum (PascalCase wire values).
-  const enumRoles = roles.map(roleToEnumValue);
+  // filter args are untyped JSON and compare the raw stored SCREAMING_SNAKE
+  // text, not the UserRole enum's PascalCase wire value (confirmed live).
+  const enumRoles = roles.map((r) => r.toUpperCase());
   const roleFilter = enumRoles.length ? { assigned_role: { _in: enumRoles } } : undefined;
 
   const [approvals, reviews] = await Promise.all([
     client
       .queryList(approvalEntity, {
         limit: 100,
-        sort: [{ created_at: 'asc' }],
+        sort: { created_at: 'asc' },
         filter: roleFilter
           ? { _and: [{ status: { _eq: 'PENDING' } }, roleFilter] }
           : { status: { _eq: 'PENDING' } },
@@ -44,7 +44,7 @@ async function loadInbox(client: AppfwClient, roles: readonly string[]) {
     client
       .queryList(gateReviewEntity, {
         limit: 100,
-        sort: [{ due_date: 'asc' }],
+        sort: { due_date: 'asc' },
         filter: roleFilter
           ? { _and: [{ status: { _in: ['PENDING', 'IN_PROGRESS'] } }, roleFilter] }
           : { status: { _in: ['PENDING', 'IN_PROGRESS'] } },

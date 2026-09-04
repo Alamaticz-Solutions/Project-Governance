@@ -10,7 +10,6 @@ import { useApp, useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';
 import type { AppfwClient, AppfwRecord } from '../../lib/appfwClient';
 import { AsyncSection, EnumBadge, formatDate } from '../../components/ui';
-import { roleToEnumValue } from '../../lib/authContext';
 
 const projectEntity = entityByType('Project');
 const approvalEntity = entityByType('ProjectApproval');
@@ -20,15 +19,18 @@ async function countWhere(client: AppfwClient, filter: unknown): Promise<number>
   return result.page.queryCount;
 }
 
+// `filter` args are untyped JSON and compare the raw stored text — the
+// model's SCREAMING_SNAKE casing, not the PascalCase the GraphQL enum type
+// uses for mutation input / read projections (confirmed live).
 async function loadDashboard(client: AppfwClient, roles: readonly string[]) {
   const [total, active, inDelivery, cancelled, recent, approvals] = await Promise.all([
     countWhere(client, undefined),
-    countWhere(client, { status: { _eq: 'Active' } }),
-    countWhere(client, { status: { _eq: 'InDelivery' } }),
-    countWhere(client, { status: { _eq: 'Cancelled' } }),
+    countWhere(client, { status: { _eq: 'ACTIVE' } }),
+    countWhere(client, { status: { _eq: 'IN_DELIVERY' } }),
+    countWhere(client, { status: { _eq: 'CANCELLED' } }),
     client.queryList(projectEntity, {
       limit: 8,
-      sort: [{ created_at: 'desc' }],
+      sort: { created_at: 'desc' },
       selection: [
         'id',
         'project_number',
@@ -46,10 +48,10 @@ async function loadDashboard(client: AppfwClient, roles: readonly string[]) {
             filter: {
               _and: [
                 { status: { _eq: 'PENDING' } },
-                { assigned_role: { _in: roles.map(roleToEnumValue) } }
+                { assigned_role: { _in: roles.map((r) => r.toUpperCase()) } }
               ]
             },
-            sort: [{ created_at: 'asc' }],
+            sort: { created_at: 'asc' },
             selection: ['id', 'approval_stage', 'assigned_role', 'status', 'project_id']
           })
           .catch(() => ({ rows: [] as AppfwRecord[] }))

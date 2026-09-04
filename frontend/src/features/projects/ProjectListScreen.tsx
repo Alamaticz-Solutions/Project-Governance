@@ -15,7 +15,7 @@ import {
 import { useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';
 import type { AppfwRecord } from '../../lib/appfwClient';
-import { AsyncSection, EnumBadge, formatDate } from '../../components/ui';
+import { AsyncSection, EnumBadge, formatDate, toEnumFilterValue } from '../../components/ui';
 import { PROJECT_STATUS } from '../shared/enums';
 
 const PAGE_SIZE = 25;
@@ -31,7 +31,10 @@ export function ProjectListScreen() {
 
   const filter = useMemo(() => {
     const clauses: unknown[] = [];
-    if (status) clauses.push({ status: { _eq: status } });
+    // filter args are untyped JSON and compare the raw stored text, which is
+    // the model's SCREAMING_SNAKE casing — not the PascalCase the SelectField
+    // options use for mutation-input/display consistency. See toEnumFilterValue.
+    if (status) clauses.push({ status: { _eq: toEnumFilterValue(status) } });
     if (search.trim()) {
       clauses.push({
         _or: [
@@ -49,7 +52,7 @@ export function ProjectListScreen() {
         skip: page * PAGE_SIZE,
         limit: PAGE_SIZE,
         filter,
-        sort: [{ created_at: 'desc' }],
+        sort: { created_at: 'desc' },
         selection: [
           'id',
           'project_number',

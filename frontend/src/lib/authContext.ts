@@ -101,8 +101,14 @@ export function roleKey(role: string | null | undefined): string {
 
 /**
  * Convert this app's snake_case role vocabulary (`project_manager`) to the
- * `UserRole` GraphQL enum's PascalCase wire value (`ProjectManager`), for
- * building filters against `assigned_role` fields.
+ * `UserRole` GraphQL enum's PascalCase wire value (`ProjectManager`) — the
+ * casing a typed enum position (a mutation input field) expects.
+ *
+ * NOT for building `assigned_role` filter clauses: `filter`/`sort` arguments
+ * are untyped JSON and compare the raw stored text, which is the model's
+ * SCREAMING_SNAKE casing (confirmed live — `_eq:"ADMIN"` matches,
+ * `_eq:"Admin"` does not). Filters should use `role.toUpperCase()` /
+ * `components/ui.tsx`'s `toEnumFilterValue` instead.
  */
 export function roleToEnumValue(role: string): string {
   return role

@@ -83,7 +83,7 @@ export function IntakeScreen() {
     (client) =>
       client.queryList(userEntity, {
         limit: 100,
-        sort: [{ full_name: 'asc' }],
+        sort: { full_name: 'asc' },
         selection: ['id', 'full_name', 'email', 'role']
       }),
     []

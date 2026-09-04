@@ -35,7 +35,7 @@ export function AuditScreen() {
         skip: page * PAGE_SIZE,
         limit: PAGE_SIZE,
         filter,
-        sort: [{ performed_at: 'desc' }],
+        sort: { performed_at: 'desc' },
         selection: ['id', 'entity_type', 'entity_id', 'action', 'performed_at', 'project_id']
       }),
     [page, filter]
