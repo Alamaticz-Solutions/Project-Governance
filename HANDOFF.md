@@ -18,17 +18,19 @@ Companion documents:
 
 | Area | State | Last green at |
 |---|---|---|
-| `.appfw/model` (config source of truth) | 24 entity_types, 9 enum types, 4 relationship files, 41 governance RBAC policies, 3 seeds, 2 model tests | `937dfbd` (M9) |
+| `.appfw/model` (config source of truth) | 24 entity_types, 9 enum types, 4 relationship files, 41 governance RBAC policies (+1 framework `system`), 3 seeds, 2 model tests | `937dfbd` (M9) |
 | Backend generate / validate / boundary-check / generate --check / product test | all green in Docker (framework mounted) | `937dfbd` (M9) |
 | Backend hand-owned services (M8 workflow engine, M9 Graph provider) | compile, boundary-clean, unit tests pass | `937dfbd` (M9) |
-| Frontend `typecheck` / `vite build` / `appfw:check` | all green | `ea41685` (HEAD) |
+| Frontend `typecheck` / `vite build` / `appfw:check` / `phi:check` | all green | `f506819` (HEAD) |
 | Frontend `product frontend-test` | N/A — scaffold ships no `test:frontend`; manifest does not require one | — |
 | Independent 11-section review + file-12 verification pass | **not done** — must be a separate reviewer | — |
 
-**Every change between `937dfbd` and HEAD (`ea41685`) is under `frontend/`.** No
-`.appfw/model`, backend, or spec file changed, so the M9 backend gate results
-remain logically valid at HEAD — but they were **not re-executed at HEAD** because
-the framework CLI was removed (see §6).
+**Every code change between `937dfbd` (M9) and the M11 tip `ea41685` is under
+`frontend/`.** M12 (`f506819` onward) adds only this document, `docs/evidence/`,
+the PHI lint script, and doc-text edits — no `.appfw/model`, backend, or
+frontend-`src` change. So the M9 backend gate results remain logically valid at
+HEAD — but they were **not re-executed at HEAD** because the framework CLI was
+removed (see §6). The frontend gates *were* re-run at `f506819`.
 
 ---
 
@@ -215,8 +217,8 @@ All `target/` output is `.gitignore`d, so retained copies live here:
 
 | File | What | Produced at |
 |---|---|---|
-| `frontend-gates-m12.txt` | typecheck + build + appfw:check + phi:check console output, all exit 0 | HEAD `ea41685` + the M12 lint additions |
-| `frontend-scaffold-check-ea41685.json` | `appfw:check` machine evidence, `ok: true` | HEAD |
+| `frontend-gates-f506819.txt` | typecheck + build + appfw:check + phi:check console output, all exit 0 | `f506819` (frontend `src`/config unchanged since) |
+| `frontend-scaffold-check-f506819.json` | `appfw:check` machine evidence, `ok: true` | `f506819` |
 | `backend-m9/validation.json` | `product validate` — `valid: true`, 0 errors / 0 warnings | M9 `937dfbd` |
 | `backend-m9/boundary_check.json` | `boundary-check` — `ok: true`, 62 files checked | M9 |
 | `backend-m9/config_contract.md` | generated config contract | M9 |
@@ -258,8 +260,12 @@ five are unresolved and each can change generated output or service behaviour:
 - **Bespoke gate forms** — the seven legacy per-role review forms
   (BTA/EAC/EPMO/Finance/PIC) are replaced by one generic gate form.
 - **Frontend**: real-backend integration testing; route-level code-splitting;
-  an E2E/a11y harness (`test:frontend` does not exist); wiring the PHI/PII lint
-  into CI (there is no CI here).
+  an E2E/a11y harness (`test:frontend` does not exist).
+- **`frontend/scripts/check-phi-lint.mjs`** is a first pass, not wired to CI
+  (there is no CI here) and not hardened: e.g. the `us-phone` rule flags
+  `555`-exchange placeholder numbers, and the rule set is regex-shape-only. A
+  clean run is not proof of no PHI/PII — treat it as a tripwire, and tighten the
+  rules + allow-list before relying on it.
 - **`OneToOne` relationships** (02 §3 `[TBD]`), **`soft-deleted` filtering**
   semantics (02 §10 `[ASSUMPTION]`), **missing-RBAC-file lint** (02 §5
   `[ASSUMPTION]`), **`ui:` manifest block shape** (02 §8) — all unconfirmed.

@@ -1,17 +1,18 @@
-# Frontend gate run — retained evidence
+# Frontend gates — retained evidence
 
-- Base commit: ea41685 (M11) + uncommitted M12 additions (check-phi-lint.mjs, phi:check script)
-- Date: 2026-09-04T09:20:35Z
+- Commit: f506819
+- Date: 2026-09-04T09:22:08Z
 - Runner: docker node:20, frontend/ mounted, vendored @appfw/pds-health-components 0.12.0
-- Framework CLI NOT required for any of these four.
+- Framework CLI not required for any of these four.
 
 == typecheck ==
 exit=0
 == build ==
+(!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 21.95s
+✓ built in 20.56s
 exit=0
 == appfw:check ==
 Project Governance frontend scaffold OK

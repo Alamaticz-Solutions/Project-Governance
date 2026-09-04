@@ -5,8 +5,8 @@ retained are copied here and committed. See `../../HANDOFF.md` §7.
 
 | File | Gate | Result | Produced at |
 |---|---|---|---|
-| `frontend-gates-m12.txt` | `typecheck` + `vite build` + `appfw:check` + `phi:check` | all exit 0 | HEAD + M12 lint additions |
-| `frontend-scaffold-check-ea41685.json` | `appfw:check` machine evidence | `ok: true` | HEAD |
+| `frontend-gates-f506819.txt` | `typecheck` + `vite build` + `appfw:check` + `phi:check` | all exit 0 | `f506819` |
+| `frontend-scaffold-check-f506819.json` | `appfw:check` machine evidence | `ok: true` | `f506819` |
 | `backend-m9/validation.json` | `product validate` | `valid: true`, 0/0 | `937dfbd` (M9) |
 | `backend-m9/boundary_check.json` | `product boundary-check` | `ok: true`, 62 files | `937dfbd` (M9) |
 | `backend-m9/config_contract.md` | generated config contract | — | `937dfbd` (M9) |

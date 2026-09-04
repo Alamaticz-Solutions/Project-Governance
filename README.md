@@ -17,7 +17,7 @@ hand-owned, how to run every gate, retained evidence, and the open decisions.
 
 | Path | What |
 |---|---|
-| `.appfw/model/` | config source of truth (24 entities, 9 enums, 41 RBAC policies, seeds) — edit here, then regenerate |
+| `.appfw/model/` | config source of truth (24 entities, 9 enum types, 41 governance RBAC policies + 1 framework `system`, seeds) — edit here, then regenerate |
 | `.appfw/specs/` | four specs + `000-INDEX.md` reconciliation and the five open decisions |
 | `backend/src/services/` | hand-owned M8 gate/workflow engine + M9 governed MS Graph provider |
 | `backend/src/handlers/governance/<entity>.rs` | hand-owned `*_impl` fns (delegate to services) |
