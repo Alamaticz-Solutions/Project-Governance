@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "generated_at": "2026-09-04T07:43:25.176137712+00:00",
+  "manifest_path": "/app/.appfw/manifest.yaml",
+  "manifest_present": true,
+  "source": "app_manifest",
+  "app": {
+    "name": "governance",
+    "display_name": "Project Governance",
+    "description": "Product intake scaffold generated from a legacy application modernization intake."
+  },
+  "topology": {
+    "data_sources": [
+      {
+        "name": "pg_primary",
+        "provider": "PostgreSQL",
+        "role": "transactional",
+        "description": "Primary provider selected during product intake.",
+        "is_system_schema_host": true,
+        "schema_names": [
+          "governance",
+          "system"
+        ],
+        "environments": [
+          "local",
+          "compose"
+        ]
+      }
+    ],
+    "schemas": [
+      {
+        "name": "governance",
+        "data_source_name": "pg_primary",
+        "provider": "PostgreSQL",
+        "role": "product",
+        "description": "Product schema inferred from legacy application evidence.",
+        "is_system_schema": false
+      },
+      {
+        "name": "system",
+        "data_source_name": "pg_primary",
+        "provider": "PostgreSQL",
+        "role": "framework",
+        "description": "Runtime metadata schema loaded from generated config.",
+        "is_system_schema": true
+      }
+    ],
+    "ingress": [
+      {
+        "name": "governance-http",
+        "kind": "http",
+        "enabled": true,
+        "schema": "governance",
+        "path": "/governance",
+        "topic": null,
+        "consumer_group": null,
+        "handler": null,
+        "consumers": [
+          "browser",
+          "service-api"
+        ]
+      },
+      {
+        "name": "app-mcp",
+        "kind": "mcp",
+        "enabled": false,
+        "schema": null,
+        "path": "/mcp",
+        "topic": null,
+        "consumer_group": null,
+        "handler": null,
+        "consumers": [
+          "agent"
+        ]
+      },
+      {
+        "name": "governance-events",
+        "kind": "kafka",
+        "enabled": false,
+        "schema": "governance",
+        "path": null,
+        "topic": "governance.events",
+        "consumer_group": "governance-events-worker",
+        "handler": "services.governance_events",
+        "consumers": []
+      }
+    ]
+  }
+}

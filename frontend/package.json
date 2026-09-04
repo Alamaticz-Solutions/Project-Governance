@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "appfw:check": "node scripts/check-scaffold.mjs"
+    "appfw:check": "node scripts/check-scaffold.mjs",
+    "phi:check": "node scripts/check-phi-lint.mjs"
   },
   "dependencies": {
     "@appfw/pds-health-components": "file:vendor/appfw-pds-health-components-0.12.0.tgz",

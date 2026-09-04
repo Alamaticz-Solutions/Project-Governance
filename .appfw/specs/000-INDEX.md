@@ -1,8 +1,16 @@
 # Governance rebuild — spec index & reconciliation
 
-Step 1 (specs) and Step 2 (legacy discovery inventory) of the M3 milestone. All four specs are `draft`.
+Step 1 (specs) and Step 2 (legacy discovery inventory) of the M3 milestone.
 This file is the authoritative reconciliation across them — read it before treating any single spec's
 wording as final where they touch the same subject.
+
+**Status (M12): all four specs are `accepted-pending-decisions`.** They were
+implemented through M11 (001 → M3 model + RBAC; 002 → M8 workflow engine; 003 →
+M9 Graph provider; 004 → deferred / gated). They are **not** `accepted`: the five
+entries in "Consolidated open decisions for the M3 human checkpoint" below are
+unresolved, and each can still change generated output or service behaviour. The
+independent 11-section review and the rulebook file-12 verification pass (run by
+a *separate* reviewer) have not been done — see `../../HANDOFF.md` §8 and §10.
 
 ## Specs
 

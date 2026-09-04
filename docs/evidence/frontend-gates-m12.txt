@@ -1,0 +1,22 @@
+# Frontend gate run — retained evidence
+
+- Base commit: ea41685 (M11) + uncommitted M12 additions (check-phi-lint.mjs, phi:check script)
+- Date: 2026-09-04T09:20:35Z
+- Runner: docker node:20, frontend/ mounted, vendored @appfw/pds-health-components 0.12.0
+- Framework CLI NOT required for any of these four.
+
+== typecheck ==
+exit=0
+== build ==
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 21.95s
+exit=0
+== appfw:check ==
+Project Governance frontend scaffold OK
+Evidence: /fe/target/appfw/frontend-scaffold-check.json
+exit=0
+== phi:check ==
+PHI/PII source lint: OK — no PHI/PII-shaped literals in src/** (excl. generated)
+exit=0

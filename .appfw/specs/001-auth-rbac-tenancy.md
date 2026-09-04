@@ -1,5 +1,7 @@
 # 001 — Auth, RBAC, Tenancy
 
+> **Status (M12): `accepted-pending-decisions`.** Implemented via the M3 `.appfw/model` + `rbac/` policies. Open decisions Q7, A, B(Q5) touch this spec — see `000-INDEX.md` and `../../HANDOFF.md` §8.
+
 Full spec (rulebook file 07 §7.2 — this touches authentication, authorization, tenant isolation, audit, PHI/PII). Product: `governance`. Schema: `governance` (product) + `system` (framework). Data source: `pg_primary` (single PostgreSQL). Branch: `governance-restructure`.
 
 **Related specs.** This is the foundational spec; 002 / 003 / 004 build on it. `002-gate-workflow-engine.md` owns the workflow `custom_methods`, the `WorkflowStageStatus` enum, the `AuditEvent` entity design, and the service-layer authorization split. `003-msgraph-saas-provider.md` owns the `Meeting` entity (legacy table `poc_meetings`) and its `.rego`. `004-ai-storage-and-nonprimitives.md` owns the AI-egress boundary and the document-storage / KB decisions. The authoritative wired-vs-unwired classification of every legacy table is `.appfw/legacy-modernization.yaml` → `data_discovery.tables_views_and_row_counts` (three-tier: REST-wired / seeded-only / GraphQL-only / fully unwired); the `*` marks in the checklist below are indicative only.

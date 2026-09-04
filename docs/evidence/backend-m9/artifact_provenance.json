@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "generated_at": "2026-09-04T07:43:45.621203276+00:00",
+  "generator": "app_gen",
+  "app_root": "/app",
+  "framework_root": "/app-framework",
+  "generator_root": "/app-framework/app_gen",
+  "config_root": "/app/.appfw/model",
+  "templates_root": "/app-framework/app_gen/_templates",
+  "artifact_count": 126,
+  "config_sha256": "sha256:c710e8c081b231a391f4f4c26a0157bda2e01be8ed02e368cf60deda0100ffd6",
+  "templates_sha256": "sha256:5cee3ea706d5a77ecd111b538ebe738c82460f8963c364a128ce4931db01fb59",
+  "generator_source_sha256": "sha256:9ac37f5d60e14ba16fe30d699811a058280c164cabde640ebfb400b7ea3ea8d1",
+  "artifacts_sha256": "sha256:f7b9e4b45a403b0c2ccad0732139fe7967dfd53acc74b05428308c28f7f37f6d"
+}

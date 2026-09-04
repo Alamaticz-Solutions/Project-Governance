@@ -1,0 +1,116 @@
+{
+  "command": "appfw:check",
+  "ok": true,
+  "generated_at_utc": "2026-09-04T09:14:12.440Z",
+  "display_name": "Project Governance",
+  "required_files": [
+    ".appfw-ui/ownership.json",
+    ".appfw-ui/scaffold-manifest.json",
+    "src/generated/appfw-ui-contract.ts",
+    "src/main.tsx",
+    "src/styles.css",
+    "vite.config.ts",
+    "tsconfig.json"
+  ],
+  "missing_files": [],
+  "design_system": {
+    "ok": true,
+    "checks": [
+      {
+        "id": "pds-component-import",
+        "path": "src/main.tsx",
+        "pattern": "@appfw/pds-health-components"
+      },
+      {
+        "id": "pds-command-palette",
+        "path": "src/main.tsx",
+        "pattern": "CommandPalette"
+      },
+      {
+        "id": "pds-app-shell",
+        "path": "src/main.tsx",
+        "pattern": "AppShell"
+      },
+      {
+        "id": "pds-overlay-example",
+        "path": "src/main.tsx",
+        "pattern": "Dialog"
+      },
+      {
+        "id": "pds-analytics-example",
+        "path": "src/main.tsx",
+        "pattern": "KpiTile"
+      },
+      {
+        "id": "pds-data-grid-example",
+        "path": "src/main.tsx",
+        "pattern": "DataGridShell"
+      },
+      {
+        "id": "pds-generated-form-example",
+        "path": "src/main.tsx",
+        "pattern": "FormLayout"
+      },
+      {
+        "id": "pds-style-import",
+        "path": "src/styles.css",
+        "pattern": "@appfw/pds-health-components/styles.css"
+      },
+      {
+        "id": "pds-tsconfig-alias",
+        "path": "tsconfig.json",
+        "pattern": "@appfw/pds-health-components"
+      },
+      {
+        "id": "pds-vite-alias",
+        "path": "vite.config.ts",
+        "pattern": "@appfw/pds-health-components"
+      },
+      {
+        "id": "pds-manifest-package",
+        "path": ".appfw-ui/scaffold-manifest.json",
+        "pattern": "@appfw/pds-health-components"
+      }
+    ],
+    "missing": []
+  },
+  "residue_check": {
+    "ok": true,
+    "scan_files": [
+      "README.md",
+      "package.json",
+      "index.html",
+      "vite.config.ts",
+      "tsconfig.json",
+      ".appfw-ui/ownership.json",
+      ".appfw-ui/scaffold-manifest.json",
+      "src/generated/appfw-ui-contract.ts",
+      "src/main.tsx",
+      "src/styles.css"
+    ],
+    "terms": [
+      "crm",
+      "account",
+      "accounts",
+      "activity",
+      "activities",
+      "contact",
+      "contacts",
+      "lead",
+      "leads",
+      "opportunity",
+      "opportunities",
+      "pipeline",
+      "pipelines",
+      "quote",
+      "quotes",
+      "customer relationship management"
+    ],
+    "allowed_product_identity": [
+      "governance",
+      "project governance"
+    ],
+    "matches": []
+  },
+  "artifact": "target/appfw/frontend-scaffold-check.json"
+}

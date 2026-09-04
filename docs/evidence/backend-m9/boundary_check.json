@@ -1,0 +1,38 @@
+{
+  "command": "boundary-check",
+  "ok": true,
+  "roots": {
+    "app_root": "/app",
+    "framework_root": "/app-framework",
+    "generator_root": "/app-framework/app_gen",
+    "config_root": "/app/.appfw/model",
+    "templates_root": "/app-framework/app_gen/_templates",
+    "report_root": "/app/.appfw/target/appfw"
+  },
+  "checked_files": 62,
+  "product_provider_sources": [
+    {
+      "product_root": "",
+      "active_providers": [
+        "postgres"
+      ],
+      "sources": [
+        {
+          "provider": "postgres",
+          "path": "backend/src/data/clients/postgres",
+          "active": true,
+          "rust_files": 4
+        }
+      ],
+      "dependencies": [
+        {
+          "provider": "postgres",
+          "dependency": "appfw_provider_postgres",
+          "active": true
+        }
+      ]
+    }
+  ],
+  "violations": [],
+  "report_path": "/app/.appfw/target/appfw/boundary_check.json"
+}

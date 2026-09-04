@@ -1,38 +1,46 @@
 # Project Governance
 
-This product workspace was created by `scripts/appfw product new --profile product-intake`.
+Governance portfolio + gate-workflow application, rebuilt on the PDS App
+Framework (schema-driven Rust/Axum backend generator + React/TS frontend
+scaffold). Branch `governance-restructure`. Local git only.
 
-It is an intake scaffold for legacy application modernization, not a generated application yet.
-The next step is for the AI harness and product developer to analyze the legacy codebase, data source, stored procedures, jobs, auth, integrations, and UI evidence; produce the modernization slice and stored procedure disposition; then write `.appfw/model` source.
+**Start here:** [`HANDOFF.md`](./HANDOFF.md) — full state, what is generated vs
+hand-owned, how to run every gate, retained evidence, and the open decisions.
 
-Review `.appfw/poc-intake.yaml` and complete `.appfw/legacy-modernization.yaml` before generation.
+## Topology
 
-## Selected Topology
+- Product schema: `governance` on a single PostgreSQL (`pg_primary`)
+- Frontend: `scaffold` UI mode; product screens under `frontend/src/features/**`
+- MCP server: off · Kafka: off · single-tenant (`180000`)
 
-- Product schema: `governance`
-- Backend provider: `PostgreSQL`
-- MCP server: `false`
-- Kafka client: `false`
-- Product UI mode: `scaffold`
+## Layout
 
-## Next Commands
+| Path | What |
+|---|---|
+| `.appfw/model/` | config source of truth (24 entities, 9 enums, 41 RBAC policies, seeds) — edit here, then regenerate |
+| `.appfw/specs/` | four specs + `000-INDEX.md` reconciliation and the five open decisions |
+| `backend/src/services/` | hand-owned M8 gate/workflow engine + M9 governed MS Graph provider |
+| `backend/src/handlers/governance/<entity>.rs` | hand-owned `*_impl` fns (delegate to services) |
+| `frontend/src/{lib,app,components,features}/` | product-owned SPA (M11) |
+| `frontend/src/generated/`, `backend/src/{routes,schemas}/` | generated — do not hand-edit |
+| `docs/evidence/` | retained gate output |
+
+## Running the gates
+
+Frontend needs no framework (vendored components):
 
 ```bash
-scripts/appfw doctor
-scripts/appfw product analyze --summary --json
-scripts/appfw product propose-model --summary --json
-scripts/appfw product model-status --json
-# Review .appfw/model-proposal.yaml before writing .appfw/model.
-# scripts/appfw product validate --json is useful as topology sanity before modeling,
-# but it is not product-readiness evidence until entity model source exists.
-scripts/appfw product validate --json
-cargo generate-lockfile
-scripts/appfw product generate
-scripts/appfw product generate --check --json
-scripts/appfw product test --fast
+cd frontend && npm install
+npm run typecheck && npm run build && npm run appfw:check
 ```
 
-Run the generation and test commands after the product entity model has been
-created from the source evidence. The repository shell is intentionally
-product-owned: backend, database, API tests, policy tests, local compose, and
-frontend files use this product's app/schema/provider choices.
+Backend gates go through `scripts/appfw` and **require the App Framework restored
+at `../app-framework/`** (it was removed as client IP — see HANDOFF §6), run in a
+Linux container. Commands are listed in HANDOFF §5.
+
+## Current state
+
+- Backend generate / validate / boundary-check / `generate --check` /
+  `product test`: green as of `937dfbd` (M9); not re-run at HEAD (framework absent).
+- Frontend typecheck / build / appfw:check: green at HEAD.
+- Independent 11-section + file-12 review: **still owed** — see HANDOFF §10.

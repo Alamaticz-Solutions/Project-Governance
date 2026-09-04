@@ -1,5 +1,7 @@
 # Spec 003 — Microsoft Graph SaaS / External-API Provider
 
+> **Status (M12): `accepted-pending-decisions`.** Implemented as the M9 provider in `backend/src/services/graph/` — 5 named reads (`compiler_contracted`, no retained live run), every write `write_gated` pending the G1 stack (M10, deferred). `Meeting.process_transcript` orchestration built; its AI-extraction step is deferred to spec 004. See `../../HANDOFF.md` §8–§9.
+
 - **Depth:** Full spec (file 07 §7.2 — "SaaS/provider integration", auth/tenant/PHI/PII, ingress surface).
 - **Owner:** Governance platform team. **Decides:** human architect + governance review.
 - **Scaffold:** `C:\Users\ManojRajakumar\Governance-Restructure\governance-appfw\`
