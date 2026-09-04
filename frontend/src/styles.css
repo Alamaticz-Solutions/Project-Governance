@@ -251,6 +251,28 @@ body {
   font-size: var(--pds-font-size-sm);
 }
 
+/*
+ * Opt out of the vendor design system's experimental `appearance:
+ * base-select` picker (@appfw/pds-health-components/dist/styles.css,
+ * "Customizable select picker" block). That feature renders every
+ * <select>'s option list as a custom in-page top-layer popover instead of
+ * the browser's native dropdown -- and it is still unreliable in shipping
+ * Chrome builds: clicking an option can fail to fire the change/select and
+ * leave the popover open (confirmed live on the sign-in screen's "Primary
+ * role" select, and it affects every SelectField in the app the same way,
+ * since they all share the .pds-select class this rule targets). Forcing
+ * `appearance: auto` here falls back to the plain OS/browser-native select
+ * popup, which does not have this bug. This is a product-side override of
+ * vendored framework CSS (not a framework fix -- the vendor package is a
+ * prebuilt dependency, not something we can patch and rebuild), so it must
+ * be reapplied if the vendored styles.css is ever regenerated/upgraded.
+ */
+@supports (appearance: base-select) {
+  .pds-select:not([multiple], [size]) {
+    appearance: auto !important;
+  }
+}
+
 @media (max-width: 860px) {
   .app-topbar .pds-command-palette,
   .app-topbar .pds-command-palette__trigger {
