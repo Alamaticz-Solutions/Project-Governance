@@ -76,16 +76,20 @@ pub fn classify(status: reqwest::StatusCode, body: &serde_json::Value) -> GraphE
 }
 
 pub fn retry_after_from(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
+    // Framework-owned parser: handles both delta-seconds and HTTP-date forms.
     headers
         .get(reqwest::header::RETRY_AFTER)
         .and_then(|v| v.to_str().ok())
-        .and_then(|s| s.trim().parse::<u64>().ok())
+        .and_then(appfw_saas_core::rate_limit::parse_retry_after_seconds)
         .map(Duration::from_secs)
 }
 
-/// Strip fields a directory / meeting payload should never carry downstream
-/// before it is logged or returned to a non-Graph caller.
-pub fn redact(mut value: serde_json::Value) -> serde_json::Value {
+/// Redact a Graph payload before it is logged or returned to a non-Graph
+/// caller: first the framework-owned key-level redaction (tokens, secrets,
+/// authorization-like keys), then strip the Graph-notification-specific fields
+/// (`clientState`, `resourceData`, `@odata.context`) that must never propagate.
+pub fn redact(value: serde_json::Value) -> serde_json::Value {
+    let mut value = appfw_saas_core::redaction::redact_json_value(value);
     fn scrub(v: &mut serde_json::Value) {
         match v {
             serde_json::Value::Object(map) => {

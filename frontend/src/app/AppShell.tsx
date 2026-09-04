@@ -84,7 +84,7 @@ export function AppShell() {
               searchPlaceholder="Jump to a screen or entity"
             />
             <Button variant="quiet" onClick={() => setSessionOpen(true)}>
-              {auth.source === 'session' ? identityName : 'Sign in'}
+              {identityName}
             </Button>
           </div>
         }

@@ -5,6 +5,7 @@
 use std::env;
 use std::time::{Duration, Instant};
 
+use appfw_saas_core::oauth::SecretString;
 use tokio::sync::RwLock;
 
 /// The complete env-var contract. No other Graph env var is read anywhere.
@@ -23,7 +24,9 @@ pub const SCOPE: &str = "https://graph.microsoft.com/.default";
 pub struct GraphAuthConfig {
     pub tenant_id: String,
     pub client_id: String,
-    client_secret: String,
+    // `SecretString` has a redacting Debug/Serialize so the secret cannot leak
+    // through `{:?}` on this config or any struct that embeds it.
+    client_secret: SecretString,
     pub default_organizer_id: String,
 }
 
@@ -40,7 +43,7 @@ impl GraphAuthConfig {
         Some(Self {
             tenant_id,
             client_id,
-            client_secret,
+            client_secret: SecretString::new(client_secret),
             default_organizer_id,
         })
     }
@@ -105,7 +108,7 @@ impl GraphToken {
             .post(self.cfg.token_url())
             .form(&[
                 ("client_id", self.cfg.client_id.as_str()),
-                ("client_secret", self.cfg.client_secret.as_str()),
+                ("client_secret", self.cfg.client_secret.expose_secret()),
                 ("scope", SCOPE),
                 ("grant_type", "client_credentials"),
             ])

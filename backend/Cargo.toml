@@ -24,6 +24,13 @@ anyhow = "1.0"
 appfw_runtime = { package = "appfw-runtime", path = "../../app-framework/appfw_runtime", default-features = false }
 appfw_provider_postgres = { package = "appfw-provider-postgres", path = "../../app-framework/appfw_provider_postgres" }
 appfw_mssql_auth = { package = "appfw-mssql-auth", path = "../../app-framework/appfw_mssql_auth" }
+# Framework-owned SaaS connector primitives (redaction / retry-after parsing /
+# OAuth M2M token cache / request plan). The governed Microsoft Graph provider
+# in backend/src/services/graph builds on these instead of re-implementing them
+# (docs/runtime/saas-connectors.md §1; spec 003). A full appfw_provider_msgraph
+# crate + FrameworkProvider registration + provider certification is a framework
+# change and is out of scope for this product repo.
+appfw_saas_core = { package = "appfw-saas-core", path = "../../app-framework/appfw_saas_core" }
 async-graphql = { version = "6", features = ["bson", "chrono", "dynamic-schema"] }
 async-graphql-value = "6"
 async-graphql-axum = { version = "6", optional = true }

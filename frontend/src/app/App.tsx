@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { AppShell } from './AppShell';
+import { RequireAuth } from './RequireAuth';
 import { PageHeader, FeedbackState } from '@appfw/pds-health-components';
+import { SignInScreen } from '../features/auth/SignInScreen';
 import { DashboardScreen } from '../features/dashboard/DashboardScreen';
 import { ProjectListScreen } from '../features/projects/ProjectListScreen';
 import { ProjectDetailScreen } from '../features/projects/ProjectDetailScreen';
@@ -13,17 +15,58 @@ import { MeetingCenterScreen } from '../features/meeting-center/MeetingCenterScr
 import { MeetingDetailScreen } from '../features/meeting-center/MeetingDetailScreen';
 import { AuditScreen } from '../features/audit/AuditScreen';
 import { EntityBrowserScreen } from '../features/entities/EntityBrowserScreen';
+import type { GovernanceRole } from '../lib/authContext';
+
+// Roles that can operate the gate workflow (matches the backend Rego actor set
+// for gate transitions / decisions). Everyone signed in can read the portfolio.
+const OPERATOR_ROLES: readonly GovernanceRole[] = [
+  'admin',
+  'epmo',
+  'project_manager',
+  'bta',
+  'finance',
+  'eac',
+  'cab',
+  'pic',
+  'trc',
+  'security',
+  'analysis_team'
+];
 
 export function AppRoot({ scaffoldReference }: { scaffoldReference: ReactNode }) {
   return (
     <Routes>
-      <Route element={<AppShell />}>
+      {/* public */}
+      <Route path="/sign-in" element={<SignInScreen />} />
+
+      {/* everything else is behind the shell + auth guard */}
+      <Route
+        element={
+          <RequireAuth>
+            <AppShell />
+          </RequireAuth>
+        }
+      >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardScreen />} />
         <Route path="projects" element={<ProjectListScreen />} />
         <Route path="projects/:projectId" element={<ProjectDetailScreen />} />
-        <Route path="projects/:projectId/workspace" element={<ProjectWorkspaceScreen />} />
-        <Route path="team-inbox" element={<TeamInboxScreen />} />
+        <Route
+          path="projects/:projectId/workspace"
+          element={
+            <RequireAuth roles={OPERATOR_ROLES}>
+              <ProjectWorkspaceScreen />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="team-inbox"
+          element={
+            <RequireAuth roles={OPERATOR_ROLES}>
+              <TeamInboxScreen />
+            </RequireAuth>
+          }
+        />
         <Route path="intake" element={<IntakeScreen />} />
         <Route path="notifications" element={<NotificationsScreen />} />
         <Route path="meeting-center" element={<MeetingCenterScreen />} />

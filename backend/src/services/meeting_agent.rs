@@ -83,16 +83,26 @@ fn meeting_input(p: &MeetingProjection) -> InputMeeting {
     }
 }
 
-/// Strip WEBVTT headers, cue identifiers, and `hh:mm:ss.mmm --> …` timing lines,
-/// leaving the spoken text.
+/// Strip WEBVTT headers, `NOTE` / `STYLE` blocks (which run until the next
+/// blank line), cue identifiers, and `hh:mm:ss.mmm --> …` timing lines, leaving
+/// the spoken text.
 fn vtt_to_text(vtt: &str) -> String {
     let mut out = String::new();
+    let mut in_block = false; // inside a NOTE / STYLE block
     for line in vtt.lines() {
         let t = line.trim();
+        if in_block {
+            if t.is_empty() {
+                in_block = false;
+            }
+            continue;
+        }
+        if t == "NOTE" || t == "STYLE" || t.starts_with("NOTE ") || t.starts_with("STYLE ") {
+            in_block = true;
+            continue;
+        }
         if t.is_empty()
             || t == "WEBVTT"
-            || t.starts_with("NOTE ")
-            || t.starts_with("STYLE")
             || t.contains("-->")
             || t.chars().all(|c| c.is_ascii_digit())
         {
@@ -108,6 +118,11 @@ fn vtt_to_text(vtt: &str) -> String {
 
 /// `payload`: `{ "vtt"?: string, "organizer"?: string }`.
 /// If `vtt` is present it is used verbatim (manual paste — no Graph call).
+#[tracing::instrument(
+    name = "meeting.process_transcript",
+    skip(data_access, user, payload),
+    fields(meeting_id = %meeting_id)
+)]
 pub async fn process_transcript(
     data_access: &Arc<DataAccess>,
     user: &Option<UserAuth>,
@@ -216,4 +231,27 @@ pub async fn process_transcript(
         "ai_status": ai_status,
         "note": "transcript stored; summary/decisions/action-items pending the governed AI-egress boundary (spec 004)",
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::vtt_to_text;
+
+    #[test]
+    fn strips_webvtt_header_cues_and_timing_lines() {
+        let vtt = "WEBVTT\n\n1\n00:00:00.000 --> 00:00:02.500\nHello team.\n\n2\n00:00:02.500 --> 00:00:05.000\nLet's begin the review.\n";
+        assert_eq!(vtt_to_text(vtt), "Hello team. Let's begin the review.");
+    }
+
+    #[test]
+    fn drops_note_and_style_blocks() {
+        let vtt = "WEBVTT\nNOTE this is a comment\nSTYLE\n::cue { color: white }\n\n00:00:01.000 --> 00:00:02.000\nOnly this line survives.";
+        assert_eq!(vtt_to_text(vtt), "Only this line survives.");
+    }
+
+    #[test]
+    fn empty_input_yields_empty_string() {
+        assert_eq!(vtt_to_text(""), "");
+        assert_eq!(vtt_to_text("WEBVTT\n\n"), "");
+    }
 }

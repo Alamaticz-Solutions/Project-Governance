@@ -24,6 +24,11 @@ pub const GATE_SUBMITTED: &str = "GATE_SUBMITTED";
 pub const WORKFLOW_ADVANCED: &str = "WORKFLOW_ADVANCED";
 pub const PROJECT_CANCELLED: &str = "PROJECT_CANCELLED";
 
+#[tracing::instrument(
+    name = "audit.record",
+    skip(data_access, user, new_values),
+    fields(entity_type = %entity_type, entity_id = %entity_id, action = %action)
+)]
 pub async fn record(
     data_access: &Arc<DataAccess>,
     user: &Option<UserAuth>,
@@ -33,6 +38,7 @@ pub async fn record(
     action: &str,
     new_values: Option<JsonValue>,
 ) -> HandlerResult<()> {
+    tracing::info!("append-only audit event");
     let performed_by_id = resolve_user_id(data_access, user).await?;
     let audit_type = entity(data_access, "AuditEvent")?;
     let input = InputAuditEvent {

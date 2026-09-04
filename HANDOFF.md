@@ -294,3 +294,40 @@ Priorities for that reviewer, in order:
 3. M11c workspace — the document/workflow archetype has no reference; confirm the
    generic gate model is acceptable vs the legacy per-role forms.
 4. The five open decisions in §8.
+
+---
+
+## 11. Framework conformance audit (App Framework `893829ad0e30`)
+
+An end-to-end audit against the framework rulebook was run. **Machine gates all
+pass** against this framework build at the audited HEAD:
+
+| Gate | Result |
+|---|---|
+| `product validate` | ok — 0 errors / 0 warnings |
+| `product generate --check` | ok — no drift, hand-owned files preserved |
+| `product boundary-check` | ok — 0 violations, 62 files |
+| `product feature-check` | ok — 14/14 runtime + product feature compiles |
+| `product policy-test` | ok |
+| `product harness-check` | **was failing** (no `.appfw/agent-profile.yaml`) — **fixed** |
+| `cargo check -p backend --all-targets` | ok (pre-existing dead-code warnings only) |
+| frontend `typecheck` / `test` / `build` / `appfw:check` / `phi:check` | ok |
+
+Nine prose/structural deviations were found and remediated:
+
+| # | Deviation | Fix |
+|---|---|---|
+| A | MS Graph integration hand-writes vendor HTTP instead of using the framework SaaS SDK (`saas-connectors.md` §1). | `backend/src/services/graph` now depends on **`appfw_saas_core`** for redaction, retry-after parsing, and secret handling (`SecretString`). A full `appfw_provider_msgraph` crate + `FrameworkProvider` registration + `provider-test` is a *framework* change and remains out of scope (spec 003 §"A new provider crate" already rejected it); recorded in `.appfw/agent-profile.yaml` risk-acceptance. |
+| B | `.appfw/manifest.yaml` had no `ui:` block (`product-frontend.md` §Production Serving). | Added `ui.product_spa` / `ui.admin_ui`. |
+| C | No shell auth/role route guards (ADR 0009 / 0010). | Added `src/app/RequireAuth.tsx` + `src/features/auth/SignInScreen.tsx`; every route except `/sign-in` is behind the guard, workspace / team-inbox are role-gated, denials render an explicit `ForbiddenState`. |
+| D | No frontend test backbone / `test` script (ADR 0011). | Added **vitest** + `@testing-library/react`; `src/**/*.test.tsx` (15 tests incl. the `RequireAuth` permission-state test); `npm run test` + `npm run test:frontend`. Playwright E2E/a11y still deferred. |
+| E | Zero `tracing` instrumentation in services (`service-layer.md`). | `#[tracing::instrument]` + `info!`/`warn!` on the Graph read, every workflow transition/decision, `save_stage`, `process_transcript`, and `audit::record`. |
+| F | No API-test scenarios for the custom methods (`custom-methods-and-routines.md`). | **Not fixable via the framework tooling** — the generated-API-scenario template requires `graphql.select` and assumes object-returning operations, so JSON-scalar custom methods can't be expressed (CRM has the same gap). Covered instead by `vtt_to_text` service unit tests + the frontend `AppfwClientError` classification tests. |
+| G | Frontend client sent only `x-request-id` outbound. | Now sends `x-request-id` + `x-correlation-id` + `x-timezone`; `graphql()` returns the documented `AppfwResult<TData>` (with `correlationId` / `responseMs`). |
+| H | Typed-client shapes drifted from `product-frontend.md` §Typed API Pattern. | Added `AppfwRequestContext` / `AppfwResult<TData>` exports; kept the additive `not_found` / `network` categories. |
+| I | `product harness-check` failed — no `.appfw/agent-profile.yaml`. | Added the least-privilege product agent profile (modeled on the CRM / nexus references). |
+
+**Still deferred after this pass** (documented, not silent): Playwright E2E / a11y
+evidence; contract-drift automation in CI (there is no CI); a full
+`appfw_provider_msgraph` provider crate; `product api-test` / `migrate` / `serve`
+evidence against a live backend + DB.

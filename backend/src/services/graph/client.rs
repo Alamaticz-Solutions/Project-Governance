@@ -32,9 +32,15 @@ impl GraphClient {
 
     /// Execute a registered read. Returns the (redacted) JSON body, or the
     /// transcript text for the transcript-content operation.
+    #[tracing::instrument(
+        name = "graph.read",
+        skip(self, op),
+        fields(operation = op.name(), phi_possible = op.phi_possible())
+    )]
     pub async fn read(&self, op: ReadOperation) -> anyhow::Result<serde_json::Value> {
         let plan = op.plan();
         let url = format!("{GRAPH_BASE}{}", plan.path);
+        tracing::info!(path = %plan.path, method = %plan.method, "outbound Microsoft Graph read");
         let bearer = self.token.bearer().await?;
 
         let mut req = self
@@ -85,8 +91,17 @@ impl GraphClient {
             if let GraphError::RateLimited { retry_after: ra } = &mut err {
                 *ra = retry_after;
             }
+            tracing::warn!(
+                status = status.as_u16(),
+                "Microsoft Graph read returned an error status"
+            );
             return Err(anyhow::Error::new(err));
         }
+        tracing::info!(
+            status = status.as_u16(),
+            bytes = bytes.len(),
+            "Microsoft Graph read ok"
+        );
 
         // transcript content comes back as text/vtt, not JSON
         if matches!(op, ReadOperation::GetOnlineMeetingTranscript { .. })

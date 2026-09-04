@@ -98,6 +98,11 @@ fn approval_input(p: &ProjectApprovalProjection) -> HandlerResult<InputProjectAp
 }
 
 /// `payload`: `{ "decision": "approve" | "reject" | "needs_info", "comments"?: string }`
+#[tracing::instrument(
+    name = "workflow.submit_decision",
+    skip(data_access, user, _entity_type, payload),
+    fields(project_id = %project_id)
+)]
 pub async fn submit_decision(
     data_access: &Arc<DataAccess>,
     user: &Option<UserAuth>,
@@ -370,6 +375,11 @@ async fn load_project(
         .ok_or_else(|| anyhow::anyhow!("project `{project_id}` was not found"))
 }
 
+#[tracing::instrument(
+    name = "workflow.fast_track_complete",
+    skip(data_access, user),
+    fields(project_id = %project_id)
+)]
 pub async fn fast_track_complete(
     data_access: &Arc<DataAccess>,
     user: &Option<UserAuth>,
@@ -445,6 +455,11 @@ pub async fn fast_track_complete(
 
 /// Legacy "delete" == status transition to CANCELLED (000-INDEX reconciled
 /// point 3). Not the `soft-deleted` facet.
+#[tracing::instrument(
+    name = "workflow.cancel_project",
+    skip(data_access, user),
+    fields(project_id = %project_id)
+)]
 pub async fn cancel(
     data_access: &Arc<DataAccess>,
     user: &Option<UserAuth>,

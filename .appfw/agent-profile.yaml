@@ -1,0 +1,73 @@
+schema_version: 1
+name: governance-product-offline-agent
+description: >
+  Least-privilege profile for product agents working on the Project Governance
+  rebuild (schema `governance`, PostgreSQL, MCP/Kafka off, single-tenant).
+allowed_commands:
+  - command: scripts/appfw product validate --json
+    namespace: product
+  - command: scripts/appfw product harness-check --json
+    namespace: product
+  - command: scripts/appfw product boundary-check --json
+    namespace: product
+  - command: scripts/appfw product feature-check --json
+    namespace: product
+  - command: scripts/appfw product generate --check --json
+    namespace: product
+  - command: scripts/appfw product policy-test --json
+    namespace: product
+  - command: scripts/appfw product test --fast
+    namespace: product
+  - command: scripts/appfw product handoff --json
+    namespace: product
+writable_paths:
+  - path: .appfw/model
+    ownership: application_source
+  - path: .appfw/specs
+    ownership: application_source
+  - path: .appfw/target/appfw
+    ownership: product_evidence
+  - path: backend/src/handlers
+    ownership: product_source
+  - path: backend/src/services
+    ownership: product_source
+  - path: frontend/src
+    ownership: product_source
+  - path: rego_test
+    ownership: product_source
+  - path: docs/evidence
+    ownership: product_evidence
+  - path: target/appfw
+    ownership: product_evidence
+network_policy: disabled
+live_service_policy: disabled
+sensitive_capabilities:
+  mcp: false
+  kafka: false
+  release: false
+  saas_governed_write: false
+threat_controls:
+  - ASI01
+  - ASI02
+  - ASI03
+review_checkpoints:
+  - source-evidence
+  - model-proposal
+  - generated-drift
+  - handoff
+handoff:
+  required: true
+  artifact: target/appfw/agent-handoff.json
+risk_acceptance:
+  - >
+    Microsoft Graph is integrated as a governed provider under
+    backend/src/services/graph (built on appfw_saas_core) rather than a
+    registered appfw_provider_msgraph crate; a full provider crate +
+    FrameworkProvider registration + provider certification is a framework
+    change and is out of scope for this product repo (spec 003).
+  - >
+    Five model/workflow decisions in .appfw/specs/000-INDEX.md (P5 / Q7 / A /
+    Q5 / Q3) are unresolved; specs are accepted-pending-decisions, not accepted.
+  - >
+    No live backend/DB has been available, so api-test / migrate / serve and
+    Playwright E2E/a11y evidence are not retained.

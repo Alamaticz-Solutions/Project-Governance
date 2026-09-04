@@ -3,8 +3,11 @@
 // The generated backend mounts one async-graphql endpoint per schema at
 // `/<schema>` (see backend/src/routes/governance.rs). In dev the Vite proxy
 // forwards `/governance` to the running backend; set VITE_BACKEND_URL to target
-// one directly. Every request carries the session bearer + `x-tenant-id`; the
-// runtime is the authority on policy regardless of what the SPA sends.
+// one directly. Every request carries the session bearer + `x-tenant-id`, a
+// generated `x-request-id`, a matching `x-correlation-id`, and `x-timezone`
+// (docs/frontend/product-frontend.md §Typed API Pattern; ADR 0009 correlation-id
+// propagation). The runtime is the authority on policy regardless of what the
+// SPA sends.
 
 import type {
   AppfwUiEntityContract,
@@ -13,6 +16,9 @@ import type {
 import type { GovernanceAuthContext } from './authContext';
 import type { GovernanceTenantContext } from './tenantContext';
 
+// Canonical shapes from docs/frontend/product-frontend.md §Typed API Pattern.
+// `AppfwErrorCategory` extends the documented 5-value set with `not_found` and
+// `network` (additive; both map to explicit UI states).
 export type AppfwErrorCategory =
   | 'validation'
   | 'policy_denied'
@@ -21,6 +27,20 @@ export type AppfwErrorCategory =
   | 'provider'
   | 'network'
   | 'unknown';
+
+export type AppfwRequestContext = {
+  schemaName: string;
+  operationName: string;
+  requestId?: string;
+  correlationId?: string;
+};
+
+export type AppfwResult<TData> = {
+  data: TData;
+  requestId: string;
+  correlationId: string;
+  responseMs: number;
+};
 
 export type AppfwRecord = Record<string, unknown>;
 
@@ -63,6 +83,7 @@ export type AppfwOperationError = {
   requestId?: string;
   correlationId?: string;
   httpStatus?: number;
+  responseMs?: number;
   validation?: Record<string, string[]>;
 };
 
@@ -91,26 +112,34 @@ export function createAppfwClient(context: AppfwClientContext = {}) {
     ? `${context.baseUrl.replace(/\/$/, '')}/governance`
     : '/governance';
 
-  async function graphql<T>(query: string, variables: Record<string, unknown> = {}): Promise<{
-    data: T;
-    requestId: string;
-  }> {
+  async function graphql<T>(
+    query: string,
+    variables: Record<string, unknown> = {}
+  ): Promise<AppfwResult<T>> {
     const requestId = newRequestId();
+    const correlationId = requestId;
+    const startedAt =
+      typeof performance !== 'undefined' ? performance.now() : Date.now();
     let response: Response;
     try {
       response = await fetchImpl(endpoint, {
         method: 'POST',
-        headers: headers(context, requestId),
+        headers: headers(context, requestId, correlationId),
         body: JSON.stringify({ query, variables })
       });
     } catch (error: unknown) {
       throw new AppfwClientError({
         message: error instanceof Error ? error.message : 'Network request failed',
         category: 'network',
-        requestId
+        requestId,
+        correlationId,
+        responseMs: elapsed(startedAt)
       });
     }
+    const responseMs = elapsed(startedAt);
     const responseRequestId = response.headers.get('x-request-id') ?? requestId;
+    const responseCorrelationId =
+      response.headers.get('x-correlation-id') ?? correlationId;
     const payload = (await response.json().catch(() => ({}))) as GraphqlPayload<T>;
 
     if (!response.ok || payload.errors?.length) {
@@ -118,12 +147,18 @@ export function createAppfwClient(context: AppfwClientContext = {}) {
         message: messageOf(payload, response.statusText),
         category: categoryOf(response.status, payload),
         requestId: responseRequestId,
-        correlationId: response.headers.get('x-correlation-id') ?? undefined,
+        correlationId: responseCorrelationId,
         httpStatus: response.status,
+        responseMs,
         validation: payload.errors?.find((e) => e.extensions?.validation)?.extensions?.validation
       });
     }
-    return { data: (payload.data ?? {}) as T, requestId: responseRequestId };
+    return {
+      data: (payload.data ?? {}) as T,
+      requestId: responseRequestId,
+      correlationId: responseCorrelationId,
+      responseMs
+    };
   }
 
   async function queryList(
@@ -258,10 +293,16 @@ type ConnectionShape = {
   items?: unknown;
 };
 
-function headers(context: AppfwClientContext, requestId: string): Record<string, string> {
+function headers(
+  context: AppfwClientContext,
+  requestId: string,
+  correlationId: string
+): Record<string, string> {
   const result: Record<string, string> = {
     'content-type': 'application/json',
-    'x-request-id': requestId
+    'x-request-id': requestId,
+    'x-correlation-id': correlationId,
+    'x-timezone': browserTimezone()
   };
   const authorization = context.auth?.authorization;
   const tenantId = context.tenant?.tenantId;
@@ -272,6 +313,19 @@ function headers(context: AppfwClientContext, requestId: string): Record<string,
   }
   if (tenantId) result['x-tenant-id'] = tenantId;
   return result;
+}
+
+function browserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+function elapsed(startedAt: number): number {
+  const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  return Math.round(now - startedAt);
 }
 
 function newRequestId(): string {

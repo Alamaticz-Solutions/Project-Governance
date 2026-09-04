@@ -114,6 +114,7 @@ async fn apply(
         .map_err(|e| anyhow::anyhow!(e.to_string()))
 }
 
+#[tracing::instrument(name = "workflow.stage_start", skip(data_access, user), fields(stage_id = %stage_id))]
 pub async fn start(
     data_access: &Arc<DataAccess>,
     user: &Option<UserAuth>,
@@ -147,6 +148,7 @@ pub async fn start(
     )
 }
 
+#[tracing::instrument(name = "workflow.stage_submit", skip(data_access, user, payload), fields(stage_id = %stage_id))]
 pub async fn submit(
     data_access: &Arc<DataAccess>,
     user: &Option<UserAuth>,
@@ -181,6 +183,7 @@ pub async fn submit(
     )
 }
 
+#[tracing::instrument(name = "workflow.stage_skip", skip(data_access, user), fields(stage_id = %stage_id))]
 pub async fn skip(
     data_access: &Arc<DataAccess>,
     user: &Option<UserAuth>,
@@ -217,6 +220,11 @@ pub async fn skip(
 
 // --- GateSubmission.save_stage (workspace stage form upsert) ---
 
+#[tracing::instrument(
+    name = "workflow.save_stage",
+    skip(data_access, user, payload),
+    fields(project_id = %project_id, stage = %stage)
+)]
 pub async fn save_stage(
     data_access: &Arc<DataAccess>,
     user: &Option<UserAuth>,

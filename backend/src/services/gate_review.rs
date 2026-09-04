@@ -68,6 +68,11 @@ fn input_from(p: &GateReviewProjection) -> HandlerResult<InputGateReview> {
 }
 
 /// `payload`: `{ "decision": "approved" | "rejected" | "needs_info" | "deferred", "notes"?: string }`
+#[tracing::instrument(
+    name = "workflow.gate_review_decide",
+    skip(data_access, user, payload),
+    fields(gate_id = %gate_id)
+)]
 pub async fn decide(
     data_access: &Arc<DataAccess>,
     user: &Option<UserAuth>,
