@@ -139,6 +139,22 @@ export function ProjectWorkspaceScreen() {
     <AsyncSection state={state} isEmpty={(data) => !data.project}>
       {(data) => {
         const project = data.project as AppfwRecord;
+        const primaryRole = (auth.roles[0] ?? '').toLowerCase();
+        const privileged = hasAnyRole(auth, ['admin', 'epmo']);
+        const primaryRoleHasPending = data.approvals.some(
+          (row) =>
+            String(row.status).toLowerCase() === 'pending' &&
+            String(row.assigned_role ?? '').toLowerCase() === primaryRole
+        );
+        // The row submit_decision will actually act on: the caller's pending
+        // role row, or (admin/EPMO) the first pending row.
+        const targetApproval = data.approvals.find(
+          (row) =>
+            String(row.status).toLowerCase() === 'pending' &&
+            (primaryRoleHasPending
+              ? String(row.assigned_role ?? '').toLowerCase() === primaryRole
+              : privileged)
+        );
         const steps: ProcessStepItem[] = data.stages.map((stage) => ({
           id: String(stage.id),
           label: asText(stage.stage_name),
@@ -303,18 +319,30 @@ export function ProjectWorkspaceScreen() {
                 )}
               </Surface>
 
-              <Surface title="Approval routing" subtitle="submit_decision applies to your pending role">
+              <Surface
+                title="Approval routing"
+                subtitle="submit_decision resolves the row server-side from your role"
+              >
                 {data.approvals.length === 0 ? (
                   <p>No approval routing.</p>
                 ) : (
                   <ul>
-                    {data.approvals.map((row) => (
-                      <li key={String(row.id)}>
-                        <Badge tone="warning">{asText(row.assigned_role)}</Badge>{' '}
-                        {asText(row.approval_stage)} — <EnumBadge value={row.status} />{' '}
-                        <EnumBadge value={row.decision} />
-                      </li>
-                    ))}
+                    {data.approvals.map((row) => {
+                      const mine =
+                        String(row.status).toLowerCase() === 'pending' &&
+                        (privileged ||
+                          primaryRole === String(row.assigned_role ?? '').toLowerCase());
+                      return (
+                        <li key={String(row.id)}>
+                          <Badge tone={mine ? 'accent' : 'warning'}>
+                            {asText(row.assigned_role)}
+                          </Badge>{' '}
+                          {asText(row.approval_stage)} — <EnumBadge value={row.status} />{' '}
+                          <EnumBadge value={row.decision} />
+                          {mine ? ' · your decision' : ''}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
                 {canOperate && (
@@ -324,13 +352,20 @@ export function ProjectWorkspaceScreen() {
                       <Button
                         variant="primary"
                         isLoading={decide.pending}
+                        disabled={!targetApproval}
                         onClick={() =>
                           decide
                             .run(decision, decisionComments)
                             .then(() => state.reload())
                         }
                       >
-                        Submit decision
+                        {targetApproval
+                          ? `Decide as ${
+                              privileged && !primaryRoleHasPending
+                                ? 'admin/EPMO override'
+                                : (auth.roles[0] ?? 'your role').toUpperCase()
+                            }`
+                          : 'No pending approval for your role'}
                       </Button>
                     }
                   >

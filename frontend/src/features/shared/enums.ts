@@ -28,11 +28,14 @@ export const PROJECT_RISK: Option[] = [
   { value: 'LOW', label: 'Low' }
 ];
 
+// Decisions the workflow engine's `submit_decision` accepts (it lowercases and
+// matches approve/approved, reject/rejected, needs_info/changes_requested/return).
+// `DEFERRED` exists in the ApprovalDecision enum but is not a submit_decision
+// verb, so it is intentionally absent here.
 export const APPROVAL_DECISION: Option[] = [
   { value: 'APPROVED', label: 'Approve' },
   { value: 'REJECTED', label: 'Reject' },
-  { value: 'NEEDS_INFO', label: 'Needs info' },
-  { value: 'DEFERRED', label: 'Defer' }
+  { value: 'NEEDS_INFO', label: 'Needs info / return' }
 ];
 
 export const NOTIFICATION_TYPE: Option[] = [
