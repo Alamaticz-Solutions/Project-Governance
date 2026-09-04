@@ -19,12 +19,10 @@ use crate::{
 pub async fn decide_impl(
     user: Option<UserAuth>,
     data_access: &Arc<DataAccess>,
-    entity_type: &Arc<EntityType>,
-    selections: JsonValue,
+    _entity_type: &Arc<EntityType>,
+    _selections: JsonValue,
     gate_id: String,
     payload: serde_json::Value,
 ) -> HandlerResult<serde_json::Value> {
-    Err(anyhow::anyhow!(
-        "custom method `decide` is not implemented yet"
-    ))
+    crate::services::gate_review::decide(data_access, &user, gate_id, payload).await
 }

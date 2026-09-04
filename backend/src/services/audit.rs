@@ -17,6 +17,8 @@ use crate::{
 pub const GATE_APPROVED: &str = "GATE_APPROVED";
 pub const GATE_REJECTED: &str = "GATE_REJECTED";
 pub const GATE_RETURNED: &str = "GATE_CHANGES_REQUESTED";
+pub const GATE_STARTED: &str = "GATE_STARTED";
+pub const GATE_SKIPPED: &str = "GATE_SKIPPED";
 #[allow(dead_code)]
 pub const GATE_SUBMITTED: &str = "GATE_SUBMITTED";
 pub const WORKFLOW_ADVANCED: &str = "WORKFLOW_ADVANCED";

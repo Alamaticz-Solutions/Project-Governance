@@ -19,39 +19,31 @@ use crate::{
 pub async fn start_impl(
     user: Option<UserAuth>,
     data_access: &Arc<DataAccess>,
-    entity_type: &Arc<EntityType>,
-    selections: JsonValue,
+    _entity_type: &Arc<EntityType>,
+    _selections: JsonValue,
     stage_id: String,
 ) -> HandlerResult<serde_json::Value> {
-    Err(anyhow::anyhow!(
-        "custom method `start` is not implemented yet"
-    ))
+    crate::services::transition::start(data_access, &user, stage_id).await
 }
 
-#[allow(unused)]
 pub async fn submit_impl(
     user: Option<UserAuth>,
     data_access: &Arc<DataAccess>,
-    entity_type: &Arc<EntityType>,
-    selections: JsonValue,
+    _entity_type: &Arc<EntityType>,
+    _selections: JsonValue,
     stage_id: String,
     payload: serde_json::Value,
 ) -> HandlerResult<serde_json::Value> {
-    Err(anyhow::anyhow!(
-        "custom method `submit` is not implemented yet"
-    ))
+    crate::services::transition::submit(data_access, &user, stage_id, payload).await
 }
 
-#[allow(unused)]
 pub async fn skip_impl(
     user: Option<UserAuth>,
     data_access: &Arc<DataAccess>,
-    entity_type: &Arc<EntityType>,
-    selections: JsonValue,
+    _entity_type: &Arc<EntityType>,
+    _selections: JsonValue,
     stage_id: String,
     reason: String,
 ) -> HandlerResult<serde_json::Value> {
-    Err(anyhow::anyhow!(
-        "custom method `skip` is not implemented yet"
-    ))
+    crate::services::transition::skip(data_access, &user, stage_id, reason).await
 }

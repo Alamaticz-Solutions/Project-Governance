@@ -21,13 +21,11 @@ use crate::{
 pub async fn save_stage_impl(
     user: Option<UserAuth>,
     data_access: &Arc<DataAccess>,
-    entity_type: &Arc<EntityType>,
-    selections: JsonValue,
+    _entity_type: &Arc<EntityType>,
+    _selections: JsonValue,
     project_id: String,
     stage: String,
     payload: serde_json::Value,
 ) -> HandlerResult<serde_json::Value> {
-    Err(anyhow::anyhow!(
-        "custom method `save_stage` is not implemented yet"
-    ))
+    crate::services::transition::save_stage(data_access, &user, project_id, stage, payload).await
 }
