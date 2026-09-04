@@ -326,6 +326,7 @@ Nine prose/structural deviations were found and remediated:
 | G | Frontend client sent only `x-request-id` outbound. | Now sends `x-request-id` + `x-correlation-id` + `x-timezone`; `graphql()` returns the documented `AppfwResult<TData>` (with `correlationId` / `responseMs`). |
 | H | Typed-client shapes drifted from `product-frontend.md` §Typed API Pattern. | Added `AppfwRequestContext` / `AppfwResult<TData>` exports; kept the additive `not_found` / `network` categories. |
 | I | `product harness-check` failed — no `.appfw/agent-profile.yaml`. | Added the least-privilege product agent profile (modeled on the CRM / nexus references). |
+| K | The generated `product-intake` `backend/Cargo.toml` **omits the `provider-postgres` feature** that `backend/src/routes/mod.rs` gates the Postgres runtime registration on — so the backend fails at startup with *"provider factory is not registered for postgres"*. Present since the M2 scaffold; never triggered because `product serve` / `api-test` had never run. | Made `appfw_provider_postgres` `optional`, added `provider-postgres = ["dep:appfw_provider_postgres"]` and put it in `default` (matches the CRM example). |
 
 **Still deferred after this pass** (documented, not silent): Playwright E2E / a11y
 evidence; contract-drift automation in CI (there is no CI); a full

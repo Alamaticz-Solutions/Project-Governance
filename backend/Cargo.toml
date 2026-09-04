@@ -5,7 +5,10 @@ edition = "2021"
 description = "Project Governance product backend"
 
 [features]
-default = ["http"]
+# `provider-postgres` gates the runtime registration in backend/src/routes/mod.rs;
+# without it the backend cannot connect to its own database. The generated
+# product-intake scaffold omitted it (finding K).
+default = ["http", "provider-postgres"]
 http = [
     "appfw_runtime/http",
     "dep:async-graphql-axum",
@@ -18,11 +21,12 @@ http = [
 mcp = ["appfw_runtime/mcp"]
 kafka = ["appfw_runtime/kafka"]
 sync = ["appfw_runtime/sync"]
+provider-postgres = ["dep:appfw_provider_postgres"]
 
 [dependencies]
 anyhow = "1.0"
 appfw_runtime = { package = "appfw-runtime", path = "../../app-framework/appfw_runtime", default-features = false }
-appfw_provider_postgres = { package = "appfw-provider-postgres", path = "../../app-framework/appfw_provider_postgres" }
+appfw_provider_postgres = { package = "appfw-provider-postgres", path = "../../app-framework/appfw_provider_postgres", optional = true }
 appfw_mssql_auth = { package = "appfw-mssql-auth", path = "../../app-framework/appfw_mssql_auth" }
 # Framework-owned SaaS connector primitives (redaction / retry-after parsing /
 # OAuth M2M token cache / request plan). The governed Microsoft Graph provider
