@@ -9,11 +9,9 @@ use super::filter_sql::{
     PostgresRelationExists,
 };
 use super::param::SqlParam;
-use appfw_runtime::{
-    identifier::to_snake_case_lenient as to_snake_case,
-    query_filter::{
-        conjunction_token as conjunction, filter_token, normalize_filter_input, RuntimeFilterObject,
-    },
+use crate::platform::identifier::to_snake_case_lenient as to_snake_case;
+use appfw_runtime::query_filter::{
+    conjunction_token as conjunction, filter_token, normalize_filter_input, RuntimeFilterObject,
 };
 use serde_json::Value;
 use std::sync::Arc;

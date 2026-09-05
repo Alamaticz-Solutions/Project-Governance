@@ -6,12 +6,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use appfw_runtime::{
-    connection_security::{self, Provider},
-    secrets::{EnvSecretProvider, SecretError, SecretProvider},
-};
+use appfw_runtime::connection_security::{self, Provider};
 
 use crate::{
+    platform::secrets::{EnvSecretProvider, SecretError, SecretProvider},
     routes::app_error::{AppError, ConfigError},
     schemas::system::{DataSource, DataSourceType, EntityType, Schema},
 };

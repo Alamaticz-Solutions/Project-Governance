@@ -6,7 +6,6 @@ use appfw_runtime::extension::UserAuth;
 use appfw_runtime::json as json_utils;
 use appfw_runtime::observability::{current_request_context, MetricsRegistry};
 use appfw_runtime::record_audit as runtime_audit;
-use appfw_runtime::record_locator::{validate_record_locator, RECORD_LOCATOR_FIELD};
 use appfw_runtime::record_validation as runtime_validation;
 use appfw_runtime::{
     AccessAction, PolicyAccess, RuntimeProviderDescriptor, RuntimeProviderIdentity,
@@ -19,6 +18,7 @@ use crate::config::app_config::AppConfig;
 use crate::data::query_ir::PaginationPolicy;
 use crate::data::query_ir::{cost_for_query, AggregatePlan, MutationPlan, QueryPlan};
 use crate::data::rules;
+use crate::platform::record_locator::{validate_record_locator, RECORD_LOCATOR_FIELD};
 use crate::product_api::runtime_entity_metadata;
 use crate::routes::app_error::AppError;
 use crate::schemas::common::{AggregateResult, JsonAggregateResult, JsonQueryResult, QueryResult};

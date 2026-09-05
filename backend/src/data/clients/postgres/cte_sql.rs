@@ -7,7 +7,7 @@
 //! product code before this phase -- these are just the leaf functions it
 //! calls to render each piece as SQL text.
 
-use appfw_runtime::identifier::to_table_case_lenient;
+use crate::platform::identifier::to_table_case_lenient;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PostgresCteJunctionJoin {

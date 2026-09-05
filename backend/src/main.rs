@@ -1,9 +1,13 @@
-#[cfg(feature = "http")]
-use appfw_runtime::{cors, RuntimeAuthState, RuntimeHttpServerConfig};
 use appfw_runtime::{
     observability::init_tracing, security::SecurityConfig, RuntimeHostPlan, RuntimeMode,
 };
+#[cfg(feature = "http")]
+use appfw_runtime::{RuntimeAuthState, RuntimeHttpServerConfig};
+// Product-owned (backend framework replacement phase 4 -- previously
+// `appfw_runtime::cors`).
 use dotenv::dotenv;
+#[cfg(feature = "http")]
+use platform::cors;
 #[cfg(feature = "http")]
 use std::sync::Arc;
 use tracing::error;
@@ -21,6 +25,7 @@ mod kafka;
 mod mcp;
 #[cfg(any(feature = "mcp", feature = "kafka"))]
 mod operations;
+mod platform;
 mod product_api;
 mod routes;
 mod schemas;

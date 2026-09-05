@@ -1,9 +1,9 @@
-use appfw_runtime::identifier::to_snake_case_lenient as to_snake_case;
 use serde_json::{json, Value};
 use std::sync::Arc;
 
 use crate::{
     config::app_config::AppConfig,
+    platform::identifier::to_snake_case_lenient as to_snake_case,
     routes::app_error::{AppError, MetadataError},
     schemas::system::{DataType, EntityType},
 };
