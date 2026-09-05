@@ -61,6 +61,30 @@ export function Badge({ tone = 'neutral', className, children, ...props }: Badge
   );
 }
 
+export type IconProps = Omit<HTMLAttributes<HTMLSpanElement>, 'children'> & {
+  /** Material Icons ligature name, e.g. "dashboard", "check_circle". */
+  name: string;
+  /** Pixel size; defaults to inheriting via `1em`. */
+  size?: number | string;
+};
+/**
+ * Material Icons glyph. The font is loaded by the stylesheet linked in
+ * index.html; `.material-icons` base styling lives in kit.css. Decorative by
+ * default (aria-hidden) — pass `aria-label` + `role="img"` for a meaningful one.
+ */
+export function Icon({ name, size, className, style, ...props }: IconProps) {
+  return (
+    <span
+      aria-hidden={props['aria-label'] ? undefined : true}
+      {...props}
+      className={cx('material-icons', 'gov-icon', className)}
+      style={{ fontSize: size ?? '1em', ...style }}
+    >
+      {name}
+    </span>
+  );
+}
+
 export type SegmentedControlOption<Value extends string = string> = {
   value: Value;
   label: ReactNode;

@@ -6,34 +6,58 @@
  */
 
 :root {
-  --gov-bg: #0b1120;
-  --gov-bg-elevated: #111a2e;
-  --gov-bg-elevated-soft: #16213a;
-  --gov-border: #26324a;
-  --gov-border-strong: #384a6b;
-  --gov-text: #e7ecf7;
-  --gov-text-muted: #93a1bd;
-  --gov-accent: #4d8dff;
-  --gov-accent-strong: #2f6fe0;
-  --gov-accent-soft: rgba(77, 141, 255, 0.16);
-  --gov-success: #35c281;
-  --gov-success-bg: rgba(53, 194, 129, 0.14);
-  --gov-warning: #e0a63f;
-  --gov-warning-bg: rgba(224, 166, 63, 0.14);
-  --gov-danger: #ef5a6f;
-  --gov-danger-bg: rgba(239, 90, 111, 0.14);
-  --gov-radius-sm: 6px;
-  --gov-radius-md: 10px;
+  /* Neutrals — light "premium enterprise" surface (slate ramp). */
+  --gov-bg: #f1f5f9;
+  --gov-bg-elevated: #ffffff;
+  --gov-bg-elevated-soft: #f8fafc;
+  --gov-border: #e2e8f0;
+  --gov-border-strong: #cbd5e1;
+  --gov-text: #1e293b;
+  --gov-text-muted: #64748b;
+
+  /* Brand — indigo → violet. */
+  --gov-accent: #4f46e5;
+  --gov-accent-strong: #4338ca;
+  --gov-accent-soft: rgba(79, 70, 229, 0.1);
+  --gov-accent-2: #7c3aed;
+  --gov-accent-tint: #818cf8;
+  --gov-gradient-brand: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+
+  /* Status. */
+  --gov-success: #059669;
+  --gov-success-bg: rgba(5, 150, 105, 0.12);
+  --gov-warning: #d97706;
+  --gov-warning-bg: rgba(217, 119, 6, 0.12);
+  --gov-danger: #dc2626;
+  --gov-danger-bg: rgba(220, 38, 38, 0.12);
+
+  /* Dark-surface neutrals — for screens that opt into a dark canvas
+     (dashboard, workspace) rather than the light shell. */
+  --gov-dark-bg: #0f172a;
+  --gov-dark-surface: #1e293b;
+  --gov-dark-border: rgba(255, 255, 255, 0.1);
+  --gov-dark-text: #f8fafc;
+  --gov-dark-text-muted: #94a3b8;
+
+  --gov-radius-sm: 8px;
+  --gov-radius-md: 12px;
   --gov-radius-lg: 16px;
-  --gov-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --gov-radius-xl: 20px;
+  --gov-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
+  --gov-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --gov-shadow-premium: 0 10px 40px -10px rgba(79, 70, 229, 0.25);
+  --gov-shadow-glass: 0 4px 30px rgba(0, 0, 0, 0.05);
+
   --gov-space-1: 4px;
   --gov-space-2: 8px;
   --gov-space-3: 12px;
   --gov-space-4: 16px;
   --gov-space-5: 24px;
   --gov-space-6: 32px;
-  --gov-font: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  color-scheme: dark;
+
+  --gov-font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --gov-font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+  color-scheme: light;
 }
 
 * {
@@ -42,6 +66,191 @@
 
 body {
   font-family: var(--gov-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--gov-font-display);
+  letter-spacing: -0.02em;
+}
+
+/* Design-language helpers ------------------------------------------------- *
+ * Product-owned re-expression of the Dev-branch visual vocabulary (brand
+ * gradient, glassmorphism, premium form controls, fade-in, thin scrollbar).
+ * Screens use these instead of a utility framework. */
+
+.brand-gradient {
+  background: var(--gov-gradient-brand);
+}
+
+.gov-gradient-text {
+  background: var(--gov-gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--gov-shadow-glass);
+}
+
+.glass-panel-dark {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.form-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-radius: var(--gov-radius-lg);
+  padding: var(--gov-space-6);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
+}
+
+.form-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--gov-shadow-premium);
+  border-color: rgba(79, 70, 229, 0.2);
+}
+
+.field-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 0.5rem;
+  font-family: var(--gov-font);
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--gov-text);
+  background-color: rgba(248, 250, 252, 0.8);
+  border: 1.5px solid var(--gov-border);
+  border-radius: var(--gov-radius-md);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  outline: none;
+}
+
+.form-control:focus {
+  background-color: #ffffff;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #ffffff;
+  background: var(--gov-gradient-brand);
+  border: none;
+  border-radius: var(--gov-radius-md);
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.4);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid var(--gov-border);
+  border-radius: var(--gov-radius-md);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: #f1f5f9;
+  border-color: var(--gov-border-strong);
+  color: var(--gov-text);
+}
+
+@keyframes gov-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: gov-fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--gov-border-strong);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Material Icons — loaded from the stylesheet linked in index.html. */
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+.gov-icon {
+  vertical-align: middle;
 }
 
 /* Buttons ---------------------------------------------------------------- */
@@ -78,11 +287,13 @@ body {
 }
 
 .gov-btn--primary {
-  background: var(--gov-accent);
+  background: var(--gov-gradient-brand);
   color: #fff;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
 }
 .gov-btn--primary:hover:not(:disabled) {
-  background: var(--gov-accent-strong);
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.4);
+  transform: translateY(-1px);
 }
 
 .gov-btn--secondary,
