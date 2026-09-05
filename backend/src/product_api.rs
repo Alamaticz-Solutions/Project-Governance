@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 #[allow(unused_imports)]
 pub use crate::platform::policy::{AccessAction, PolicyAccess};
+#[allow(unused_imports)]
+pub use crate::platform::user_auth::{RuntimePrincipalType, UserAuth};
 use crate::{
     config::app_config::AppConfig,
     schemas::system::{
@@ -19,7 +21,6 @@ pub use crate::{
 pub use appfw_runtime::RuntimeJwtExtractor;
 #[allow(unused_imports)]
 pub use appfw_runtime::{
-    extension::{Claims, UserAuth},
     model_metadata::{
         RuntimeCustomMethodMetadata, RuntimeDataSourceEnvironment, RuntimeDataSourceMetadata,
         RuntimeDataType, RuntimeEntityMetadata, RuntimeEntityRef, RuntimeManyToMany,
@@ -98,9 +99,105 @@ impl From<&appfw_runtime::PolicyAccess> for PolicyAccess {
     }
 }
 
+// `UserAuth` is now product-owned (`platform::user_auth`), but its serialized
+// shape is fed to Rego as `input.user` by `appfw_runtime`-owned code, and a
+// long tail of not-yet-ported `appfw_runtime::data_access`/`record_audit`
+// functions and the `admin`/`mcp` trait boundaries still take the
+// framework's own `UserAuth` by value/reference. These conversions are the
+// only bridge -- lossless and exhaustive, since both are the same 9 plain
+// fields (the `token` field is copied too, not dropped: it's still needed by
+// whichever side receives it, even though neither type ever serializes it).
+impl From<RuntimePrincipalType> for appfw_runtime::extension::RuntimePrincipalType {
+    fn from(kind: RuntimePrincipalType) -> Self {
+        match kind {
+            RuntimePrincipalType::User => appfw_runtime::extension::RuntimePrincipalType::User,
+            RuntimePrincipalType::Service => {
+                appfw_runtime::extension::RuntimePrincipalType::Service
+            }
+            RuntimePrincipalType::Agent => appfw_runtime::extension::RuntimePrincipalType::Agent,
+        }
+    }
+}
+
+impl From<appfw_runtime::extension::RuntimePrincipalType> for RuntimePrincipalType {
+    fn from(kind: appfw_runtime::extension::RuntimePrincipalType) -> Self {
+        match kind {
+            appfw_runtime::extension::RuntimePrincipalType::User => RuntimePrincipalType::User,
+            appfw_runtime::extension::RuntimePrincipalType::Service => {
+                RuntimePrincipalType::Service
+            }
+            appfw_runtime::extension::RuntimePrincipalType::Agent => RuntimePrincipalType::Agent,
+        }
+    }
+}
+
+impl From<&UserAuth> for appfw_runtime::extension::UserAuth {
+    fn from(user: &UserAuth) -> Self {
+        appfw_runtime::extension::UserAuth {
+            tenant_id: user.tenant_id.clone(),
+            user_name: user.user_name.clone(),
+            timezone: user.timezone.clone(),
+            principal_type: user.principal_type.into(),
+            on_behalf_of: user.on_behalf_of.clone(),
+            ingress: user.ingress.clone(),
+            roles: user.roles.clone(),
+            scopes: user.scopes.clone(),
+            token: user.token.clone(),
+        }
+    }
+}
+
+impl From<UserAuth> for appfw_runtime::extension::UserAuth {
+    fn from(user: UserAuth) -> Self {
+        appfw_runtime::extension::UserAuth {
+            tenant_id: user.tenant_id,
+            user_name: user.user_name,
+            timezone: user.timezone,
+            principal_type: user.principal_type.into(),
+            on_behalf_of: user.on_behalf_of,
+            ingress: user.ingress,
+            roles: user.roles,
+            scopes: user.scopes,
+            token: user.token,
+        }
+    }
+}
+
+impl From<&appfw_runtime::extension::UserAuth> for UserAuth {
+    fn from(user: &appfw_runtime::extension::UserAuth) -> Self {
+        UserAuth {
+            tenant_id: user.tenant_id.clone(),
+            user_name: user.user_name.clone(),
+            timezone: user.timezone.clone(),
+            principal_type: user.principal_type.into(),
+            on_behalf_of: user.on_behalf_of.clone(),
+            ingress: user.ingress.clone(),
+            roles: user.roles.clone(),
+            scopes: user.scopes.clone(),
+            token: user.token.clone(),
+        }
+    }
+}
+
+impl From<appfw_runtime::extension::UserAuth> for UserAuth {
+    fn from(user: appfw_runtime::extension::UserAuth) -> Self {
+        UserAuth {
+            tenant_id: user.tenant_id,
+            user_name: user.user_name,
+            timezone: user.timezone,
+            principal_type: user.principal_type.into(),
+            on_behalf_of: user.on_behalf_of,
+            ingress: user.ingress,
+            roles: user.roles,
+            scopes: user.scopes,
+            token: user.token,
+        }
+    }
+}
+
 #[cfg(feature = "http")]
 pub(crate) fn user_from_context(ctx: &async_graphql::Context<'_>) -> Option<UserAuth> {
-    appfw_runtime::user_from_graphql_context(ctx)
+    appfw_runtime::user_from_graphql_context(ctx).map(UserAuth::from)
 }
 
 #[cfg(feature = "http")]
@@ -381,6 +478,132 @@ pub(crate) fn runtime_data_type(data_type: DataType) -> RuntimeDataType {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // These four cases assert that the product-owned `UserAuth`
+    // (`platform::user_auth`) serializes byte-for-byte identically to the
+    // framework's own `appfw_runtime::extension::UserAuth`, across every
+    // present/absent state of its optional fields. This matters because
+    // `config/app_config.rs::evaluate_user_access` feeds
+    // `serde_json::to_value(user)` straight into Rego as `input.user` for
+    // all 42 access policies -- a dropped `skip_serializing_if` or a
+    // renamed field would silently change what every one of those policies
+    // sees, with no compiler error. The framework's own test suite never
+    // asserts the *absent*-key case (only that a present `on_behalf_of` /
+    // `ingress` serializes correctly), so this is deliberately broader than
+    // what was ported. This test (and its use of `appfw_runtime` directly)
+    // is only meaningful while phase 5 still depends on that crate; it can
+    // be deleted once the dependency is removed in a later phase.
+    #[test]
+    fn user_auth_serializes_identically_to_the_framework_type_for_human() {
+        let product = UserAuth::human(
+            "tenant-1",
+            "casey",
+            "America/New_York",
+            vec!["admin".to_string(), "analyst".to_string()],
+            vec!["appfw:mcp.read".to_string()],
+            "secret-jwt",
+        );
+        let framework = appfw_runtime::extension::UserAuth::human(
+            "tenant-1",
+            "casey",
+            "America/New_York",
+            vec!["admin".to_string(), "analyst".to_string()],
+            vec!["appfw:mcp.read".to_string()],
+            "secret-jwt",
+        );
+        assert_eq!(
+            serde_json::to_value(&product).unwrap(),
+            serde_json::to_value(&framework).unwrap()
+        );
+    }
+
+    #[test]
+    fn user_auth_serializes_identically_to_the_framework_type_for_service() {
+        let product = UserAuth::service(
+            "tenant-1",
+            "crm-event-consumer",
+            vec!["integration_writer".to_string()],
+            vec!["crm.account.write".to_string()],
+        );
+        let framework = appfw_runtime::extension::UserAuth::service(
+            "tenant-1",
+            "crm-event-consumer",
+            vec!["integration_writer".to_string()],
+            vec!["crm.account.write".to_string()],
+        );
+        assert_eq!(
+            serde_json::to_value(&product).unwrap(),
+            serde_json::to_value(&framework).unwrap()
+        );
+    }
+
+    #[test]
+    fn user_auth_serializes_identically_to_the_framework_type_for_agent() {
+        let product = UserAuth::agent(
+            "tenant-1",
+            "reconciliation-agent",
+            vec!["agent".to_string()],
+            vec!["crm.account.read".to_string()],
+        );
+        let framework = appfw_runtime::extension::UserAuth::agent(
+            "tenant-1",
+            "reconciliation-agent",
+            vec!["agent".to_string()],
+            vec!["crm.account.read".to_string()],
+        );
+        assert_eq!(
+            serde_json::to_value(&product).unwrap(),
+            serde_json::to_value(&framework).unwrap()
+        );
+    }
+
+    #[test]
+    fn user_auth_serializes_identically_to_the_framework_type_with_ingress_and_on_behalf_of() {
+        let product = UserAuth::service(
+            "tenant-1",
+            "crm-event-consumer",
+            vec!["integration_writer".to_string()],
+            vec!["crm.account.write".to_string()],
+        )
+        .with_ingress("kafka")
+        .with_on_behalf_of("casey");
+        let framework = appfw_runtime::extension::UserAuth::service(
+            "tenant-1",
+            "crm-event-consumer",
+            vec!["integration_writer".to_string()],
+            vec!["crm.account.write".to_string()],
+        )
+        .with_ingress("kafka")
+        .with_on_behalf_of("casey");
+        assert_eq!(
+            serde_json::to_value(&product).unwrap(),
+            serde_json::to_value(&framework).unwrap()
+        );
+    }
+
+    // The `From` conversions at the `RuntimeJwtExtractor` boundary
+    // (product -> framework in `platform::graphql_gateway`, framework ->
+    // product in `user_from_context`) must be lossless in both directions,
+    // including `token` -- the one field neither type ever serializes, so a
+    // dropped `token` would not show up in the JSON-equality tests above.
+    #[test]
+    fn user_auth_round_trips_through_the_framework_type_without_losing_any_field() {
+        let original = UserAuth::human(
+            "tenant-1",
+            "casey",
+            "America/New_York",
+            vec!["admin".to_string()],
+            vec!["appfw:mcp.read".to_string()],
+            "secret-jwt",
+        )
+        .with_on_behalf_of("delegate");
+
+        let via_framework: appfw_runtime::extension::UserAuth = (&original).into();
+        let round_tripped: UserAuth = (&via_framework).into();
+
+        assert_eq!(original, round_tripped);
+        assert_eq!(round_tripped.token, "secret-jwt");
+    }
 
     fn test_entity(is_table: bool, props: Vec<PropertyType>) -> EntityType {
         EntityType {

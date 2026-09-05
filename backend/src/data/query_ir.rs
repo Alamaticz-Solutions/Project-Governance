@@ -25,13 +25,16 @@ use crate::{
     schemas::system::{DataType, EntityType, PropertyType},
 };
 
+pub(crate) use crate::data::query_ir_validation::{
+    AggregateFieldDescriptor, AggregateFunction, SortDirection,
+};
 pub use crate::product_api::RuntimeFilterOp as FilterOp;
 pub use appfw_runtime::query_ir::{
-    RuntimeAggregateFieldDescriptor as AggregateFieldDescriptor,
-    RuntimeAggregateFunction as AggregateFunction, RuntimePagination as Pagination,
-    RuntimePaginationPolicy as PaginationPolicy, RuntimeSortDirection as SortDirection,
+    RuntimePagination as Pagination, RuntimePaginationPolicy as PaginationPolicy,
 };
 pub use appfw_runtime::RuntimeProviderMutationKind as MutationKind;
+
+use crate::data::query_ir_validation as leaf;
 
 #[derive(Clone, Debug)]
 pub enum FilterAst {
@@ -767,8 +770,7 @@ impl FilterAst {
         for (key, value) in input {
             match key.as_str() {
                 conjunction::AND | conjunction::OR => {
-                    let normalized =
-                        runtime_query_ir::normalize_filter_conjunction_items(&key, value)?;
+                    let normalized = leaf::normalize_filter_conjunction_items(&key, value)?;
                     let mut filters = Vec::with_capacity(normalized.len());
                     for obj in normalized {
                         filters.push(Self::parse_object(
@@ -845,11 +847,7 @@ fn parse_filter_field(
         .clone();
     match runtime_prop.data_type {
         RuntimeDataType::NavToOne | RuntimeDataType::NavToMany => {
-            let obj = runtime_query_ir::expect_relationship_filter_object(
-                "navigation",
-                &prop.name,
-                value,
-            )?;
+            let obj = leaf::expect_relationship_filter_object("navigation", &prop.name, value)?;
             let (target_entity_type, _) = resolve_relationship_target(
                 model_metadata,
                 app_config.as_ref(),
@@ -870,11 +868,7 @@ fn parse_filter_field(
             }))
         }
         RuntimeDataType::ManyToMany => {
-            let obj = runtime_query_ir::expect_relationship_filter_object(
-                "many-to-many",
-                &prop.name,
-                value,
-            )?;
+            let obj = leaf::expect_relationship_filter_object("many-to-many", &prop.name, value)?;
             let (target_entity_type, _) = resolve_relationship_target(
                 model_metadata,
                 app_config.as_ref(),
@@ -903,7 +897,7 @@ fn parse_scalar_filter(
     runtime_prop: RuntimePropertyMetadata,
     value: Value,
 ) -> Result<FilterAst, AppError> {
-    let runtime_predicates = runtime_query_ir::scalar_filter_predicates(&prop.name, value)?;
+    let runtime_predicates = leaf::scalar_filter_predicates(&prop.name, value)?;
     let mut predicates = runtime_predicates
         .into_iter()
         .map(|predicate| {
@@ -925,7 +919,7 @@ fn parse_scalar_filter(
 
 impl SortAst {
     pub fn parse(entity_type: Arc<EntityType>, input: Option<Value>) -> Result<Self, AppError> {
-        let runtime_specs = runtime_query_ir::parse_sort_specs(input)?;
+        let runtime_specs = leaf::parse_sort_specs(input)?;
         let mut specs = Vec::with_capacity(runtime_specs.len());
         for runtime_spec in runtime_specs {
             let prop = AppConfig::get_prop(entity_type.clone(), &runtime_spec.field)?;
@@ -1118,18 +1112,18 @@ fn normalize_object_input(
     input: Option<Value>,
     label: &str,
 ) -> Result<Option<Map<String, Value>>, AppError> {
-    runtime_query_ir::normalize_object_input(input, label).map_err(AppError::from)
+    leaf::normalize_object_input(input, label)
 }
 
 fn normalize_array_input(
     input: Option<Value>,
     label: &str,
 ) -> Result<Option<Vec<Value>>, AppError> {
-    runtime_query_ir::normalize_array_input(input, label).map_err(AppError::from)
+    leaf::normalize_array_input(input, label)
 }
 
 fn take_string(obj: &mut Map<String, Value>, key: &str, label: &str) -> Result<String, AppError> {
-    runtime_query_ir::take_string(obj, key, label).map_err(AppError::from)
+    leaf::take_string(obj, key, label)
 }
 
 fn take_string_any(
@@ -1137,28 +1131,27 @@ fn take_string_any(
     keys: &[&str],
     label: &str,
 ) -> Result<String, AppError> {
-    runtime_query_ir::take_string_any(obj, keys, label).map_err(AppError::from)
+    leaf::take_string_any(obj, keys, label)
 }
 
 fn expect_string(value: Value, label: &str) -> Result<String, AppError> {
-    runtime_query_ir::expect_string(value, label).map_err(AppError::from)
+    leaf::expect_string(value, label)
 }
 
 fn validate_output_alias(alias: &str) -> Result<(), AppError> {
-    runtime_query_ir::validate_aggregate_output_alias(alias).map_err(AppError::from)
+    leaf::validate_aggregate_output_alias(alias)
 }
 
 fn ensure_unique_aggregate_aliases(
     group_by: &[GroupBySpec],
     metrics: &[AggregateMetric],
 ) -> Result<(), AppError> {
-    runtime_query_ir::validate_unique_aggregate_aliases(
+    leaf::validate_unique_aggregate_aliases(
         group_by
             .iter()
             .map(|group| group.alias.as_str())
             .chain(metrics.iter().map(|metric| metric.alias.as_str())),
     )
-    .map_err(AppError::from)
 }
 
 fn aggregate_alias_exists(
@@ -1166,7 +1159,7 @@ fn aggregate_alias_exists(
     metrics: &[AggregateMetric],
     alias: &str,
 ) -> bool {
-    runtime_query_ir::aggregate_alias_exists(
+    leaf::aggregate_alias_exists(
         group_by
             .iter()
             .map(|group| group.alias.as_str())
@@ -1176,8 +1169,7 @@ fn aggregate_alias_exists(
 }
 
 fn ensure_groupable(prop: &RuntimePropertyMetadata) -> Result<(), AppError> {
-    runtime_query_ir::ensure_aggregate_groupable(&AggregateFieldDescriptor::from(prop))
-        .map_err(AppError::from)
+    leaf::ensure_aggregate_groupable(&AggregateFieldDescriptor::from(prop))
 }
 
 fn validate_metric_field(
@@ -1185,16 +1177,15 @@ fn validate_metric_field(
     prop: Option<&RuntimePropertyMetadata>,
 ) -> Result<(), AppError> {
     let field = prop.map(AggregateFieldDescriptor::from);
-    runtime_query_ir::validate_aggregate_metric_field(function, field.as_ref())
-        .map_err(AppError::from)
+    leaf::validate_aggregate_metric_field(function, field.as_ref())
 }
 
 fn default_metric_alias(function: AggregateFunction, prop: Option<&Arc<PropertyType>>) -> String {
-    runtime_query_ir::default_aggregate_metric_alias(function, prop.map(|prop| prop.name.as_str()))
+    leaf::default_aggregate_metric_alias(function, prop.map(|prop| prop.name.as_str()))
 }
 
 fn ensure_having_op(op: FilterOp) -> Result<(), AppError> {
-    runtime_query_ir::ensure_aggregate_having_op(op).map_err(AppError::from)
+    leaf::ensure_aggregate_having_op(op)
 }
 
 fn ensure_keyset_sort(
@@ -1219,5 +1210,5 @@ fn apply_keyset_cursor_filter(
 }
 
 fn value_kind(v: &Value) -> &'static str {
-    runtime_query_ir::value_kind(v)
+    leaf::value_kind(v)
 }

@@ -542,6 +542,7 @@ dependencies = [
  "serde_yaml",
  "sha2 0.10.9",
  "slab",
+ "strfmt",
  "thiserror 2.0.20",
  "time",
  "tokio",

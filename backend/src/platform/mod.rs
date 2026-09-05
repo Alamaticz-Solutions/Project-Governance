@@ -37,3 +37,5 @@ pub(crate) mod secrets;
 pub(crate) mod security;
 
 pub(crate) mod tenant_isolation;
+
+pub(crate) mod user_auth;

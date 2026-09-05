@@ -7,21 +7,21 @@
 //! independently against a behavior specification -- not derived from
 //! framework source.
 //!
+//! `UserAuth` (`platform::user_auth`) is product-owned as of backend
+//! framework replacement phase 5. This module constructs it directly via its
+//! own `UserAuth::human(..)` constructor.
+//!
 //! Kept framework-owned, deliberately NOT redefined here:
-//!   - `UserAuth` (`appfw_runtime::extension`) -- serialized via
-//!     `serde_json::to_value` and fed to Rego as `input.user` for every
-//!     access policy (`config/app_config.rs::evaluate_user_access`). Its
-//!     serde field names are load-bearing; this module only ever *produces*
-//!     values through the framework's own `UserAuth::human(..)` constructor,
-//!     never redefines the type. Phase-5 territory.
-//!   - `appfw_runtime::RuntimeJwtExtractor` -- a plain `{ user: Option<Arc<UserAuth>> }`
-//!     holder that `appfw_runtime::user_from_graphql_context` (already used
-//!     throughout `backend/src/product_api.rs` and every generated resolver)
-//!     looks up by concrete type from the async-graphql request context.
-//!     Redefining this type would silently break every resolver that reads
-//!     the current user. This module computes the `user` value; the caller
-//!     (`platform::graphql_gateway`) builds the framework struct literal
-//!     around it.
+//!   - `appfw_runtime::RuntimeJwtExtractor` -- a plain
+//!     `{ user: Option<Arc<appfw_runtime::extension::UserAuth>> }` holder
+//!     that `appfw_runtime::user_from_graphql_context` (used throughout
+//!     `backend/src/product_api.rs` and every generated resolver via
+//!     `product_api::user_from_context`) looks up by concrete type from the
+//!     async-graphql request context. Redefining this type would silently
+//!     break every resolver that reads the current user. This module
+//!     computes the product-owned `UserAuth` value; the caller
+//!     (`platform::graphql_gateway`) converts it to the framework's own
+//!     `UserAuth` and builds the framework struct literal around it.
 //!   - `RuntimeError` -- the shared failure enum for `NotAuthorized` /
 //!     `AccessDenied`; reused as-is, not reimplemented.
 //!
@@ -34,10 +34,12 @@
 
 use std::{collections::HashSet, sync::Arc};
 
-use appfw_runtime::{extension::UserAuth, ConfigError, RuntimeError};
+use appfw_runtime::{ConfigError, RuntimeError};
 use axum::http::HeaderMap;
 use okta_jwt_verifier::Verifier;
 use serde_json::Value;
+
+use crate::platform::user_auth::UserAuth;
 use tracing::warn;
 
 use crate::platform::security::is_dev_workstation_env;

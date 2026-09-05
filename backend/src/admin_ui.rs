@@ -11,7 +11,6 @@ use appfw_runtime::{
     data_access::RuntimeQueryPlanDiagnostic,
     extension::UserAuth,
     observability::RequestContext,
-    record_audit as runtime_audit,
     security::SecurityConfig,
     RuntimeAuthState, RuntimeFilterCapabilities,
 };
@@ -22,6 +21,7 @@ use std::{collections::HashMap, env, sync::Arc};
 
 use crate::{
     config::app_config::AppConfig,
+    data::audit as runtime_audit,
     data::data_access::DataAccess,
     platform::policy::AccessAction,
     product_api::{product_data_type, runtime_entity_metadata, runtime_provider},
@@ -151,7 +151,7 @@ impl AdminPolicyExplainProvider for ProductAdminPolicyExplainProvider<'_> {
         let access = self
             .state
             .app_config
-            .evaluate_user_access(entity_type.clone(), action.into(), user)
+            .evaluate_user_access(entity_type.clone(), action.into(), &user.into())
             .map_err(|err| AdminServiceError::internal(err.to_string(), request_context))?;
 
         Ok(admin_policy_explain_result(
@@ -188,7 +188,7 @@ impl AdminAuditTimelineProvider for ProductAdminAuditTimelineProvider<'_> {
         let current_access = self
             .state
             .app_config
-            .evaluate_user_access(entity_type.clone(), AccessAction::Read, user)
+            .evaluate_user_access(entity_type.clone(), AccessAction::Read, &user.into())
             .map_err(|err| AdminServiceError::internal(err.to_string(), request_context))?;
         let current_policy: PolicyDecision =
             appfw_runtime::PolicyAccess::from(current_access.clone()).into();
@@ -220,7 +220,7 @@ impl AdminAuditTimelineProvider for ProductAdminAuditTimelineProvider<'_> {
                         entity_type.clone(),
                         record_id,
                         limit,
-                        user,
+                        &user.into(),
                         &current_access,
                     )
                     .await
@@ -269,7 +269,7 @@ impl AdminQueryDiagnoseProvider for ProductAdminQueryDiagnoseProvider<'_> {
         };
 
         data_access
-            .diagnose_query(entity_type, filter, sort, skip, limit, after, user)
+            .diagnose_query(entity_type, filter, sort, skip, limit, after, user.into())
             .await
             .map_err(|err| AdminServiceError::bad_request(err.to_string(), request_context))
     }

@@ -4,12 +4,12 @@
 //! docs/architecture/self-owned-backend-plan.md). Previously
 //! `appfw_provider_postgres::sort`.
 
-use appfw_runtime::query_ir::RuntimeSortDirection;
+use crate::data::query_ir::SortDirection;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PostgresSortField {
     pub name: String,
-    pub direction: RuntimeSortDirection,
+    pub direction: SortDirection,
 }
 
 /// `ORDER BY` for a paginated CTE query, falling back to the primary key
@@ -63,11 +63,11 @@ mod tests {
         let fields = vec![
             PostgresSortField {
                 name: "name".to_string(),
-                direction: RuntimeSortDirection::Desc,
+                direction: SortDirection::Desc,
             },
             PostgresSortField {
                 name: "age".to_string(),
-                direction: RuntimeSortDirection::Asc,
+                direction: SortDirection::Asc,
             },
         ];
         assert_eq!(
@@ -80,7 +80,7 @@ mod tests {
     fn renders_aggregate_ordering() {
         let fields = vec![PostgresSortField {
             name: "total\"age".to_string(),
-            direction: RuntimeSortDirection::Desc,
+            direction: SortDirection::Desc,
         }];
         assert_eq!(aggregate_order_by(&[]), "");
         assert_eq!(

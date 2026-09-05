@@ -2,11 +2,8 @@ use std::{env, sync::Arc, time::Instant};
 
 use anyhow::Result;
 use appfw_runtime::data_access as runtime_data_access;
-use appfw_runtime::extension::UserAuth;
 use appfw_runtime::json as json_utils;
 use appfw_runtime::observability::{current_request_context, MetricsRegistry};
-use appfw_runtime::record_audit as runtime_audit;
-use appfw_runtime::record_validation as runtime_validation;
 use appfw_runtime::{
     RuntimeProviderDescriptor, RuntimeProviderIdentity, RuntimeProviderOperation,
     RuntimeProviderOperationCounts, RuntimeProviderPlanInput,
@@ -15,11 +12,14 @@ use serde_json::{json, Value};
 use tracing::debug;
 
 use crate::config::app_config::AppConfig;
+use crate::data::audit as runtime_audit;
 use crate::data::query_ir::PaginationPolicy;
 use crate::data::query_ir::{cost_for_query, AggregatePlan, MutationPlan, QueryPlan};
 use crate::data::rules;
+use crate::data::rules::validation as runtime_validation;
 use crate::platform::policy::{AccessAction, PolicyAccess};
 use crate::platform::record_locator::{validate_record_locator, RECORD_LOCATOR_FIELD};
+use crate::platform::user_auth::UserAuth;
 use crate::product_api::runtime_entity_metadata;
 use crate::routes::app_error::AppError;
 use crate::schemas::common::{AggregateResult, JsonAggregateResult, JsonQueryResult, QueryResult};
@@ -77,7 +77,7 @@ impl DataAccess {
             entity_type,
             selections,
             record_id.to_string(),
-            user,
+            &appfw_runtime::extension::UserAuth::from(user),
             &appfw_runtime::PolicyAccess::from(access),
             query,
         )
@@ -234,7 +234,12 @@ impl DataAccess {
 
         let value = self
             .client
-            .call_provider_routine_json(&routine, &arguments, &user, &access)
+            .call_provider_routine_json(
+                &routine,
+                &arguments,
+                &appfw_runtime::extension::UserAuth::from(&user),
+                &access,
+            )
             .await?;
         serde_json::from_value::<R>(value).map_err(|err| {
             AppError::DataAccess(format!(
@@ -306,7 +311,7 @@ impl DataAccess {
             &provider,
             RuntimeProviderPlanInput::new(
                 &provider_plan,
-                &user,
+                &appfw_runtime::extension::UserAuth::from(&user),
                 &appfw_runtime::PolicyAccess::from(&access),
             ),
         )
@@ -393,7 +398,7 @@ impl DataAccess {
         let client_res = match runtime_data_access::execute_create_item_plan_mutation(
             &provider,
             plan,
-            &user,
+            &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
@@ -543,7 +548,7 @@ impl DataAccess {
         let client_res = match runtime_data_access::execute_update_item_plan_mutation(
             &provider,
             plan,
-            &user,
+            &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
@@ -668,7 +673,7 @@ impl DataAccess {
         let client_res = match runtime_data_access::execute_delete_item_plan_mutation(
             &provider,
             plan,
-            &user,
+            &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
@@ -770,7 +775,7 @@ impl DataAccess {
             entity_type.clone(),
             selections,
             id,
-            &user,
+            &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
@@ -865,7 +870,7 @@ impl DataAccess {
         let res_vec = runtime_data_access::execute_get_items_plan_read(
             &provider,
             plan,
-            &user,
+            &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
@@ -956,7 +961,14 @@ impl DataAccess {
                 .first()
                 .map(|spec| runtime_data_access::RuntimeReadSort {
                     field: spec.prop.name.clone(),
-                    direction: spec.direction,
+                    direction: match spec.direction {
+                        crate::data::query_ir::SortDirection::Asc => {
+                            appfw_runtime::query_ir::RuntimeSortDirection::Asc
+                        }
+                        crate::data::query_ir::SortDirection::Desc => {
+                            appfw_runtime::query_ir::RuntimeSortDirection::Desc
+                        }
+                    },
                 });
 
         // println!("\n Database: query_items res:: {:?}", res);
@@ -968,7 +980,7 @@ impl DataAccess {
             plan,
             &pagination,
             runtime_sort.as_ref(),
-            &user,
+            &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
@@ -1089,7 +1101,7 @@ impl DataAccess {
         let res_vec = runtime_data_access::execute_batch_get_items_plan_read(
             &provider,
             plan,
-            &user,
+            &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
@@ -1145,7 +1157,7 @@ impl DataAccess {
         let res = runtime_data_access::execute_aggregate_items_plan_read(
             &provider,
             plan,
-            &user,
+            &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
@@ -1363,7 +1375,7 @@ impl DataAccess {
         runtime_data_access::append_audit_mutation(
             &entity,
             action.into(),
-            user,
+            &appfw_runtime::extension::UserAuth::from(user),
             record_id,
             before_json,
             after_json,
@@ -1407,7 +1419,7 @@ impl DataAccess {
         runtime_data_access::append_policy_denied_audit_attempt_on_record_chain(
             &entity,
             action.into(),
-            user,
+            &appfw_runtime::extension::UserAuth::from(user),
             record_id,
             before_json,
             attempted_json,
@@ -1431,7 +1443,7 @@ impl DataAccess {
         runtime_data_access::append_policy_error_audit_attempt(
             &entity,
             action.into(),
-            user,
+            &appfw_runtime::extension::UserAuth::from(user),
             record_id,
             attempted_json,
             error,
@@ -1455,7 +1467,7 @@ impl DataAccess {
         runtime_data_access::append_operation_failed_audit_attempt(
             &entity,
             action.into(),
-            user,
+            &appfw_runtime::extension::UserAuth::from(user),
             record_id,
             before_json,
             after_json,
@@ -1478,7 +1490,7 @@ impl DataAccess {
         runtime_data_access::append_operation_not_applied_audit_attempt(
             &entity,
             action.into(),
-            user,
+            &appfw_runtime::extension::UserAuth::from(user),
             record_id,
             before_json,
             |event| runtime_data_access::provider_append_audit_event(&provider, event),
@@ -1514,7 +1526,7 @@ impl DataAccess {
             entity_type.clone(),
             runtime_audit::audit_selection(&runtime_entity_metadata(&entity_type)),
             id,
-            user,
+            &appfw_runtime::extension::UserAuth::from(user),
             &appfw_runtime::PolicyAccess::from(access),
         )
         .await
@@ -1564,7 +1576,7 @@ impl DataAccess {
                 runtime_data_access::validate_unique_record(
                     &provider,
                     plan,
-                    user,
+                    &appfw_runtime::extension::UserAuth::from(user),
                     &appfw_runtime::PolicyAccess::from(access),
                     &pk_name,
                     record,
@@ -1599,7 +1611,7 @@ impl DataAccess {
             entity_type.clone(),
             runtime_audit::audit_selection(&runtime_entity_metadata(&entity_type)),
             Some(id),
-            user,
+            &appfw_runtime::extension::UserAuth::from(user),
             &appfw_runtime::PolicyAccess::from(access),
         )
         .await
@@ -1638,7 +1650,7 @@ impl DataAccess {
                 target.clone(),
                 runtime_audit::audit_selection(&runtime_entity_metadata(&target)),
                 Some(id),
-                user,
+                &appfw_runtime::extension::UserAuth::from(user),
                 &appfw_runtime::PolicyAccess::from(&target_access),
             )
             .await?;

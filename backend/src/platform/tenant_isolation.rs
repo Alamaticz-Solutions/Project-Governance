@@ -1,10 +1,10 @@
 //! Product-owned tenant scoping for policy decisions, ported off
 //! `appfw_runtime` (backend framework replacement phase 5).
 
-use appfw_runtime::extension::UserAuth;
 use appfw_runtime::model_metadata::{RuntimeDataType, RuntimeEntityMetadata};
 
 use crate::platform::policy::PolicyAccess;
+use crate::platform::user_auth::UserAuth;
 
 pub const TENANT_ID_FIELD: &str = "tenant_id";
 

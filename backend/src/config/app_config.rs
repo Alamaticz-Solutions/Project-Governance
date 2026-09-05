@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use appfw_runtime::{extension::UserAuth, security::SecurityConfig};
+use appfw_runtime::security::SecurityConfig;
 use serde_json::json;
 use std::{collections::HashMap, sync::Arc};
 use tracing::{debug, warn};
@@ -10,6 +10,7 @@ use crate::{
     platform::{
         identifier::to_snake_case_lenient as to_snake_case, policy::AccessAction,
         policy::PolicyAccess, record_locator::RECORD_LOCATOR_FIELD, tenant_isolation,
+        user_auth::UserAuth,
     },
     product_api::runtime_entity_metadata,
     routes::app_error::{AppError, ConfigError, MetadataError},

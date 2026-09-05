@@ -4,13 +4,11 @@
 //! docs/architecture/self-owned-backend-plan.md). Previously
 //! `appfw_provider_postgres::aggregate`.
 
-use appfw_runtime::{
-    model_metadata::RuntimeDataType, query_filter::RuntimeFilterOp,
-    query_ir::RuntimeAggregateFunction, RuntimeError,
-};
+use appfw_runtime::{model_metadata::RuntimeDataType, query_filter::RuntimeFilterOp, RuntimeError};
 use serde_json::Value;
 
 use super::param::{type_param, SqlParam};
+use crate::data::query_ir::AggregateFunction;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PostgresAggregateGroup {
@@ -20,7 +18,7 @@ pub struct PostgresAggregateGroup {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PostgresAggregateMetric {
-    pub function: RuntimeAggregateFunction,
+    pub function: AggregateFunction,
     pub field_name: Option<String>,
     pub alias: String,
     pub value_data_type: RuntimeDataType,
@@ -227,27 +225,27 @@ fn having_placeholder(
 
 fn aggregate_expr(metric: &PostgresAggregateMetric, alias: &str) -> Result<String, RuntimeError> {
     let expr = match metric.function {
-        RuntimeAggregateFunction::Count => metric
+        AggregateFunction::Count => metric
             .field_name
             .as_ref()
             .map(|field| format!("COUNT({})", qualified(alias, field)))
             .unwrap_or_else(|| "COUNT(*)".to_string()),
-        RuntimeAggregateFunction::CountDistinct => {
+        AggregateFunction::CountDistinct => {
             format!(
                 "COUNT(DISTINCT {})",
                 qualified(alias, &metric_field(metric)?)
             )
         }
-        RuntimeAggregateFunction::Sum => {
+        AggregateFunction::Sum => {
             format!("SUM({})", qualified(alias, &metric_field(metric)?))
         }
-        RuntimeAggregateFunction::Avg => {
+        AggregateFunction::Avg => {
             format!("AVG({})", qualified(alias, &metric_field(metric)?))
         }
-        RuntimeAggregateFunction::Min => {
+        AggregateFunction::Min => {
             format!("MIN({})", qualified(alias, &metric_field(metric)?))
         }
-        RuntimeAggregateFunction::Max => {
+        AggregateFunction::Max => {
             format!("MAX({})", qualified(alias, &metric_field(metric)?))
         }
     };
@@ -289,10 +287,7 @@ fn quote_ident(name: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use appfw_runtime::{
-        model_metadata::RuntimeDataType, query_filter::RuntimeFilterOp,
-        query_ir::RuntimeAggregateFunction,
-    };
+    use appfw_runtime::{model_metadata::RuntimeDataType, query_filter::RuntimeFilterOp};
     use serde_json::json;
 
     use super::*;
@@ -304,7 +299,7 @@ mod tests {
             alias: "region".to_string(),
         }];
         let metrics = vec![PostgresAggregateMetric {
-            function: RuntimeAggregateFunction::Sum,
+            function: AggregateFunction::Sum,
             field_name: Some("amount".to_string()),
             alias: "total_amount".to_string(),
             value_data_type: RuntimeDataType::Int64,

@@ -76,6 +76,7 @@ serde_json = "1.0"
 serde_yaml = "0.9"
 sha2 = "0.10"
 slab = "0.4.7"
+strfmt = "0.2.2"
 thiserror = "2.0.12"
 time = { version = "0.3", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }

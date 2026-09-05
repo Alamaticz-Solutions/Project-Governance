@@ -126,6 +126,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<AttachmentProjection>> {
         let handler_context = from_context(ctx, "governance", "Attachment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = attachment::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -142,6 +143,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<AttachmentProjection>> {
         let handler_context = from_context(ctx, "governance", "Attachment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             attachment::find_by_locator_impl(user, &data_access, &entity_type, selections, locator)
@@ -156,6 +158,7 @@ impl GovernanceQuery {
     async fn get_attachments(&self, ctx: &Context<'_>) -> FieldResult<Vec<AttachmentProjection>> {
         let handler_context = from_context(ctx, "governance", "Attachment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = attachment::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -176,6 +179,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AttachmentQueryResult> {
         let handler_context = from_context(ctx, "governance", "Attachment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = attachment::query_impl(
@@ -220,6 +224,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "Attachment")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -249,6 +254,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<AttachmentAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "AttachmentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             attachment_audit::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -266,6 +272,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<AttachmentAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "AttachmentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = attachment_audit::find_by_locator_impl(
             user,
@@ -288,6 +295,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<AttachmentAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "AttachmentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = attachment_audit::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -308,6 +316,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AttachmentAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "AttachmentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = attachment_audit::query_impl(
@@ -353,6 +362,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "AttachmentAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -382,6 +392,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<AuditEventProjection>> {
         let handler_context = from_context(ctx, "governance", "AuditEvent")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = audit_event::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -398,6 +409,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<AuditEventProjection>> {
         let handler_context = from_context(ctx, "governance", "AuditEvent")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = audit_event::find_by_locator_impl(
             user,
@@ -417,6 +429,7 @@ impl GovernanceQuery {
     async fn get_audit_events(&self, ctx: &Context<'_>) -> FieldResult<Vec<AuditEventProjection>> {
         let handler_context = from_context(ctx, "governance", "AuditEvent")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = audit_event::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -437,6 +450,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AuditEventQueryResult> {
         let handler_context = from_context(ctx, "governance", "AuditEvent")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = audit_event::query_impl(
@@ -481,6 +495,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "AuditEvent")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -510,6 +525,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ChecklistItemProjection>> {
         let handler_context = from_context(ctx, "governance", "ChecklistItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = checklist_item::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -526,6 +542,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ChecklistItemProjection>> {
         let handler_context = from_context(ctx, "governance", "ChecklistItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = checklist_item::find_by_locator_impl(
             user,
@@ -548,6 +565,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<ChecklistItemProjection>> {
         let handler_context = from_context(ctx, "governance", "ChecklistItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = checklist_item::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -568,6 +586,7 @@ impl GovernanceQuery {
     ) -> FieldResult<ChecklistItemQueryResult> {
         let handler_context = from_context(ctx, "governance", "ChecklistItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = checklist_item::query_impl(
@@ -612,6 +631,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "ChecklistItem")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -641,6 +661,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ChecklistItemAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ChecklistItemAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             checklist_item_audit::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -658,6 +679,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ChecklistItemAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ChecklistItemAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = checklist_item_audit::find_by_locator_impl(
             user,
@@ -680,6 +702,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<ChecklistItemAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ChecklistItemAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             checklist_item_audit::get_impl(user, &data_access, &entity_type, selections).await;
@@ -701,6 +724,7 @@ impl GovernanceQuery {
     ) -> FieldResult<ChecklistItemAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "ChecklistItemAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = checklist_item_audit::query_impl(
@@ -746,6 +770,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "ChecklistItemAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -775,6 +800,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<CommentProjection>> {
         let handler_context = from_context(ctx, "governance", "Comment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = comment::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -791,6 +817,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<CommentProjection>> {
         let handler_context = from_context(ctx, "governance", "Comment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             comment::find_by_locator_impl(user, &data_access, &entity_type, selections, locator)
@@ -805,6 +832,7 @@ impl GovernanceQuery {
     async fn get_comments(&self, ctx: &Context<'_>) -> FieldResult<Vec<CommentProjection>> {
         let handler_context = from_context(ctx, "governance", "Comment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = comment::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -825,6 +853,7 @@ impl GovernanceQuery {
     ) -> FieldResult<CommentQueryResult> {
         let handler_context = from_context(ctx, "governance", "Comment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = comment::query_impl(
@@ -869,6 +898,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "Comment")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -898,6 +928,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<CommentAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "CommentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = comment_audit::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -914,6 +945,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<CommentAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "CommentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = comment_audit::find_by_locator_impl(
             user,
@@ -936,6 +968,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<CommentAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "CommentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = comment_audit::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -956,6 +989,7 @@ impl GovernanceQuery {
     ) -> FieldResult<CommentAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "CommentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = comment_audit::query_impl(
@@ -1000,6 +1034,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "CommentAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -1029,6 +1064,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<EmailQueueItemProjection>> {
         let handler_context = from_context(ctx, "governance", "EmailQueueItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             email_queue_item::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -1046,6 +1082,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<EmailQueueItemProjection>> {
         let handler_context = from_context(ctx, "governance", "EmailQueueItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = email_queue_item::find_by_locator_impl(
             user,
@@ -1068,6 +1105,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<EmailQueueItemProjection>> {
         let handler_context = from_context(ctx, "governance", "EmailQueueItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = email_queue_item::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -1088,6 +1126,7 @@ impl GovernanceQuery {
     ) -> FieldResult<EmailQueueItemQueryResult> {
         let handler_context = from_context(ctx, "governance", "EmailQueueItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = email_queue_item::query_impl(
@@ -1132,6 +1171,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "EmailQueueItem")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -1161,6 +1201,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<GateReviewProjection>> {
         let handler_context = from_context(ctx, "governance", "GateReview")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_review::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -1177,6 +1218,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<GateReviewProjection>> {
         let handler_context = from_context(ctx, "governance", "GateReview")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_review::find_by_locator_impl(
             user,
@@ -1196,6 +1238,7 @@ impl GovernanceQuery {
     async fn get_gate_reviews(&self, ctx: &Context<'_>) -> FieldResult<Vec<GateReviewProjection>> {
         let handler_context = from_context(ctx, "governance", "GateReview")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_review::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -1216,6 +1259,7 @@ impl GovernanceQuery {
     ) -> FieldResult<GateReviewQueryResult> {
         let handler_context = from_context(ctx, "governance", "GateReview")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = gate_review::query_impl(
@@ -1260,6 +1304,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "GateReview")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -1289,6 +1334,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<GateReviewAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "GateReviewAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             gate_review_audit::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -1306,6 +1352,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<GateReviewAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "GateReviewAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_review_audit::find_by_locator_impl(
             user,
@@ -1328,6 +1375,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<GateReviewAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "GateReviewAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_review_audit::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -1348,6 +1396,7 @@ impl GovernanceQuery {
     ) -> FieldResult<GateReviewAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "GateReviewAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = gate_review_audit::query_impl(
@@ -1393,6 +1442,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "GateReviewAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -1422,6 +1472,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<GateSubmissionProjection>> {
         let handler_context = from_context(ctx, "governance", "GateSubmission")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             gate_submission::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -1439,6 +1490,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<GateSubmissionProjection>> {
         let handler_context = from_context(ctx, "governance", "GateSubmission")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_submission::find_by_locator_impl(
             user,
@@ -1461,6 +1513,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<GateSubmissionProjection>> {
         let handler_context = from_context(ctx, "governance", "GateSubmission")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_submission::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -1481,6 +1534,7 @@ impl GovernanceQuery {
     ) -> FieldResult<GateSubmissionQueryResult> {
         let handler_context = from_context(ctx, "governance", "GateSubmission")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = gate_submission::query_impl(
@@ -1525,6 +1579,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "GateSubmission")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -1554,6 +1609,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<GateSubmissionAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "GateSubmissionAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             gate_submission_audit::find_impl(user, &data_access, &entity_type, selections, id)
@@ -1572,6 +1628,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<GateSubmissionAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "GateSubmissionAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_submission_audit::find_by_locator_impl(
             user,
@@ -1594,6 +1651,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<GateSubmissionAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "GateSubmissionAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             gate_submission_audit::get_impl(user, &data_access, &entity_type, selections).await;
@@ -1615,6 +1673,7 @@ impl GovernanceQuery {
     ) -> FieldResult<GateSubmissionAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "GateSubmissionAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = gate_submission_audit::query_impl(
@@ -1660,6 +1719,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "GateSubmissionAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -1689,6 +1749,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<GraphSubscriptionProjection>> {
         let handler_context = from_context(ctx, "governance", "GraphSubscription")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             graph_subscription::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -1706,6 +1767,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<GraphSubscriptionProjection>> {
         let handler_context = from_context(ctx, "governance", "GraphSubscription")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = graph_subscription::find_by_locator_impl(
             user,
@@ -1728,6 +1790,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<GraphSubscriptionProjection>> {
         let handler_context = from_context(ctx, "governance", "GraphSubscription")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = graph_subscription::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -1748,6 +1811,7 @@ impl GovernanceQuery {
     ) -> FieldResult<GraphSubscriptionQueryResult> {
         let handler_context = from_context(ctx, "governance", "GraphSubscription")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = graph_subscription::query_impl(
@@ -1793,6 +1857,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "GraphSubscription")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -1822,6 +1887,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<KnowledgeChunkProjection>> {
         let handler_context = from_context(ctx, "governance", "KnowledgeChunk")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             knowledge_chunk::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -1839,6 +1905,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<KnowledgeChunkProjection>> {
         let handler_context = from_context(ctx, "governance", "KnowledgeChunk")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = knowledge_chunk::find_by_locator_impl(
             user,
@@ -1861,6 +1928,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<KnowledgeChunkProjection>> {
         let handler_context = from_context(ctx, "governance", "KnowledgeChunk")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = knowledge_chunk::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -1881,6 +1949,7 @@ impl GovernanceQuery {
     ) -> FieldResult<KnowledgeChunkQueryResult> {
         let handler_context = from_context(ctx, "governance", "KnowledgeChunk")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = knowledge_chunk::query_impl(
@@ -1925,6 +1994,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "KnowledgeChunk")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -1954,6 +2024,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<KnowledgeDocumentProjection>> {
         let handler_context = from_context(ctx, "governance", "KnowledgeDocument")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             knowledge_document::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -1971,6 +2042,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<KnowledgeDocumentProjection>> {
         let handler_context = from_context(ctx, "governance", "KnowledgeDocument")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = knowledge_document::find_by_locator_impl(
             user,
@@ -1993,6 +2065,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<KnowledgeDocumentProjection>> {
         let handler_context = from_context(ctx, "governance", "KnowledgeDocument")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = knowledge_document::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -2013,6 +2086,7 @@ impl GovernanceQuery {
     ) -> FieldResult<KnowledgeDocumentQueryResult> {
         let handler_context = from_context(ctx, "governance", "KnowledgeDocument")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = knowledge_document::query_impl(
@@ -2058,6 +2132,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "KnowledgeDocument")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -2087,6 +2162,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<MeetingProjection>> {
         let handler_context = from_context(ctx, "governance", "Meeting")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = meeting::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -2103,6 +2179,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<MeetingProjection>> {
         let handler_context = from_context(ctx, "governance", "Meeting")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             meeting::find_by_locator_impl(user, &data_access, &entity_type, selections, locator)
@@ -2117,6 +2194,7 @@ impl GovernanceQuery {
     async fn get_meetings(&self, ctx: &Context<'_>) -> FieldResult<Vec<MeetingProjection>> {
         let handler_context = from_context(ctx, "governance", "Meeting")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = meeting::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -2137,6 +2215,7 @@ impl GovernanceQuery {
     ) -> FieldResult<MeetingQueryResult> {
         let handler_context = from_context(ctx, "governance", "Meeting")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = meeting::query_impl(
@@ -2181,6 +2260,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "Meeting")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -2210,6 +2290,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<MeetingAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "MeetingAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = meeting_audit::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -2226,6 +2307,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<MeetingAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "MeetingAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = meeting_audit::find_by_locator_impl(
             user,
@@ -2248,6 +2330,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<MeetingAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "MeetingAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = meeting_audit::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -2268,6 +2351,7 @@ impl GovernanceQuery {
     ) -> FieldResult<MeetingAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "MeetingAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = meeting_audit::query_impl(
@@ -2312,6 +2396,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "MeetingAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -2341,6 +2426,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<NotificationProjection>> {
         let handler_context = from_context(ctx, "governance", "Notification")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = notification::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -2357,6 +2443,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<NotificationProjection>> {
         let handler_context = from_context(ctx, "governance", "Notification")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = notification::find_by_locator_impl(
             user,
@@ -2379,6 +2466,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<NotificationProjection>> {
         let handler_context = from_context(ctx, "governance", "Notification")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = notification::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -2399,6 +2487,7 @@ impl GovernanceQuery {
     ) -> FieldResult<NotificationQueryResult> {
         let handler_context = from_context(ctx, "governance", "Notification")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = notification::query_impl(
@@ -2443,6 +2532,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "Notification")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -2472,6 +2562,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectProjection>> {
         let handler_context = from_context(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -2488,6 +2579,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectProjection>> {
         let handler_context = from_context(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project::find_by_locator_impl(user, &data_access, &entity_type, selections, locator)
@@ -2502,6 +2594,7 @@ impl GovernanceQuery {
     async fn get_projects(&self, ctx: &Context<'_>) -> FieldResult<Vec<ProjectProjection>> {
         let handler_context = from_context(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -2522,6 +2615,7 @@ impl GovernanceQuery {
     ) -> FieldResult<ProjectQueryResult> {
         let handler_context = from_context(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = project::query_impl(
@@ -2566,6 +2660,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -2598,6 +2693,7 @@ impl GovernanceQuery {
         // exist on `Project`. Resolver receives Null selections.
         let handler_context = from_context_without_selections(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project::pending_approvals_impl(
             user,
@@ -2624,6 +2720,7 @@ impl GovernanceQuery {
         // exist on `Project`. Resolver receives Null selections.
         let handler_context = from_context_without_selections(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project::workspace_impl(user, &data_access, &entity_type, selections, project_id).await;
@@ -2644,6 +2741,7 @@ impl GovernanceQuery {
         // exist on `Project`. Resolver receives Null selections.
         let handler_context = from_context_without_selections(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project::eligible_gates_impl(user, &data_access, &entity_type, selections, project_id)
@@ -2662,6 +2760,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_audit::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -2678,6 +2777,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_audit::find_by_locator_impl(
             user,
@@ -2700,6 +2800,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<ProjectAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_audit::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -2720,6 +2821,7 @@ impl GovernanceQuery {
     ) -> FieldResult<ProjectAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "ProjectAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = project_audit::query_impl(
@@ -2764,6 +2866,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "ProjectAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -2793,6 +2896,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectApprovalProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectApproval")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_approval::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -2810,6 +2914,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectApprovalProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectApproval")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_approval::find_by_locator_impl(
             user,
@@ -2832,6 +2937,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<ProjectApprovalProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectApproval")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_approval::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -2852,6 +2958,7 @@ impl GovernanceQuery {
     ) -> FieldResult<ProjectApprovalQueryResult> {
         let handler_context = from_context(ctx, "governance", "ProjectApproval")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = project_approval::query_impl(
@@ -2897,6 +3004,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "ProjectApproval")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -2926,6 +3034,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectApprovalAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectApprovalAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_approval_audit::find_impl(user, &data_access, &entity_type, selections, id)
@@ -2944,6 +3053,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectApprovalAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectApprovalAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_approval_audit::find_by_locator_impl(
             user,
@@ -2966,6 +3076,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<ProjectApprovalAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectApprovalAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_approval_audit::get_impl(user, &data_access, &entity_type, selections).await;
@@ -2987,6 +3098,7 @@ impl GovernanceQuery {
     ) -> FieldResult<ProjectApprovalAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "ProjectApprovalAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = project_approval_audit::query_impl(
@@ -3032,6 +3144,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "ProjectApprovalAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -3061,6 +3174,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectFieldProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectField")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_field::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -3077,6 +3191,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectFieldProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectField")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_field::find_by_locator_impl(
             user,
@@ -3099,6 +3214,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<ProjectFieldProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectField")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_field::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -3119,6 +3235,7 @@ impl GovernanceQuery {
     ) -> FieldResult<ProjectFieldQueryResult> {
         let handler_context = from_context(ctx, "governance", "ProjectField")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = project_field::query_impl(
@@ -3163,6 +3280,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "ProjectField")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -3192,6 +3310,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectFieldAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectFieldAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_field_audit::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -3209,6 +3328,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectFieldAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectFieldAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_field_audit::find_by_locator_impl(
             user,
@@ -3231,6 +3351,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<ProjectFieldAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectFieldAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_field_audit::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -3251,6 +3372,7 @@ impl GovernanceQuery {
     ) -> FieldResult<ProjectFieldAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "ProjectFieldAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = project_field_audit::query_impl(
@@ -3296,6 +3418,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "ProjectFieldAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -3325,6 +3448,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectStakeholderProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectStakeholder")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_stakeholder::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -3342,6 +3466,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectStakeholderProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectStakeholder")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_stakeholder::find_by_locator_impl(
             user,
@@ -3364,6 +3489,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<ProjectStakeholderProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectStakeholder")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_stakeholder::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -3384,6 +3510,7 @@ impl GovernanceQuery {
     ) -> FieldResult<ProjectStakeholderQueryResult> {
         let handler_context = from_context(ctx, "governance", "ProjectStakeholder")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = project_stakeholder::query_impl(
@@ -3429,6 +3556,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "ProjectStakeholder")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -3458,6 +3586,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectStakeholderAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectStakeholderAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_stakeholder_audit::find_impl(user, &data_access, &entity_type, selections, id)
@@ -3476,6 +3605,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<ProjectStakeholderAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectStakeholderAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_stakeholder_audit::find_by_locator_impl(
             user,
@@ -3498,6 +3628,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<ProjectStakeholderAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "ProjectStakeholderAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_stakeholder_audit::get_impl(user, &data_access, &entity_type, selections).await;
@@ -3519,6 +3650,7 @@ impl GovernanceQuery {
     ) -> FieldResult<ProjectStakeholderAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "ProjectStakeholderAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = project_stakeholder_audit::query_impl(
@@ -3564,6 +3696,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "ProjectStakeholderAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -3593,6 +3726,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<RiskItemProjection>> {
         let handler_context = from_context(ctx, "governance", "RiskItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = risk_item::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -3609,6 +3743,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<RiskItemProjection>> {
         let handler_context = from_context(ctx, "governance", "RiskItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             risk_item::find_by_locator_impl(user, &data_access, &entity_type, selections, locator)
@@ -3623,6 +3758,7 @@ impl GovernanceQuery {
     async fn get_risk_items(&self, ctx: &Context<'_>) -> FieldResult<Vec<RiskItemProjection>> {
         let handler_context = from_context(ctx, "governance", "RiskItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = risk_item::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -3643,6 +3779,7 @@ impl GovernanceQuery {
     ) -> FieldResult<RiskItemQueryResult> {
         let handler_context = from_context(ctx, "governance", "RiskItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = risk_item::query_impl(
@@ -3687,6 +3824,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "RiskItem")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -3716,6 +3854,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<RiskItemAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "RiskItemAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             risk_item_audit::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -3733,6 +3872,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<RiskItemAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "RiskItemAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = risk_item_audit::find_by_locator_impl(
             user,
@@ -3755,6 +3895,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<RiskItemAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "RiskItemAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = risk_item_audit::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -3775,6 +3916,7 @@ impl GovernanceQuery {
     ) -> FieldResult<RiskItemAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "RiskItemAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = risk_item_audit::query_impl(
@@ -3819,6 +3961,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "RiskItemAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -3848,6 +3991,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<TaskAssignmentProjection>> {
         let handler_context = from_context(ctx, "governance", "TaskAssignment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             task_assignment::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -3865,6 +4009,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<TaskAssignmentProjection>> {
         let handler_context = from_context(ctx, "governance", "TaskAssignment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = task_assignment::find_by_locator_impl(
             user,
@@ -3887,6 +4032,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<TaskAssignmentProjection>> {
         let handler_context = from_context(ctx, "governance", "TaskAssignment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = task_assignment::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -3907,6 +4053,7 @@ impl GovernanceQuery {
     ) -> FieldResult<TaskAssignmentQueryResult> {
         let handler_context = from_context(ctx, "governance", "TaskAssignment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = task_assignment::query_impl(
@@ -3951,6 +4098,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "TaskAssignment")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -3980,6 +4128,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<TaskAssignmentAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "TaskAssignmentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             task_assignment_audit::find_impl(user, &data_access, &entity_type, selections, id)
@@ -3998,6 +4147,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<TaskAssignmentAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "TaskAssignmentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = task_assignment_audit::find_by_locator_impl(
             user,
@@ -4020,6 +4170,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<TaskAssignmentAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "TaskAssignmentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             task_assignment_audit::get_impl(user, &data_access, &entity_type, selections).await;
@@ -4041,6 +4192,7 @@ impl GovernanceQuery {
     ) -> FieldResult<TaskAssignmentAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "TaskAssignmentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = task_assignment_audit::query_impl(
@@ -4086,6 +4238,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "TaskAssignmentAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -4115,6 +4268,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<UserProjection>> {
         let handler_context = from_context(ctx, "governance", "User")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = user::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -4131,6 +4285,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<UserProjection>> {
         let handler_context = from_context(ctx, "governance", "User")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             user::find_by_locator_impl(user, &data_access, &entity_type, selections, locator).await;
@@ -4144,6 +4299,7 @@ impl GovernanceQuery {
     async fn get_users(&self, ctx: &Context<'_>) -> FieldResult<Vec<UserProjection>> {
         let handler_context = from_context(ctx, "governance", "User")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = user::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -4164,6 +4320,7 @@ impl GovernanceQuery {
     ) -> FieldResult<UserQueryResult> {
         let handler_context = from_context(ctx, "governance", "User")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = user::query_impl(
@@ -4208,6 +4365,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "User")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -4237,6 +4395,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<UserAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "UserAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = user_audit::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -4253,6 +4412,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<UserAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "UserAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             user_audit::find_by_locator_impl(user, &data_access, &entity_type, selections, locator)
@@ -4267,6 +4427,7 @@ impl GovernanceQuery {
     async fn get_users_audit(&self, ctx: &Context<'_>) -> FieldResult<Vec<UserAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "UserAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = user_audit::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -4287,6 +4448,7 @@ impl GovernanceQuery {
     ) -> FieldResult<UserAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "UserAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = user_audit::query_impl(
@@ -4331,6 +4493,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "UserAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -4360,6 +4523,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowDefinitionProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowDefinition")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_definition::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -4377,6 +4541,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowDefinitionProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowDefinition")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_definition::find_by_locator_impl(
             user,
@@ -4399,6 +4564,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<WorkflowDefinitionProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowDefinition")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_definition::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -4419,6 +4585,7 @@ impl GovernanceQuery {
     ) -> FieldResult<WorkflowDefinitionQueryResult> {
         let handler_context = from_context(ctx, "governance", "WorkflowDefinition")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = workflow_definition::query_impl(
@@ -4464,6 +4631,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowDefinition")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -4493,6 +4661,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowInstanceProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowInstance")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_instance::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -4510,6 +4679,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowInstanceProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowInstance")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_instance::find_by_locator_impl(
             user,
@@ -4532,6 +4702,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<WorkflowInstanceProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowInstance")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_instance::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -4552,6 +4723,7 @@ impl GovernanceQuery {
     ) -> FieldResult<WorkflowInstanceQueryResult> {
         let handler_context = from_context(ctx, "governance", "WorkflowInstance")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = workflow_instance::query_impl(
@@ -4597,6 +4769,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowInstance")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -4626,6 +4799,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowInstanceAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowInstanceAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_instance_audit::find_impl(user, &data_access, &entity_type, selections, id)
@@ -4644,6 +4818,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowInstanceAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowInstanceAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_instance_audit::find_by_locator_impl(
             user,
@@ -4666,6 +4841,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<WorkflowInstanceAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowInstanceAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_instance_audit::get_impl(user, &data_access, &entity_type, selections).await;
@@ -4687,6 +4863,7 @@ impl GovernanceQuery {
     ) -> FieldResult<WorkflowInstanceAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "WorkflowInstanceAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = workflow_instance_audit::query_impl(
@@ -4732,6 +4909,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowInstanceAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -4761,6 +4939,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowStageProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowStage")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -4777,6 +4956,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowStageProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowStage")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage::find_by_locator_impl(
             user,
@@ -4799,6 +4979,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<WorkflowStageProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowStage")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -4819,6 +5000,7 @@ impl GovernanceQuery {
     ) -> FieldResult<WorkflowStageQueryResult> {
         let handler_context = from_context(ctx, "governance", "WorkflowStage")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = workflow_stage::query_impl(
@@ -4863,6 +5045,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "WorkflowStage")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -4892,6 +5075,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowStageAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_stage_audit::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -4909,6 +5093,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowStageAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage_audit::find_by_locator_impl(
             user,
@@ -4931,6 +5116,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<WorkflowStageAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_stage_audit::get_impl(user, &data_access, &entity_type, selections).await;
@@ -4952,6 +5138,7 @@ impl GovernanceQuery {
     ) -> FieldResult<WorkflowStageAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = workflow_stage_audit::query_impl(
@@ -4997,6 +5184,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowStageAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -5026,6 +5214,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowStageDefinitionProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageDefinition")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_stage_definition::find_impl(user, &data_access, &entity_type, selections, id)
@@ -5044,6 +5233,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowStageDefinitionProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageDefinition")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage_definition::find_by_locator_impl(
             user,
@@ -5066,6 +5256,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<WorkflowStageDefinitionProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageDefinition")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_stage_definition::get_impl(user, &data_access, &entity_type, selections).await;
@@ -5087,6 +5278,7 @@ impl GovernanceQuery {
     ) -> FieldResult<WorkflowStageDefinitionQueryResult> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageDefinition")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = workflow_stage_definition::query_impl(
@@ -5132,6 +5324,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowStageDefinition")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -5161,6 +5354,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowStageDefinitionAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageDefinitionAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage_definition_audit::find_impl(
             user,
@@ -5184,6 +5378,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowStageDefinitionAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageDefinitionAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage_definition_audit::find_by_locator_impl(
             user,
@@ -5206,6 +5401,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<WorkflowStageDefinitionAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageDefinitionAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_stage_definition_audit::get_impl(user, &data_access, &entity_type, selections)
@@ -5228,6 +5424,7 @@ impl GovernanceQuery {
     ) -> FieldResult<WorkflowStageDefinitionAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageDefinitionAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = workflow_stage_definition_audit::query_impl(
@@ -5273,6 +5470,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowStageDefinitionAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -5302,6 +5500,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowTaskProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowTask")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_task::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -5318,6 +5517,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowTaskProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowTask")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_task::find_by_locator_impl(
             user,
@@ -5340,6 +5540,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<WorkflowTaskProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowTask")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_task::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -5360,6 +5561,7 @@ impl GovernanceQuery {
     ) -> FieldResult<WorkflowTaskQueryResult> {
         let handler_context = from_context(ctx, "governance", "WorkflowTask")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = workflow_task::query_impl(
@@ -5404,6 +5606,7 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "governance", "WorkflowTask")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -5433,6 +5636,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowTaskAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowTaskAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_task_audit::find_impl(user, &data_access, &entity_type, selections, id).await;
@@ -5450,6 +5654,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Option<WorkflowTaskAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowTaskAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_task_audit::find_by_locator_impl(
             user,
@@ -5472,6 +5677,7 @@ impl GovernanceQuery {
     ) -> FieldResult<Vec<WorkflowTaskAuditProjection>> {
         let handler_context = from_context(ctx, "governance", "WorkflowTaskAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_task_audit::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -5492,6 +5698,7 @@ impl GovernanceQuery {
     ) -> FieldResult<WorkflowTaskAuditQueryResult> {
         let handler_context = from_context(ctx, "governance", "WorkflowTaskAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = workflow_task_audit::query_impl(
@@ -5537,6 +5744,7 @@ impl GovernanceQuery {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowTaskAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -5579,6 +5787,7 @@ impl GovernanceMutation {
     ) -> FieldResult<AttachmentProjection> {
         let handler_context = from_context(ctx, "governance", "Attachment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             attachment::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -5596,6 +5805,7 @@ impl GovernanceMutation {
     ) -> FieldResult<AttachmentProjection> {
         let handler_context = from_context(ctx, "governance", "Attachment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             attachment::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -5613,6 +5823,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "Attachment")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = attachment::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -5629,6 +5840,7 @@ impl GovernanceMutation {
     ) -> FieldResult<AttachmentAuditProjection> {
         let handler_context = from_context(ctx, "governance", "AttachmentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             attachment_audit::create_impl(user, &data_access, &entity_type, selections, input)
@@ -5647,6 +5859,7 @@ impl GovernanceMutation {
     ) -> FieldResult<AttachmentAuditProjection> {
         let handler_context = from_context(ctx, "governance", "AttachmentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             attachment_audit::update_impl(user, &data_access, &entity_type, selections, input)
@@ -5666,6 +5879,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "AttachmentAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = attachment_audit::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -5682,6 +5896,7 @@ impl GovernanceMutation {
     ) -> FieldResult<AuditEventProjection> {
         let handler_context = from_context(ctx, "governance", "AuditEvent")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             audit_event::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -5699,6 +5914,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ChecklistItemProjection> {
         let handler_context = from_context(ctx, "governance", "ChecklistItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             checklist_item::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -5716,6 +5932,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ChecklistItemProjection> {
         let handler_context = from_context(ctx, "governance", "ChecklistItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             checklist_item::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -5733,6 +5950,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "ChecklistItem")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = checklist_item::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -5749,6 +5967,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ChecklistItemAuditProjection> {
         let handler_context = from_context(ctx, "governance", "ChecklistItemAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             checklist_item_audit::create_impl(user, &data_access, &entity_type, selections, input)
@@ -5767,6 +5986,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ChecklistItemAuditProjection> {
         let handler_context = from_context(ctx, "governance", "ChecklistItemAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             checklist_item_audit::update_impl(user, &data_access, &entity_type, selections, input)
@@ -5786,6 +6006,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "ChecklistItemAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = checklist_item_audit::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -5802,6 +6023,7 @@ impl GovernanceMutation {
     ) -> FieldResult<CommentProjection> {
         let handler_context = from_context(ctx, "governance", "Comment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = comment::create_impl(user, &data_access, &entity_type, selections, input).await;
 
@@ -5818,6 +6040,7 @@ impl GovernanceMutation {
     ) -> FieldResult<CommentProjection> {
         let handler_context = from_context(ctx, "governance", "Comment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = comment::update_impl(user, &data_access, &entity_type, selections, input).await;
 
@@ -5830,6 +6053,7 @@ impl GovernanceMutation {
     pub async fn delete_comment(&self, ctx: &Context<'_>, input: InputComment) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "Comment")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = comment::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -5846,6 +6070,7 @@ impl GovernanceMutation {
     ) -> FieldResult<CommentAuditProjection> {
         let handler_context = from_context(ctx, "governance", "CommentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             comment_audit::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -5863,6 +6088,7 @@ impl GovernanceMutation {
     ) -> FieldResult<CommentAuditProjection> {
         let handler_context = from_context(ctx, "governance", "CommentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             comment_audit::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -5880,6 +6106,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "CommentAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = comment_audit::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -5896,6 +6123,7 @@ impl GovernanceMutation {
     ) -> FieldResult<EmailQueueItemProjection> {
         let handler_context = from_context(ctx, "governance", "EmailQueueItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             email_queue_item::create_impl(user, &data_access, &entity_type, selections, input)
@@ -5914,6 +6142,7 @@ impl GovernanceMutation {
     ) -> FieldResult<EmailQueueItemProjection> {
         let handler_context = from_context(ctx, "governance", "EmailQueueItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             email_queue_item::update_impl(user, &data_access, &entity_type, selections, input)
@@ -5932,6 +6161,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "EmailQueueItem")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = email_queue_item::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -5948,6 +6178,7 @@ impl GovernanceMutation {
     ) -> FieldResult<GateReviewProjection> {
         let handler_context = from_context(ctx, "governance", "GateReview")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             gate_review::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -5965,6 +6196,7 @@ impl GovernanceMutation {
     ) -> FieldResult<GateReviewProjection> {
         let handler_context = from_context(ctx, "governance", "GateReview")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             gate_review::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -5982,6 +6214,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "GateReview")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_review::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6002,6 +6235,7 @@ impl GovernanceMutation {
         // exist on `GateReview`. Resolver receives Null selections.
         let handler_context = from_context_without_selections(ctx, "governance", "GateReview")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_review::decide_impl(
             user,
@@ -6026,6 +6260,7 @@ impl GovernanceMutation {
     ) -> FieldResult<GateReviewAuditProjection> {
         let handler_context = from_context(ctx, "governance", "GateReviewAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             gate_review_audit::create_impl(user, &data_access, &entity_type, selections, input)
@@ -6044,6 +6279,7 @@ impl GovernanceMutation {
     ) -> FieldResult<GateReviewAuditProjection> {
         let handler_context = from_context(ctx, "governance", "GateReviewAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             gate_review_audit::update_impl(user, &data_access, &entity_type, selections, input)
@@ -6063,6 +6299,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "GateReviewAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_review_audit::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6079,6 +6316,7 @@ impl GovernanceMutation {
     ) -> FieldResult<GateSubmissionProjection> {
         let handler_context = from_context(ctx, "governance", "GateSubmission")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             gate_submission::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -6096,6 +6334,7 @@ impl GovernanceMutation {
     ) -> FieldResult<GateSubmissionProjection> {
         let handler_context = from_context(ctx, "governance", "GateSubmission")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             gate_submission::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -6113,6 +6352,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "GateSubmission")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_submission::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6134,6 +6374,7 @@ impl GovernanceMutation {
         // exist on `GateSubmission`. Resolver receives Null selections.
         let handler_context = from_context_without_selections(ctx, "governance", "GateSubmission")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_submission::save_stage_impl(
             user,
@@ -6159,6 +6400,7 @@ impl GovernanceMutation {
     ) -> FieldResult<GateSubmissionAuditProjection> {
         let handler_context = from_context(ctx, "governance", "GateSubmissionAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             gate_submission_audit::create_impl(user, &data_access, &entity_type, selections, input)
@@ -6177,6 +6419,7 @@ impl GovernanceMutation {
     ) -> FieldResult<GateSubmissionAuditProjection> {
         let handler_context = from_context(ctx, "governance", "GateSubmissionAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             gate_submission_audit::update_impl(user, &data_access, &entity_type, selections, input)
@@ -6196,6 +6439,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "GateSubmissionAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = gate_submission_audit::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6212,6 +6456,7 @@ impl GovernanceMutation {
     ) -> FieldResult<GraphSubscriptionProjection> {
         let handler_context = from_context(ctx, "governance", "GraphSubscription")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             graph_subscription::create_impl(user, &data_access, &entity_type, selections, input)
@@ -6230,6 +6475,7 @@ impl GovernanceMutation {
     ) -> FieldResult<GraphSubscriptionProjection> {
         let handler_context = from_context(ctx, "governance", "GraphSubscription")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             graph_subscription::update_impl(user, &data_access, &entity_type, selections, input)
@@ -6249,6 +6495,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "GraphSubscription")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = graph_subscription::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6265,6 +6512,7 @@ impl GovernanceMutation {
     ) -> FieldResult<KnowledgeChunkProjection> {
         let handler_context = from_context(ctx, "governance", "KnowledgeChunk")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             knowledge_chunk::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -6282,6 +6530,7 @@ impl GovernanceMutation {
     ) -> FieldResult<KnowledgeChunkProjection> {
         let handler_context = from_context(ctx, "governance", "KnowledgeChunk")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             knowledge_chunk::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -6299,6 +6548,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "KnowledgeChunk")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = knowledge_chunk::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6315,6 +6565,7 @@ impl GovernanceMutation {
     ) -> FieldResult<KnowledgeDocumentProjection> {
         let handler_context = from_context(ctx, "governance", "KnowledgeDocument")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             knowledge_document::create_impl(user, &data_access, &entity_type, selections, input)
@@ -6333,6 +6584,7 @@ impl GovernanceMutation {
     ) -> FieldResult<KnowledgeDocumentProjection> {
         let handler_context = from_context(ctx, "governance", "KnowledgeDocument")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             knowledge_document::update_impl(user, &data_access, &entity_type, selections, input)
@@ -6352,6 +6604,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "KnowledgeDocument")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = knowledge_document::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6368,6 +6621,7 @@ impl GovernanceMutation {
     ) -> FieldResult<MeetingProjection> {
         let handler_context = from_context(ctx, "governance", "Meeting")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = meeting::create_impl(user, &data_access, &entity_type, selections, input).await;
 
@@ -6384,6 +6638,7 @@ impl GovernanceMutation {
     ) -> FieldResult<MeetingProjection> {
         let handler_context = from_context(ctx, "governance", "Meeting")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = meeting::update_impl(user, &data_access, &entity_type, selections, input).await;
 
@@ -6396,6 +6651,7 @@ impl GovernanceMutation {
     pub async fn delete_meeting(&self, ctx: &Context<'_>, input: InputMeeting) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "Meeting")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = meeting::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6416,6 +6672,7 @@ impl GovernanceMutation {
         // exist on `Meeting`. Resolver receives Null selections.
         let handler_context = from_context_without_selections(ctx, "governance", "Meeting")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = meeting::process_transcript_impl(
             user,
@@ -6440,6 +6697,7 @@ impl GovernanceMutation {
     ) -> FieldResult<MeetingAuditProjection> {
         let handler_context = from_context(ctx, "governance", "MeetingAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             meeting_audit::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -6457,6 +6715,7 @@ impl GovernanceMutation {
     ) -> FieldResult<MeetingAuditProjection> {
         let handler_context = from_context(ctx, "governance", "MeetingAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             meeting_audit::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -6474,6 +6733,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "MeetingAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = meeting_audit::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6490,6 +6750,7 @@ impl GovernanceMutation {
     ) -> FieldResult<NotificationProjection> {
         let handler_context = from_context(ctx, "governance", "Notification")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             notification::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -6507,6 +6768,7 @@ impl GovernanceMutation {
     ) -> FieldResult<NotificationProjection> {
         let handler_context = from_context(ctx, "governance", "Notification")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             notification::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -6524,6 +6786,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "Notification")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = notification::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6540,6 +6803,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectProjection> {
         let handler_context = from_context(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project::create_impl(user, &data_access, &entity_type, selections, input).await;
 
@@ -6556,6 +6820,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectProjection> {
         let handler_context = from_context(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project::update_impl(user, &data_access, &entity_type, selections, input).await;
 
@@ -6568,6 +6833,7 @@ impl GovernanceMutation {
     pub async fn delete_project(&self, ctx: &Context<'_>, input: InputProject) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6588,6 +6854,7 @@ impl GovernanceMutation {
         // exist on `Project`. Resolver receives Null selections.
         let handler_context = from_context_without_selections(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project::submit_decision_impl(
             user,
@@ -6615,6 +6882,7 @@ impl GovernanceMutation {
         // exist on `Project`. Resolver receives Null selections.
         let handler_context = from_context_without_selections(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project::fast_track_complete_impl(
             user,
@@ -6642,6 +6910,7 @@ impl GovernanceMutation {
         // exist on `Project`. Resolver receives Null selections.
         let handler_context = from_context_without_selections(ctx, "governance", "Project")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project::cancel_impl(
             user,
@@ -6666,6 +6935,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectAuditProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_audit::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -6683,6 +6953,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectAuditProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_audit::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -6700,6 +6971,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "ProjectAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_audit::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6716,6 +6988,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectApprovalProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectApproval")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_approval::create_impl(user, &data_access, &entity_type, selections, input)
@@ -6734,6 +7007,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectApprovalProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectApproval")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_approval::update_impl(user, &data_access, &entity_type, selections, input)
@@ -6753,6 +7027,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "ProjectApproval")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_approval::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6769,6 +7044,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectApprovalAuditProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectApprovalAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_approval_audit::create_impl(
             user,
@@ -6792,6 +7068,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectApprovalAuditProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectApprovalAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_approval_audit::update_impl(
             user,
@@ -6816,6 +7093,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "ProjectApprovalAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_approval_audit::delete_impl(user, &data_access, &entity_type, input).await;
@@ -6833,6 +7111,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectFieldProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectField")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_field::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -6850,6 +7129,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectFieldProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectField")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_field::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -6867,6 +7147,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "ProjectField")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_field::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6883,6 +7164,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectFieldAuditProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectFieldAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_field_audit::create_impl(user, &data_access, &entity_type, selections, input)
@@ -6901,6 +7183,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectFieldAuditProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectFieldAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_field_audit::update_impl(user, &data_access, &entity_type, selections, input)
@@ -6920,6 +7203,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "ProjectFieldAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_field_audit::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6936,6 +7220,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectStakeholderProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectStakeholder")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_stakeholder::create_impl(user, &data_access, &entity_type, selections, input)
@@ -6954,6 +7239,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectStakeholderProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectStakeholder")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_stakeholder::update_impl(user, &data_access, &entity_type, selections, input)
@@ -6973,6 +7259,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "ProjectStakeholder")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_stakeholder::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -6989,6 +7276,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectStakeholderAuditProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectStakeholderAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_stakeholder_audit::create_impl(
             user,
@@ -7012,6 +7300,7 @@ impl GovernanceMutation {
     ) -> FieldResult<ProjectStakeholderAuditProjection> {
         let handler_context = from_context(ctx, "governance", "ProjectStakeholderAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = project_stakeholder_audit::update_impl(
             user,
@@ -7036,6 +7325,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "ProjectStakeholderAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             project_stakeholder_audit::delete_impl(user, &data_access, &entity_type, input).await;
@@ -7053,6 +7343,7 @@ impl GovernanceMutation {
     ) -> FieldResult<RiskItemProjection> {
         let handler_context = from_context(ctx, "governance", "RiskItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = risk_item::create_impl(user, &data_access, &entity_type, selections, input).await;
 
@@ -7069,6 +7360,7 @@ impl GovernanceMutation {
     ) -> FieldResult<RiskItemProjection> {
         let handler_context = from_context(ctx, "governance", "RiskItem")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = risk_item::update_impl(user, &data_access, &entity_type, selections, input).await;
 
@@ -7085,6 +7377,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "RiskItem")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = risk_item::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -7101,6 +7394,7 @@ impl GovernanceMutation {
     ) -> FieldResult<RiskItemAuditProjection> {
         let handler_context = from_context(ctx, "governance", "RiskItemAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             risk_item_audit::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -7118,6 +7412,7 @@ impl GovernanceMutation {
     ) -> FieldResult<RiskItemAuditProjection> {
         let handler_context = from_context(ctx, "governance", "RiskItemAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             risk_item_audit::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -7135,6 +7430,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "RiskItemAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = risk_item_audit::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -7151,6 +7447,7 @@ impl GovernanceMutation {
     ) -> FieldResult<TaskAssignmentProjection> {
         let handler_context = from_context(ctx, "governance", "TaskAssignment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             task_assignment::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -7168,6 +7465,7 @@ impl GovernanceMutation {
     ) -> FieldResult<TaskAssignmentProjection> {
         let handler_context = from_context(ctx, "governance", "TaskAssignment")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             task_assignment::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -7185,6 +7483,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "TaskAssignment")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = task_assignment::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -7201,6 +7500,7 @@ impl GovernanceMutation {
     ) -> FieldResult<TaskAssignmentAuditProjection> {
         let handler_context = from_context(ctx, "governance", "TaskAssignmentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             task_assignment_audit::create_impl(user, &data_access, &entity_type, selections, input)
@@ -7219,6 +7519,7 @@ impl GovernanceMutation {
     ) -> FieldResult<TaskAssignmentAuditProjection> {
         let handler_context = from_context(ctx, "governance", "TaskAssignmentAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             task_assignment_audit::update_impl(user, &data_access, &entity_type, selections, input)
@@ -7238,6 +7539,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "TaskAssignmentAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = task_assignment_audit::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -7254,6 +7556,7 @@ impl GovernanceMutation {
     ) -> FieldResult<UserProjection> {
         let handler_context = from_context(ctx, "governance", "User")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = user::create_impl(user, &data_access, &entity_type, selections, input).await;
 
@@ -7270,6 +7573,7 @@ impl GovernanceMutation {
     ) -> FieldResult<UserProjection> {
         let handler_context = from_context(ctx, "governance", "User")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = user::update_impl(user, &data_access, &entity_type, selections, input).await;
 
@@ -7282,6 +7586,7 @@ impl GovernanceMutation {
     pub async fn delete_user(&self, ctx: &Context<'_>, input: InputUser) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "User")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = user::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -7298,6 +7603,7 @@ impl GovernanceMutation {
     ) -> FieldResult<UserAuditProjection> {
         let handler_context = from_context(ctx, "governance", "UserAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             user_audit::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -7315,6 +7621,7 @@ impl GovernanceMutation {
     ) -> FieldResult<UserAuditProjection> {
         let handler_context = from_context(ctx, "governance", "UserAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             user_audit::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -7332,6 +7639,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "UserAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = user_audit::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -7348,6 +7656,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowDefinitionProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowDefinition")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_definition::create_impl(user, &data_access, &entity_type, selections, input)
@@ -7366,6 +7675,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowDefinitionProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowDefinition")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_definition::update_impl(user, &data_access, &entity_type, selections, input)
@@ -7385,6 +7695,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowDefinition")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_definition::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -7401,6 +7712,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowInstanceProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowInstance")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_instance::create_impl(user, &data_access, &entity_type, selections, input)
@@ -7419,6 +7731,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowInstanceProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowInstance")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_instance::update_impl(user, &data_access, &entity_type, selections, input)
@@ -7438,6 +7751,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowInstance")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_instance::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -7454,6 +7768,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowInstanceAuditProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowInstanceAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_instance_audit::create_impl(
             user,
@@ -7477,6 +7792,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowInstanceAuditProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowInstanceAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_instance_audit::update_impl(
             user,
@@ -7501,6 +7817,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowInstanceAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_instance_audit::delete_impl(user, &data_access, &entity_type, input).await;
@@ -7518,6 +7835,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowStageProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowStage")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_stage::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -7535,6 +7853,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowStageProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowStage")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_stage::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -7552,6 +7871,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "WorkflowStage")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -7567,6 +7887,7 @@ impl GovernanceMutation {
         // exist on `WorkflowStage`. Resolver receives Null selections.
         let handler_context = from_context_without_selections(ctx, "governance", "WorkflowStage")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_stage::start_impl(user, &data_access, &entity_type, selections, stage_id)
@@ -7589,6 +7910,7 @@ impl GovernanceMutation {
         // exist on `WorkflowStage`. Resolver receives Null selections.
         let handler_context = from_context_without_selections(ctx, "governance", "WorkflowStage")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage::submit_impl(
             user,
@@ -7617,6 +7939,7 @@ impl GovernanceMutation {
         // exist on `WorkflowStage`. Resolver receives Null selections.
         let handler_context = from_context_without_selections(ctx, "governance", "WorkflowStage")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage::skip_impl(
             user,
@@ -7641,6 +7964,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowStageAuditProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_stage_audit::create_impl(user, &data_access, &entity_type, selections, input)
@@ -7659,6 +7983,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowStageAuditProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_stage_audit::update_impl(user, &data_access, &entity_type, selections, input)
@@ -7678,6 +8003,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowStageAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage_audit::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -7694,6 +8020,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowStageDefinitionProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageDefinition")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage_definition::create_impl(
             user,
@@ -7717,6 +8044,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowStageDefinitionProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageDefinition")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage_definition::update_impl(
             user,
@@ -7741,6 +8069,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowStageDefinition")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_stage_definition::delete_impl(user, &data_access, &entity_type, input).await;
@@ -7758,6 +8087,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowStageDefinitionAuditProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageDefinitionAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage_definition_audit::create_impl(
             user,
@@ -7781,6 +8111,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowStageDefinitionAuditProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowStageDefinitionAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_stage_definition_audit::update_impl(
             user,
@@ -7805,6 +8136,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowStageDefinitionAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_stage_definition_audit::delete_impl(user, &data_access, &entity_type, input)
@@ -7823,6 +8155,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowTaskProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowTask")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_task::create_impl(user, &data_access, &entity_type, selections, input).await;
@@ -7840,6 +8173,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowTaskProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowTask")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_task::update_impl(user, &data_access, &entity_type, selections, input).await;
@@ -7857,6 +8191,7 @@ impl GovernanceMutation {
     ) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "governance", "WorkflowTask")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_task::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -7873,6 +8208,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowTaskAuditProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowTaskAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_task_audit::create_impl(user, &data_access, &entity_type, selections, input)
@@ -7891,6 +8227,7 @@ impl GovernanceMutation {
     ) -> FieldResult<WorkflowTaskAuditProjection> {
         let handler_context = from_context(ctx, "governance", "WorkflowTaskAudit")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             workflow_task_audit::update_impl(user, &data_access, &entity_type, selections, input)
@@ -7910,6 +8247,7 @@ impl GovernanceMutation {
         let handler_context =
             from_context_without_selections(ctx, "governance", "WorkflowTaskAudit")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = workflow_task_audit::delete_impl(user, &data_access, &entity_type, input).await;
 
@@ -7926,7 +8264,7 @@ fn from_context(
     schema_name: &'static str,
     type_name: &'static str,
 ) -> std::result::Result<HandlerContext, AppError> {
-    let user = user_from_context(ctx);
+    let user = user_from_context(ctx).map(appfw_runtime::extension::UserAuth::from);
     let data_access = data_access_from_context(ctx);
     let entity_type = entity_type_for_handler(&data_access, schema_name, type_name)?;
     let selections = get_query_selections(
@@ -7948,7 +8286,7 @@ fn from_context_without_selections(
     schema_name: &'static str,
     type_name: &'static str,
 ) -> std::result::Result<HandlerContext, AppError> {
-    let user = user_from_context(ctx);
+    let user = user_from_context(ctx).map(appfw_runtime::extension::UserAuth::from);
     let data_access = data_access_from_context(ctx);
     let entity_type = entity_type_for_handler(&data_access, schema_name, type_name)?;
     Ok(HandlerContext::new(

@@ -18,13 +18,16 @@
 //!     `admin_ui.rs`'s framework-trait signatures fix that type. Same
 //!     pattern `platform::routing` already uses for `metrics_hook`/
 //!     `trace_context_hook`.
-//!   - `RuntimeJwtExtractor` -- a plain `{ user: Option<Arc<UserAuth>> }`
-//!     holder; `appfw_runtime::user_from_graphql_context` (used by every
-//!     generated resolver via `product_api::user_from_context`) looks it up
-//!     by concrete type from the request's data. This module builds that
-//!     struct's value from `platform::auth::resolve_user`'s result rather
-//!     than calling the framework's own (removed) constructor -- the type
-//!     itself must stay exactly as every resolver already expects it.
+//!   - `RuntimeJwtExtractor` -- a plain
+//!     `{ user: Option<Arc<appfw_runtime::extension::UserAuth>> }` holder;
+//!     `appfw_runtime::user_from_graphql_context` (used by every generated
+//!     resolver via `product_api::user_from_context`) looks it up by
+//!     concrete type from the request's data. `platform::auth::resolve_user`
+//!     now returns the product-owned `UserAuth`
+//!     (`platform::user_auth`, phase 5), so this module converts it to the
+//!     framework's own type right here, at the one point that struct is
+//!     built -- the framework type itself must stay exactly as every
+//!     resolver already expects it.
 //!   - `graphiql::html` -- a static HTML page generator with no auth logic;
 //!     out of scope for an authentication-boundary port.
 //!
@@ -114,6 +117,15 @@ where
         &schema
     };
 
+    // Deep-clones every field (including a fresh Arc allocation) on every
+    // request -- `user_from_graphql_context`/`user_from_context` then clone
+    // it again back to the product type. Temporary by construction: this
+    // boundary disappears once phase 5 removes the framework's
+    // `RuntimeJwtExtractor`/`user_from_graphql_context`, at which point
+    // `resolve_user`'s `Arc<UserAuth>` can flow straight through with no
+    // conversion at all. Not worth optimizing before then.
+    let user =
+        user.map(|user| std::sync::Arc::new(appfw_runtime::extension::UserAuth::from(&*user)));
     let request = request.data(RuntimeJwtExtractor { user });
     let response = schema_for_request.execute(request).await;
     annotate_graphql_response(response, &request_context).into()

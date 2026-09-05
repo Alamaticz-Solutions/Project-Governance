@@ -16,12 +16,13 @@ use super::cte_sql::{
 use super::many_to_many_config::ManyToManyConfig;
 use super::param::SqlParam;
 use super::sort::{order_by as provider_order_by, PostgresSortField};
-use appfw_runtime::{extension::UserAuth, query_ir::parse_sort_specs};
+use appfw_runtime::extension::UserAuth;
 use serde_json::Value;
 use tracing::{debug, error, info, warn};
 
 use crate::{
     config::app_config::AppConfig,
+    data::query_ir_validation::parse_sort_specs,
     platform::policy::{AccessAction, PolicyAccess},
     routes::app_error::{AppError, MetadataError},
     schemas::system::{DataType, EntityType},
@@ -171,8 +172,11 @@ impl CTE {
             entity_type.pascal_1, alias, recursion_depth
         );
 
-        let access =
-            app_config.evaluate_user_access(entity_type.clone(), AccessAction::Read, user)?;
+        let access = app_config.evaluate_user_access(
+            entity_type.clone(),
+            AccessAction::Read,
+            &user.into(),
+        )?;
 
         if !access.allow {
             return Err(AppError::AccessDenied);
