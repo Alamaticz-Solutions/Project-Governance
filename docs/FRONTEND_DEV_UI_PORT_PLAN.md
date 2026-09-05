@@ -156,6 +156,19 @@ Decisions locked with the user (2026-09-05):
   `npm run dev` (esbuild 0.28). Verified in-browser: sign-in → shell renders
   against the local backend (sidebar rail, glass header, live notification
   badge, dashboard data).
-- 2026-09-05: **Phase 3.2 done** (`0b564c2`). `NotificationsScreen` card list
-  (unread accent, per-type icon, mark-all-read). Verified in-browser.
-- Next: Phase 3.3 `ProjectListScreen`.
+- 2026-09-05: **Phase 3.2 done** (`0b564c2`). `NotificationsScreen` card list.
+- 2026-09-05: **Phase 3.3 done** (`ae68f72`). `ProjectListScreen` — dark console,
+  glass filter bar, wide status table, server-side filtering. Verified.
+- 2026-09-05: **Phase 3.4 done** (`2efa2bf`). `TeamInboxScreen` — dark glass
+  "Task Queue" (approvals + gate reviews), search / action filter, empty states.
+- 2026-09-05: **Phase 3.5 done** (`d244e7f`). `DashboardScreen` — dark executive
+  dashboard, KPI row + portfolio table + tasks + risk + meetings, composed from
+  entity queries (no aggregate endpoint). Fabricated trends/insights dropped.
+- 2026-09-05: **Phase 3.6 done** (`6ee6c5b`). `MeetingCenterScreen` +
+  `MeetingDetailScreen` — dark master/detail; real Meeting data +
+  processTranscript retained.
+- 2026-09-05: **Phase 3.7 done** (`9cf240c`). `ProjectDetailScreen` — dark
+  read-only dossier, pipeline ribbon, dark tabs; relational tab data + cancel /
+  fast-track actions retained. Fixed: kit `secondary` Button is invisible on
+  dark canvases (color token is dark) — dark screens use inline-styled buttons.
+- Next: Phase 3.8 `IntakeScreen` (+ AIPopulationDropzone), then Phase 4.
