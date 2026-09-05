@@ -38,7 +38,6 @@
 use std::{env, time::Duration};
 
 use appfw_runtime::{
-    host::{RuntimeIngressKind, RuntimeMode},
     observability::{
         http_make_span, metrics_hook, trace_context_hook, MetricsRegistry, REQUEST_ID_HEADER_NAME,
     },
@@ -60,6 +59,7 @@ use tower_http::{
 };
 use tracing::Level;
 
+use crate::platform::host::{RuntimeIngressKind, RuntimeMode};
 use crate::platform::security::{rate_limit_hook, RateLimiterState};
 
 const REQUEST_TIMEOUT_ENV: &str = "APP_REQUEST_TIMEOUT_MS";

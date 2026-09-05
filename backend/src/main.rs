@@ -1,13 +1,16 @@
-use appfw_runtime::{security::SecurityConfig, RuntimeHostPlan, RuntimeMode};
+use appfw_runtime::security::SecurityConfig;
 #[cfg(feature = "http")]
-use appfw_runtime::{RuntimeAuthState, RuntimeHttpServerConfig};
+use appfw_runtime::RuntimeAuthState;
 // Product-owned (backend framework replacement phase 4 -- previously
-// `appfw_runtime::cors`/`appfw_runtime::observability`/`appfw_runtime::auth`).
+// `appfw_runtime::cors`/`observability`/`auth`/`host`).
 use dotenv::dotenv;
 #[cfg(feature = "http")]
 use platform::auth::JwtAuthConfig;
 #[cfg(feature = "http")]
 use platform::cors;
+#[cfg(feature = "http")]
+use platform::host::RuntimeHttpServerConfig;
+use platform::host::{RuntimeHostPlan, RuntimeMode};
 use platform::observability::init_tracing;
 #[cfg(feature = "http")]
 use std::sync::Arc;
@@ -166,7 +169,7 @@ async fn main() {
             }
         };
 
-        if let Err(e) = appfw_runtime::serve_http_router(routes, &http_config).await {
+        if let Err(e) = platform::host::serve_http_router(routes, &http_config).await {
             error!(error = %e, "backend runtime host error");
             std::process::exit(1);
         }

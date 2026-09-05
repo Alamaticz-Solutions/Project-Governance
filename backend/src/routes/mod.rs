@@ -16,7 +16,7 @@ pub(crate) mod system;
 #[cfg(feature = "http")]
 use appfw_runtime::{
     observability::MetricsRegistry, provider_keys::FrameworkProvider, security::SecurityConfig,
-    RuntimeAuthState, RuntimeMode, RuntimeProviderRegistry,
+    RuntimeAuthState, RuntimeProviderRegistry,
 };
 #[cfg(feature = "http")]
 use axum::Router;
@@ -34,6 +34,7 @@ use crate::mcp;
 #[cfg(feature = "http")]
 use crate::platform::{
     auth::JwtAuthConfig,
+    host::RuntimeMode,
     routing::{assemble_runtime_router_for_mode, RuntimeRouteSet},
 };
 #[cfg(feature = "http")]

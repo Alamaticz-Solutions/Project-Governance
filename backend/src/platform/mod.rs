@@ -1,9 +1,9 @@
 //! Product-owned cross-cutting infrastructure: identifier casing, record
-//! locators, secret loading, CORS, observability, router assembly, rate
-//! limiting, JWT authentication, the GraphQL gateway. Ported off
-//! `appfw_runtime` piece by piece (backend framework replacement phase 4 --
-//! docs/architecture/self-owned-backend-plan.md). Not a generator output --
-//! hand-written support code, same as `data/clients/postgres`.
+//! locators, secret loading, CORS, observability, server bootstrap, router
+//! assembly, rate limiting, JWT authentication, the GraphQL gateway. Ported
+//! off `appfw_runtime` piece by piece (backend framework replacement phase 4
+//! -- docs/architecture/self-owned-backend-plan.md). Not a generator output
+//! -- hand-written support code, same as `data/clients/postgres`.
 
 #[cfg(feature = "http")]
 pub(crate) mod auth;
@@ -13,6 +13,11 @@ pub(crate) mod cors;
 
 #[cfg(feature = "http")]
 pub(crate) mod graphql_gateway;
+
+// Not `http`-gated: `main.rs` consults the transport-selection types before it
+// knows whether it will serve HTTP. The `axum`-dependent pieces inside are
+// gated instead.
+pub(crate) mod host;
 
 pub(crate) mod identifier;
 
