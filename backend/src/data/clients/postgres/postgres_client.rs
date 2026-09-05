@@ -11,23 +11,25 @@ use time::OffsetDateTime;
 use tracing::{debug, error, info};
 
 use appfw_provider_postgres::{
-    cte_page_query_sql as provider_cte_page_query_sql,
     postgres_execution_client as provider_postgres_execution_client,
-    postgres_physical_table_name as provider_physical_table_name,
     validate_postgres_connection_security as provider_validate_postgres_connection_security,
-    PostgresConnectionConfig, PostgresCtePageQuery, PostgresExecutionClient, PostgresFunctionCall,
+    PostgresConnectionConfig, PostgresExecutionClient, PostgresFunctionCall,
     PostgresStoredProcedureCall,
 };
-// Product-owned (backend framework replacement phase 3a/3b/3c -- previously
+// Product-owned (backend framework replacement phase 3a/3b/3c/3d -- previously
 // the framework's `type_param`/`SqlParam`/`postgres_runtime_error`,
-// `mutation`/junction-table statement building, and aggregate/sort query
-// building).
+// `mutation`/junction-table statement building, aggregate/sort query
+// building, and CTE/filter leaf SQL rendering).
 use super::aggregate::{
     aggregate_group_by as provider_aggregate_group_by,
     aggregate_having as provider_aggregate_having, aggregate_query as provider_aggregate_query_sql,
     aggregate_select_list as provider_aggregate_select_list, PostgresAggregateGroup,
     PostgresAggregateHaving, PostgresAggregateHavingPredicate, PostgresAggregateMetric,
     PostgresAggregateQuery,
+};
+use super::cte_sql::{
+    page_query_sql as provider_cte_page_query_sql,
+    physical_table_name as provider_physical_table_name, PostgresCtePageQuery,
 };
 use super::mutation::{
     delete_statement as provider_mutation_delete_statement,

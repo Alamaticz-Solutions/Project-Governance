@@ -1,9 +1,14 @@
-use appfw_provider_postgres::{
+// Product-owned (backend framework replacement phase 3d -- previously the
+// framework's `filter` leaf criterion-rendering functions and types). The
+// recursive filter-tree walking below (`create_filter`/`get_nav_criterion`)
+// was already product code before this phase.
+use super::filter_sql::{
     create_criterion as provider_create_criterion,
     relation_exists_from_source_fk as provider_relation_exists_from_source_fk,
     relation_exists_from_target_fk as provider_relation_exists_from_target_fk, PostgresFilterField,
-    PostgresRelationExists, SqlParam,
+    PostgresRelationExists,
 };
+use super::param::SqlParam;
 use appfw_runtime::{
     identifier::to_snake_case_lenient as to_snake_case,
     query_filter::{

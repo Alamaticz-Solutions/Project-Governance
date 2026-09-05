@@ -1,16 +1,21 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use appfw_provider_postgres::{
-    cte_definition_sql as provider_cte_definition_sql,
-    cte_json_agg_expr as provider_cte_json_agg_expr,
-    cte_junction_source_join as provider_cte_junction_source_join,
-    cte_junction_target_join as provider_cte_junction_target_join,
-    cte_navigation_join as provider_cte_navigation_join, order_by as provider_order_by,
-    postgres_physical_table_name as provider_physical_table_name, ManyToManyConfig,
-    PostgresCteDefinition, PostgresCteJunctionJoin, PostgresCteNavigationJoin, PostgresSortField,
-    SqlParam,
+// Product-owned (backend framework replacement phase 3d -- previously the
+// framework's `cte`/`many_to_many_config` leaf SQL-rendering functions and
+// types). The recursive tree-walking below (`CTE::create`) was already
+// product code before this phase.
+use super::cte_sql::{
+    definition_sql as provider_cte_definition_sql, json_agg_expr as provider_cte_json_agg_expr,
+    junction_source_join as provider_cte_junction_source_join,
+    junction_target_join as provider_cte_junction_target_join,
+    navigation_join as provider_cte_navigation_join,
+    physical_table_name as provider_physical_table_name, PostgresCteDefinition,
+    PostgresCteJunctionJoin, PostgresCteNavigationJoin,
 };
+use super::many_to_many_config::ManyToManyConfig;
+use super::param::SqlParam;
+use super::sort::{order_by as provider_order_by, PostgresSortField};
 use appfw_runtime::{extension::UserAuth, query_ir::parse_sort_specs, AccessAction, PolicyAccess};
 use serde_json::Value;
 use tracing::{debug, error, info, warn};

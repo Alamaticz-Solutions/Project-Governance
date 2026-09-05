@@ -1,15 +1,8 @@
 //! `ORDER BY` clause rendering for paginated and aggregate queries.
 //!
-//! Product-owned (backend framework replacement phase 3c --
+//! Product-owned (backend framework replacement phases 3c/3d --
 //! docs/architecture/self-owned-backend-plan.md). Previously
 //! `appfw_provider_postgres::sort`.
-//!
-//! This module's `PostgresSortField` is a distinct type from the framework's
-//! (not a type alias), so it is only safe to use where sort fields are built
-//! and consumed within the same file. `cte.rs`'s own sort-field handling
-//! (still framework-owned pending phase 3d) never receives values of this
-//! type, and this module never receives values of the framework's -- the two
-//! are independent until `cte.rs` migrates.
 
 use appfw_runtime::query_ir::RuntimeSortDirection;
 
@@ -17,6 +10,21 @@ use appfw_runtime::query_ir::RuntimeSortDirection;
 pub struct PostgresSortField {
     pub name: String,
     pub direction: RuntimeSortDirection,
+}
+
+/// `ORDER BY` for a paginated CTE query, falling back to the primary key
+/// ascending when no sort fields were resolved (stable pagination needs a
+/// deterministic order).
+pub fn order_by(alias: &str, primary_key: &str, fields: &[PostgresSortField]) -> String {
+    if fields.is_empty() {
+        return format!("order by {alias}.{primary_key} asc");
+    }
+
+    let parts = fields
+        .iter()
+        .map(|field| format!("{}.{} {}", alias, field.name, field.direction.as_str()))
+        .collect::<Vec<_>>();
+    format!("order by {}", parts.join(", "))
 }
 
 pub fn aggregate_order_by(fields: &[PostgresSortField]) -> String {
@@ -44,6 +52,29 @@ fn quote_ident(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn defaults_to_primary_key_ordering() {
+        assert_eq!(order_by("t0", "id", &[]), "order by t0.id asc");
+    }
+
+    #[test]
+    fn renders_resolved_fields() {
+        let fields = vec![
+            PostgresSortField {
+                name: "name".to_string(),
+                direction: RuntimeSortDirection::Desc,
+            },
+            PostgresSortField {
+                name: "age".to_string(),
+                direction: RuntimeSortDirection::Asc,
+            },
+        ];
+        assert_eq!(
+            order_by("t0", "id", &fields),
+            "order by t0.name desc, t0.age asc"
+        );
+    }
 
     #[test]
     fn renders_aggregate_ordering() {
