@@ -115,7 +115,24 @@ struct TestClaims {
     iat: usize,
 }
 
+#[derive(Serialize)]
+struct TestClaimsWithCid {
+    iss: String,
+    sub: String,
+    aud: String,
+    exp: usize,
+    iat: usize,
+    cid: String,
+}
+
 fn sign_with(pem: &str, kid: &str, claims: &TestClaims) -> String {
+    let mut header = Header::new(jsonwebtoken::Algorithm::RS256);
+    header.kid = Some(kid.to_string());
+    let key = EncodingKey::from_rsa_pem(pem.as_bytes()).expect("valid PKCS1 RSA PEM");
+    encode(&header, claims, &key).expect("token signs")
+}
+
+fn sign_with_cid(pem: &str, kid: &str, claims: &TestClaimsWithCid) -> String {
     let mut header = Header::new(jsonwebtoken::Algorithm::RS256);
     header.kid = Some(kid.to_string());
     let key = EncodingKey::from_rsa_pem(pem.as_bytes()).expect("valid PKCS1 RSA PEM");
@@ -141,6 +158,43 @@ async fn mock_jwks_server() -> mockito::ServerGuard {
         .create_async()
         .await;
     server
+}
+
+#[tokio::test]
+async fn accepts_a_validly_signed_token_with_matching_client_id() {
+    // Mirrors the exact construction appfw_runtime::auth::verify_token uses:
+    // Verifier::new(..).client_id(..).audience(..). Isolated here after a
+    // live end-to-end probe (real backend, real ENV_NAME=compose, mock JWKS)
+    // rejected a token that had every other claim right, to find out whether
+    // .client_id() has an undocumented extra requirement.
+    let server = mock_jwks_server().await;
+    let issuer = server.url();
+
+    let claims = TestClaimsWithCid {
+        iss: issuer.clone(),
+        sub: "user-1".to_string(),
+        aud: "api://governance".to_string(),
+        exp: now() + 3600,
+        iat: now(),
+        cid: "test-client".to_string(),
+    };
+    let token = sign_with_cid(TEST_RSA_PRIVATE_KEY_PEM, TEST_KID, &claims);
+
+    let mut aud = HashSet::new();
+    aud.insert("api://governance".to_string());
+
+    let verifier = Verifier::new(&issuer).await.expect("verifier builds");
+    let result = verifier
+        .client_id("test-client")
+        .audience(aud)
+        .verify::<DefaultClaims>(&token)
+        .await;
+
+    assert!(
+        result.is_ok(),
+        "expected a validly signed token with matching cid to be accepted, got: {:?}",
+        result.err()
+    );
 }
 
 #[tokio::test]
