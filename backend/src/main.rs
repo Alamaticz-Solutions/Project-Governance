@@ -2,8 +2,10 @@ use appfw_runtime::{security::SecurityConfig, RuntimeHostPlan, RuntimeMode};
 #[cfg(feature = "http")]
 use appfw_runtime::{RuntimeAuthState, RuntimeHttpServerConfig};
 // Product-owned (backend framework replacement phase 4 -- previously
-// `appfw_runtime::cors`/`appfw_runtime::observability`).
+// `appfw_runtime::cors`/`appfw_runtime::observability`/`appfw_runtime::auth`).
 use dotenv::dotenv;
+#[cfg(feature = "http")]
+use platform::auth::JwtAuthConfig;
 #[cfg(feature = "http")]
 use platform::cors;
 use platform::observability::init_tracing;
@@ -127,6 +129,13 @@ async fn main() {
                 std::process::exit(1);
             }
         };
+        let jwt_auth = match JwtAuthConfig::from_env() {
+            Ok(config) => config,
+            Err(e) => {
+                error!(error = %e, "failed to initialize JWT auth configuration");
+                std::process::exit(1);
+            }
+        };
 
         info!(auth_configured = true, "Okta configuration loaded");
 
@@ -136,6 +145,7 @@ async fn main() {
             cors,
             app_config.clone(),
             app_state.clone(),
+            jwt_auth,
             security,
             host_plan.mode().clone(),
         )

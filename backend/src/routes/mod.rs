@@ -32,7 +32,10 @@ use crate::data::clients::database_client::DatabaseClientBox;
 #[cfg(all(feature = "http", feature = "mcp"))]
 use crate::mcp;
 #[cfg(feature = "http")]
-use crate::platform::routing::{assemble_runtime_router_for_mode, RuntimeRouteSet};
+use crate::platform::{
+    auth::JwtAuthConfig,
+    routing::{assemble_runtime_router_for_mode, RuntimeRouteSet},
+};
 #[cfg(feature = "http")]
 use crate::{
     config::app_config::AppConfig, data::data_access::DataAccess, product_api::runtime_provider,
@@ -49,6 +52,7 @@ pub async fn get_routes(
     cors: CorsLayer,
     app_config: Arc<AppConfig>,
     app_state: RuntimeAuthState,
+    jwt_auth: JwtAuthConfig,
     security: SecurityConfig,
     runtime_mode: RuntimeMode,
 ) -> Result<Router, AppError> {
@@ -69,7 +73,7 @@ pub async fn get_routes(
     let info_router = info::nest_routes(Router::new(), metrics.clone(), readiness).await;
     let governance_router = governance::get_routes(
         governance_data_access.clone(),
-        app_state.clone(),
+        jwt_auth.clone(),
         security.clone(),
     )
     .await;

@@ -68,6 +68,9 @@ rustls-native-certs = "0.8"
 rustls-pki-types = "1"
 tokio-postgres-rustls = "0.13"
 webpki-roots = "1"
+# Product-owned: bearer-token verification for the GraphQL ingress
+# (backend/src/platform/auth.rs, backend framework replacement phase 4b-4).
+okta-jwt-verifier = "0.9.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
@@ -85,9 +88,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 uuid = { version = "1", features = ["serde", "v4"] }
 
 [dev-dependencies]
-# Phase 4b-4 prep: proves the real accept/reject JWT-verification path against
-# a mocked JWKS endpoint before the appfw_runtime::auth port is written
-# (backend/tests/jwt_verification_harness.rs).
-okta-jwt-verifier = "0.9.1"
+# Signs test tokens for backend/tests/jwt_verification_harness.rs and
+# platform::auth's own tests; okta-jwt-verifier itself (used to verify, not
+# mint, tokens) is a real dependency above since platform::auth uses it.
 jsonwebtoken = "9.3.1"
 mockito = "1.6"

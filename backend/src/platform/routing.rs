@@ -8,9 +8,8 @@
 //! Kept framework-owned, deliberately NOT ported here:
 //!   - `SecurityConfig` -- threaded into `config/app_config.rs`'s RBAC-bypass
 //!     logic (`bypass_policies_in_local`, `allow_missing_policies_in_local`,
-//!     phase-5 territory) and is the parameter type of
-//!     `appfw_runtime::routing::runtime_graphql_schema_routes` (below), so
-//!     its type can't move independently of that function.
+//!     phase-5 territory); this module and `platform::graphql_gateway` both
+//!     take it by reference/value without needing to own it.
 //!   - `MetricsRegistry`, `RequestContext`, `current_request_context` --
 //!     deferred in phase 4b-1 (see `platform::observability`'s doc comment)
 //!     because `admin_ui.rs`'s framework-trait implementations and
@@ -18,12 +17,16 @@
 //!   - `trace_context_hook`, `http_make_span`, `metrics_hook`,
 //!     `REQUEST_ID_HEADER_NAME` -- all operate on `RequestContext`'s
 //!     framework-owned storage, so they move together with it later.
-//!   - `RuntimeJwtExtractor`, `RuntimeAuthState`, `UserAuth`, and
-//!     `runtime_graphql_schema_routes` itself (the GraphQL route + JWT
-//!     extraction + introspection-auth-gate handler) -- phase 4b-4, blocked
-//!     on standing up a real JWT accept/reject test environment (see
-//!     phase4b-baseline/baseline.md). Called unchanged from
-//!     `routes/governance.rs` and `routes/system.rs`.
+//!
+//! `RuntimeJwtExtractor`, `RuntimeAuthState`, `UserAuth`, and
+//! `runtime_graphql_schema_routes` itself (the GraphQL route + JWT
+//! extraction + introspection-auth-gate handler) were ported in phase 4b-4
+//! -- see `platform::auth` and `platform::graphql_gateway`. Only
+//! `RuntimeAuthState` (needed by `admin_ui.rs`'s framework-trait signature)
+//! and `RuntimeJwtExtractor`/`UserAuth` (the framework types every generated
+//! resolver already reads via `user_from_graphql_context`) stay
+//! framework-owned; the JWT verification/local-dev-bypass logic and the
+//! GraphQL route handler itself are now product-owned.
 //!
 //! `chat` is unreachable in this product (`backend/Cargo.toml` never defines
 //! or forwards a `chat` feature to `appfw_runtime`) and is dropped entirely.

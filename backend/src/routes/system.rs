@@ -5,18 +5,17 @@
 //
 #![allow(dead_code)]
 
-use appfw_runtime::{
-    routing::runtime_graphql_schema_routes, security::SecurityConfig, RuntimeAuthState,
-};
+use appfw_runtime::security::SecurityConfig;
 use axum::Router;
 use std::sync::Arc;
 
 use crate::data::data_access::DataAccess;
 use crate::handlers::system::*;
+use crate::platform::{auth::JwtAuthConfig, graphql_gateway};
 
 pub async fn get_routes(
     data_access: Arc<DataAccess>,
-    app_state: RuntimeAuthState,
+    auth: JwtAuthConfig,
     security: SecurityConfig,
 ) -> Router {
     let system_schema = async_graphql::Schema::build(
@@ -37,11 +36,11 @@ pub async fn get_routes(
     .introspection_only()
     .finish();
 
-    runtime_graphql_schema_routes(
+    graphql_gateway::mount(
         "/system",
         system_schema,
         system_introspection_schema,
-        app_state,
+        auth,
         security,
     )
 }

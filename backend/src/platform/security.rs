@@ -120,11 +120,8 @@ fn clamp_to_nonzero(value: u64) -> NonZeroU32 {
 
 /// True only when this process is running on a local developer workstation
 /// (`ENV_NAME=local`). Gates developer-only conveniences that must never
-/// activate in a managed environment.
-///
-/// Unused today -- a precursor for the JWT-verification/local-auth-bypass
-/// phase that follows this one.
-#[allow(dead_code)]
+/// activate in a managed environment -- used by `platform::auth`'s
+/// local-dev bypass and CI-test-auth gate (phase 4b-4).
 pub(crate) fn is_dev_workstation_env() -> bool {
     std::env::var("ENV_NAME").is_ok_and(|value| value == "local")
 }
