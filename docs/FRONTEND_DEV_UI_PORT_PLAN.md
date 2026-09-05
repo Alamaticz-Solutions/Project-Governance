@@ -142,11 +142,20 @@ Decisions locked with the user (2026-09-05):
 - 2026-09-05: Plan written. Orientation complete.
 - 2026-09-05: `npm install` (deps were stale — vitest/testing-library missing);
   baseline `npm run test:frontend` green.
-- 2026-09-05: **Phase 1 done** (uncommitted). `index.html` fonts (Inter/Outfit/
-  Material Icons); `src/ui/kit.css` palette flipped dark→light premium + brand
-  gradient, status ramp, dark-canvas tokens, radii, shadows, display font on
-  headings, helper classes (`.brand-gradient`, `.glass-panel(-dark)`,
-  `.form-card`, `.field-label`, `.form-control`, `.btn-primary/-secondary`,
-  `.animate-fade-in`, `.custom-scrollbar`, `.material-icons`); `.gov-btn--primary`
-  now brand-gradient; `src/ui/kit.tsx` adds `Icon` primitive. `test:frontend`
-  green. Next: Phase 2 (shell).
+- 2026-09-05: **Phase 1 done** (`f313190`). Fonts + kit.css palette flip + helper
+  classes + `Icon` primitive.
+- 2026-09-05: `chore: gitignore .env files` (`382426a`) — `backend/.env` was
+  untracked and unignored; nearly committed. Now ignored.
+- 2026-09-05: **Phase 2 done** (`92e03bb`). `components/layout/Sidebar.tsx` +
+  `Header.tsx` (new, self-owned, wired to `useApp`); `AppShell.tsx` recomposed to
+  the flex shell + live pending-review count; `App.tsx` routes aligned to Dev
+  (+ `/team-inbox/:projectId/workspace` alias, `/analytics` placeholder).
+- 2026-09-05: **Phase 3.1 done** (`03cf8f8`). `SignInScreen` split-panel
+  presentation over the token session form. `vite.config.ts`
+  `optimizeDeps.esbuildOptions.target: 'esnext'` — fixes pre-existing dead
+  `npm run dev` (esbuild 0.28). Verified in-browser: sign-in → shell renders
+  against the local backend (sidebar rail, glass header, live notification
+  badge, dashboard data).
+- 2026-09-05: **Phase 3.2 done** (`0b564c2`). `NotificationsScreen` card list
+  (unread accent, per-type icon, mark-all-read). Verified in-browser.
+- Next: Phase 3.3 `ProjectListScreen`.
