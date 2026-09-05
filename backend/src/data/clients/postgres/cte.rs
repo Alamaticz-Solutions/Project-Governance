@@ -16,12 +16,13 @@ use super::cte_sql::{
 use super::many_to_many_config::ManyToManyConfig;
 use super::param::SqlParam;
 use super::sort::{order_by as provider_order_by, PostgresSortField};
-use appfw_runtime::{extension::UserAuth, query_ir::parse_sort_specs, AccessAction, PolicyAccess};
+use appfw_runtime::{extension::UserAuth, query_ir::parse_sort_specs};
 use serde_json::Value;
 use tracing::{debug, error, info, warn};
 
 use crate::{
     config::app_config::AppConfig,
+    platform::policy::{AccessAction, PolicyAccess},
     routes::app_error::{AppError, MetadataError},
     schemas::system::{DataType, EntityType},
 };

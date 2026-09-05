@@ -19,7 +19,7 @@ use appfw_runtime::{
     observability::RequestContext,
     operation::RuntimeOperation,
     security::SecurityConfig,
-    AccessAction, RuntimeAuthState,
+    RuntimeAuthState,
 };
 use async_trait::async_trait;
 use axum::Router;
@@ -28,8 +28,8 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     config::app_config::AppConfig, data::data_access::DataAccess,
-    operations::generated as generated_operations, product_api::runtime_model_metadata,
-    routes::app_error::AppError, schemas::system::EntityType,
+    operations::generated as generated_operations, platform::policy::AccessAction,
+    product_api::runtime_model_metadata, routes::app_error::AppError, schemas::system::EntityType,
 };
 
 #[derive(Clone)]
@@ -107,20 +107,20 @@ impl McpAccessExplainProvider for ProductMcpAccessExplainer<'_> {
         &self,
         schema_name: &str,
         type_name: &str,
-        action: AccessAction,
+        action: appfw_runtime::AccessAction,
         user: &UserAuth,
     ) -> Result<McpExplainAccessResult, McpError> {
         let entity_type = entity_type(&self.state.app_config, schema_name, type_name)?;
         let access = self
             .state
             .app_config
-            .evaluate_user_access(entity_type.clone(), action, user)
+            .evaluate_user_access(entity_type.clone(), action.into(), user)
             .map_err(mcp_error_from_app_error)?;
 
         Ok(mcp_explain_access_result(
             entity_type.schema_name.clone(),
             entity_type.pascal_1.clone(),
-            McpAccessDecision::from(access),
+            McpAccessDecision::from(appfw_runtime::PolicyAccess::from(access)),
         ))
     }
 }

@@ -2,11 +2,12 @@ use appfw_runtime::{
     extension::UserAuth,
     record_computed::{self as runtime_computed, RuntimeComputedKind},
     record_timezone as runtime_timezone, record_validation as runtime_validation,
-    record_version as runtime_version, AccessAction,
+    record_version as runtime_version,
 };
 use serde_json::{Map, Value};
 use std::sync::Arc;
 
+use crate::platform::policy::AccessAction;
 use crate::product_api::{
     runtime_entity_metadata, runtime_property_metadata, RuntimePropertyMetadata,
 };
@@ -52,8 +53,12 @@ pub fn evaluate(
         }
     }
 
-    runtime_validation::validate_record(&runtime_entity_metadata(&entity_type), &record, action)
-        .map_err(AppError::from)?;
+    runtime_validation::validate_record(
+        &runtime_entity_metadata(&entity_type),
+        &record,
+        action.into(),
+    )
+    .map_err(AppError::from)?;
 
     Ok(record.to_owned())
 }
@@ -105,6 +110,6 @@ fn try_adjust_timezone(
     user: &UserAuth,
 ) -> Result<Option<Value>, AppError> {
     let prop: RuntimePropertyMetadata = runtime_property_metadata(&prop);
-    runtime_timezone::try_adjust_timezone(&prop, record, action, &user.timezone)
+    runtime_timezone::try_adjust_timezone(&prop, record, action.into(), &user.timezone)
         .map_err(AppError::from)
 }

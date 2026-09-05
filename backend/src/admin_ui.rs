@@ -13,7 +13,7 @@ use appfw_runtime::{
     observability::RequestContext,
     record_audit as runtime_audit,
     security::SecurityConfig,
-    AccessAction, RuntimeAuthState, RuntimeFilterCapabilities,
+    RuntimeAuthState, RuntimeFilterCapabilities,
 };
 use async_trait::async_trait;
 use axum::Router;
@@ -23,6 +23,7 @@ use std::{collections::HashMap, env, sync::Arc};
 use crate::{
     config::app_config::AppConfig,
     data::data_access::DataAccess,
+    platform::policy::AccessAction,
     product_api::{product_data_type, runtime_entity_metadata, runtime_provider},
     schemas::system::{DataSourceType, EntityType},
 };
@@ -136,7 +137,7 @@ impl AdminPolicyExplainProvider for ProductAdminPolicyExplainProvider<'_> {
         &self,
         schema_name: &str,
         type_name: &str,
-        action: AccessAction,
+        action: appfw_runtime::AccessAction,
         user: &UserAuth,
         request_context: &RequestContext,
     ) -> Result<AdminPolicyExplainResult, AdminServiceError> {
@@ -150,14 +151,14 @@ impl AdminPolicyExplainProvider for ProductAdminPolicyExplainProvider<'_> {
         let access = self
             .state
             .app_config
-            .evaluate_user_access(entity_type.clone(), action, user)
+            .evaluate_user_access(entity_type.clone(), action.into(), user)
             .map_err(|err| AdminServiceError::internal(err.to_string(), request_context))?;
 
         Ok(admin_policy_explain_result(
             format!("{}.{}", entity_type.schema_name, entity_type.snake_1),
             entity_type.schema_name.clone(),
             entity_type.pascal_1.clone(),
-            access.into(),
+            appfw_runtime::PolicyAccess::from(access).into(),
         ))
     }
 }
@@ -189,7 +190,8 @@ impl AdminAuditTimelineProvider for ProductAdminAuditTimelineProvider<'_> {
             .app_config
             .evaluate_user_access(entity_type.clone(), AccessAction::Read, user)
             .map_err(|err| AdminServiceError::internal(err.to_string(), request_context))?;
-        let current_policy: PolicyDecision = current_access.clone().into();
+        let current_policy: PolicyDecision =
+            appfw_runtime::PolicyAccess::from(current_access.clone()).into();
 
         let subject = AdminAuditTimelineSubject {
             schema_name: entity_type.schema_name.clone(),

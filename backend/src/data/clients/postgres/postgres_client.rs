@@ -48,8 +48,8 @@ use super::pg_error::postgres_runtime_error;
 use super::routine_sql::{PostgresFunctionCall, PostgresStoredProcedureCall};
 use super::sort::{aggregate_order_by as provider_aggregate_order_by, PostgresSortField};
 use appfw_runtime::{
-    extension::UserAuth, json::JsonObj, provider_keys::FrameworkProvider, PolicyAccess,
-    RuntimeAuditEvent, RuntimeAuditQuery, RuntimeProviderIdentity, RuntimeProviderPlanInput,
+    extension::UserAuth, json::JsonObj, provider_keys::FrameworkProvider, RuntimeAuditEvent,
+    RuntimeAuditQuery, RuntimeProviderIdentity, RuntimeProviderPlanInput,
 };
 
 use super::cte::CTE;
@@ -59,6 +59,7 @@ use crate::data::clients::database_client::{
     ProviderRoutineArgument, ProviderRoutineCall, ProviderRoutineKind, ProviderRoutineReturns,
 };
 use crate::data::clients::postgres::filter;
+use crate::platform::policy::PolicyAccess;
 use crate::product_api::runtime_data_type;
 use crate::routes::app_error::{AppError, MetadataError};
 use crate::schemas::common::{JsonAggregateResult, JsonQueryResult};

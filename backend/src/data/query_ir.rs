@@ -9,13 +9,14 @@ use appfw_runtime::{
         RuntimeRelationKind, RuntimeSelectionCostNode, RuntimeSelectionCostTree,
     },
     query_filter::conjunction_token as conjunction,
-    query_ir as runtime_query_ir, PolicyAccess, QueryCost, QueryCostBudget,
-    RuntimeProviderAggregatePlan, RuntimeProviderMutationPlan, RuntimeProviderQueryPlan,
+    query_ir as runtime_query_ir, QueryCost, QueryCostBudget, RuntimeProviderAggregatePlan,
+    RuntimeProviderMutationPlan, RuntimeProviderQueryPlan,
 };
 use serde_json::{json, Map, Value};
 
 use crate::{
     config::app_config::AppConfig,
+    platform::policy::PolicyAccess,
     product_api::{
         runtime_model_metadata, runtime_property_metadata, RuntimeDataType, RuntimeEntityMetadata,
         RuntimeModelMetadata, RuntimePropertyMetadata,

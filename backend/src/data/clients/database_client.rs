@@ -5,11 +5,11 @@ use std::sync::Arc;
 use anyhow::Result;
 pub use appfw_runtime::ProviderPoolStats;
 use appfw_runtime::{
-    extension::UserAuth, json::JsonObj, model_metadata::RuntimeDataType, PolicyAccess,
-    RuntimeAuditEvent, RuntimeAuditQuery, RuntimeJsonAggregateResult, RuntimeJsonObj,
-    RuntimeJsonQueryResult, RuntimeProviderAggregatePlan, RuntimeProviderClient,
-    RuntimeProviderDataClient, RuntimeProviderIdentity, RuntimeProviderMutationPlan,
-    RuntimeProviderPlanInput, RuntimeProviderQueryPlan,
+    extension::UserAuth, json::JsonObj, model_metadata::RuntimeDataType, RuntimeAuditEvent,
+    RuntimeAuditQuery, RuntimeJsonAggregateResult, RuntimeJsonObj, RuntimeJsonQueryResult,
+    RuntimeProviderAggregatePlan, RuntimeProviderClient, RuntimeProviderDataClient,
+    RuntimeProviderIdentity, RuntimeProviderMutationPlan, RuntimeProviderPlanInput,
+    RuntimeProviderQueryPlan,
 };
 use async_trait::async_trait;
 use serde_json::Value;
@@ -19,6 +19,7 @@ use crate::{
         AccessFilterAst, AggregateHavingAst, AggregateMetric, AggregateSortAst, FilterAst,
         GroupBySpec, SelectionTree, SortAst,
     },
+    platform::policy::PolicyAccess,
     routes::app_error::AppError,
     schemas::system::EntityType,
 };
@@ -196,10 +197,10 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
         selections: Value,
         input: RuntimeJsonObj,
         user: &UserAuth,
-        access: &PolicyAccess,
+        access: &appfw_runtime::PolicyAccess,
     ) -> Result<RuntimeJsonObj, Self::Error> {
         self.client
-            .create_item_json(entity_type, selections, input, user, access)
+            .create_item_json(entity_type, selections, input, user, &access.into())
             .await
     }
 
@@ -209,11 +210,18 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
         selections: Value,
         input: RuntimeJsonObj,
         user: &UserAuth,
-        access: &PolicyAccess,
+        access: &appfw_runtime::PolicyAccess,
         read_version: Option<Value>,
     ) -> Result<RuntimeJsonObj, Self::Error> {
         self.client
-            .update_item_json(entity_type, selections, input, user, access, read_version)
+            .update_item_json(
+                entity_type,
+                selections,
+                input,
+                user,
+                &access.into(),
+                read_version,
+            )
             .await
     }
 
@@ -222,11 +230,11 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
         entity_type: Self::Entity,
         input: RuntimeJsonObj,
         user: &UserAuth,
-        access: &PolicyAccess,
+        access: &appfw_runtime::PolicyAccess,
         read_version: Option<Value>,
     ) -> Result<i64, Self::Error> {
         self.client
-            .delete_item_json(entity_type, input, user, access, read_version)
+            .delete_item_json(entity_type, input, user, &access.into(), read_version)
             .await
     }
 
@@ -236,10 +244,10 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
         selections: Value,
         id: String,
         user: &UserAuth,
-        access: &PolicyAccess,
+        access: &appfw_runtime::PolicyAccess,
     ) -> Result<Option<RuntimeJsonObj>, Self::Error> {
         self.client
-            .find_item_json(entity_type, selections, id, user, access)
+            .find_item_json(entity_type, selections, id, user, &access.into())
             .await
     }
 
@@ -249,10 +257,10 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
         selections: Value,
         filter: Option<Value>,
         user: &UserAuth,
-        access: &PolicyAccess,
+        access: &appfw_runtime::PolicyAccess,
     ) -> Result<Vec<RuntimeJsonObj>, Self::Error> {
         self.client
-            .get_items_json(entity_type, selections, filter, user, access)
+            .get_items_json(entity_type, selections, filter, user, &access.into())
             .await
     }
 
@@ -265,7 +273,7 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
         skip: i32,
         limit: i32,
         user: &UserAuth,
-        access: &PolicyAccess,
+        access: &appfw_runtime::PolicyAccess,
     ) -> Result<JsonQueryResult, Self::Error> {
         self.client
             .query_items_json(
@@ -276,7 +284,7 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
                 skip,
                 limit,
                 user,
-                access,
+                &access.into(),
             )
             .await
     }
@@ -301,7 +309,7 @@ pub trait DatabaseClient: RuntimeProviderClient {
             plan.selection_json(),
             plan.input,
             user,
-            &plan_access,
+            &plan_access.into(),
         )
         .await
     }
@@ -320,7 +328,7 @@ pub trait DatabaseClient: RuntimeProviderClient {
             plan.selection_json(),
             plan.input,
             user,
-            &plan_access,
+            &plan_access.into(),
             read_version,
         )
         .await
@@ -339,7 +347,7 @@ pub trait DatabaseClient: RuntimeProviderClient {
             plan.entity.clone(),
             plan.input,
             user,
-            &plan_access,
+            &plan_access.into(),
             read_version,
         )
         .await
@@ -387,7 +395,7 @@ pub trait DatabaseClient: RuntimeProviderClient {
             plan.selection_json(),
             plan.filter_json(),
             user,
-            &plan_access,
+            &plan_access.into(),
         )
         .await
     }

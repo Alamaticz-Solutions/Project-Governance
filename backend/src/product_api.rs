@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+#[allow(unused_imports)]
+pub use crate::platform::policy::{AccessAction, PolicyAccess};
 use crate::{
     config::app_config::AppConfig,
     schemas::system::{
@@ -26,10 +28,75 @@ pub use appfw_runtime::{
     },
     provider_keys::FrameworkProvider,
     record_locator::RECORD_LOCATOR_FIELD,
-    AccessAction, HandlerResult, JsonValue, PolicyAccess, RuntimeAuditEvent, RuntimeAuditQuery,
-    RuntimeFilterOp, RuntimeProviderDescriptor, RuntimeProviderIdentity, RuntimeProviderOperation,
+    HandlerResult, JsonValue, RuntimeAuditEvent, RuntimeAuditQuery, RuntimeFilterOp,
+    RuntimeProviderDescriptor, RuntimeProviderIdentity, RuntimeProviderOperation,
     RuntimeProviderOperationCounts,
 };
+
+// Backend framework replacement phase 5: `AccessAction`/`PolicyAccess` are now
+// product-owned (`platform::policy`), but a handful of `appfw_runtime`
+// functions not yet ported (record validation/timezone adjustment, the
+// `data_access`/`record_audit` runtime helpers, and the `admin`/`mcp`
+// trait boundaries) still take the framework's own types. These conversions
+// are the only bridge between the two -- lossless and exhaustive, since both
+// types are plain data (a 4-variant enum, an `{allow, filter}` struct).
+impl From<AccessAction> for appfw_runtime::AccessAction {
+    fn from(action: AccessAction) -> Self {
+        match action {
+            AccessAction::Create => appfw_runtime::AccessAction::Create,
+            AccessAction::Read => appfw_runtime::AccessAction::Read,
+            AccessAction::Update => appfw_runtime::AccessAction::Update,
+            AccessAction::Delete => appfw_runtime::AccessAction::Delete,
+        }
+    }
+}
+
+impl From<appfw_runtime::AccessAction> for AccessAction {
+    fn from(action: appfw_runtime::AccessAction) -> Self {
+        match action {
+            appfw_runtime::AccessAction::Create => AccessAction::Create,
+            appfw_runtime::AccessAction::Read => AccessAction::Read,
+            appfw_runtime::AccessAction::Update => AccessAction::Update,
+            appfw_runtime::AccessAction::Delete => AccessAction::Delete,
+        }
+    }
+}
+
+impl From<&PolicyAccess> for appfw_runtime::PolicyAccess {
+    fn from(access: &PolicyAccess) -> Self {
+        appfw_runtime::PolicyAccess {
+            allow: access.allow,
+            filter: access.filter.clone(),
+        }
+    }
+}
+
+impl From<PolicyAccess> for appfw_runtime::PolicyAccess {
+    fn from(access: PolicyAccess) -> Self {
+        appfw_runtime::PolicyAccess {
+            allow: access.allow,
+            filter: access.filter,
+        }
+    }
+}
+
+impl From<appfw_runtime::PolicyAccess> for PolicyAccess {
+    fn from(access: appfw_runtime::PolicyAccess) -> Self {
+        PolicyAccess {
+            allow: access.allow,
+            filter: access.filter,
+        }
+    }
+}
+
+impl From<&appfw_runtime::PolicyAccess> for PolicyAccess {
+    fn from(access: &appfw_runtime::PolicyAccess) -> Self {
+        PolicyAccess {
+            allow: access.allow,
+            filter: access.filter.clone(),
+        }
+    }
+}
 
 #[cfg(feature = "http")]
 pub(crate) fn user_from_context(ctx: &async_graphql::Context<'_>) -> Option<UserAuth> {
