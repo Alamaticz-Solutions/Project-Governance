@@ -17,23 +17,27 @@ use appfw_provider_postgres::{
     aggregate_query_sql as provider_aggregate_query_sql,
     aggregate_select_list as provider_aggregate_select_list,
     cte_page_query_sql as provider_cte_page_query_sql,
-    mutation_delete_statement as provider_mutation_delete_statement,
-    mutation_insert_statement as provider_mutation_insert_statement,
-    mutation_junction_delete_statement as provider_mutation_junction_delete_statement,
-    mutation_junction_insert_statement as provider_mutation_junction_insert_statement,
-    mutation_junction_related_entity_id as provider_mutation_junction_related_entity_id,
-    mutation_update_parts as provider_mutation_update_parts,
-    mutation_update_statement as provider_mutation_update_statement,
     postgres_execution_client as provider_postgres_execution_client,
     postgres_physical_table_name as provider_physical_table_name,
     validate_postgres_connection_security as provider_validate_postgres_connection_security,
     PostgresAggregateGroup, PostgresAggregateHaving, PostgresAggregateHavingPredicate,
     PostgresAggregateMetric, PostgresAggregateQuery, PostgresConnectionConfig,
-    PostgresCtePageQuery, PostgresExecutionClient, PostgresFunctionCall, PostgresJunctionTable,
-    PostgresMutationEntity, PostgresMutationField, PostgresSortField, PostgresStoredProcedureCall,
+    PostgresCtePageQuery, PostgresExecutionClient, PostgresFunctionCall, PostgresSortField,
+    PostgresStoredProcedureCall,
 };
-// Product-owned (backend framework replacement phase 3a -- previously the
-// framework's `type_param`, `SqlParam`, `postgres_runtime_error`).
+// Product-owned (backend framework replacement phase 3a/3b -- previously the
+// framework's `type_param`/`SqlParam`/`postgres_runtime_error` and
+// `mutation`/junction-table statement building).
+use super::mutation::{
+    delete_statement as provider_mutation_delete_statement,
+    insert_statement as provider_mutation_insert_statement,
+    junction_delete_statement as provider_mutation_junction_delete_statement,
+    junction_insert_statement as provider_mutation_junction_insert_statement,
+    junction_related_entity_id as provider_mutation_junction_related_entity_id,
+    update_parts as provider_mutation_update_parts,
+    update_statement as provider_mutation_update_statement, PostgresJunctionTable,
+    PostgresMutationEntity, PostgresMutationField,
+};
 use super::param::{type_param as provider_type_param, SqlParam};
 use super::pg_error::postgres_runtime_error;
 use appfw_runtime::{
