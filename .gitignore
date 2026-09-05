@@ -1,5 +1,8 @@
 .DS_Store
 .appfw/local.env
+.env
+*.env
+!*.env.example
 target/
 backend/target/
 database/target/
