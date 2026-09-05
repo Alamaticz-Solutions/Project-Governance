@@ -25,15 +25,17 @@ use appfw_provider_postgres::{
     mutation_update_parts as provider_mutation_update_parts,
     mutation_update_statement as provider_mutation_update_statement,
     postgres_execution_client as provider_postgres_execution_client,
-    postgres_physical_table_name as provider_physical_table_name, postgres_runtime_error,
-    type_param as provider_type_param,
+    postgres_physical_table_name as provider_physical_table_name,
     validate_postgres_connection_security as provider_validate_postgres_connection_security,
     PostgresAggregateGroup, PostgresAggregateHaving, PostgresAggregateHavingPredicate,
     PostgresAggregateMetric, PostgresAggregateQuery, PostgresConnectionConfig,
     PostgresCtePageQuery, PostgresExecutionClient, PostgresFunctionCall, PostgresJunctionTable,
     PostgresMutationEntity, PostgresMutationField, PostgresSortField, PostgresStoredProcedureCall,
-    SqlParam,
 };
+// Product-owned (backend framework replacement phase 3a -- previously the
+// framework's `type_param`, `SqlParam`, `postgres_runtime_error`).
+use super::param::{type_param as provider_type_param, SqlParam};
+use super::pg_error::postgres_runtime_error;
 use appfw_runtime::{
     extension::UserAuth, json::JsonObj, provider_keys::FrameworkProvider, PolicyAccess,
     RuntimeAuditEvent, RuntimeAuditQuery, RuntimeProviderIdentity, RuntimeProviderPlanInput,
