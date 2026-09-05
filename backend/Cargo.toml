@@ -21,12 +21,15 @@ http = [
 mcp = ["appfw_runtime/mcp"]
 kafka = ["appfw_runtime/kafka"]
 sync = ["appfw_runtime/sync"]
-provider-postgres = ["dep:appfw_provider_postgres"]
+# The Postgres SQL-generation/execution layer (backend/src/data/clients/postgres)
+# is product-owned code, not a framework dependency (backend framework
+# replacement phase 3 -- docs/architecture/self-owned-backend-plan.md).
+# This feature now only gates route registration in backend/src/routes/mod.rs.
+provider-postgres = []
 
 [dependencies]
 anyhow = "1.0"
 appfw_runtime = { package = "appfw-runtime", path = "../../app-framework/appfw_runtime", default-features = false }
-appfw_provider_postgres = { package = "appfw-provider-postgres", path = "../../app-framework/appfw_provider_postgres", optional = true }
 async-graphql = { version = "6", features = ["bson", "chrono", "dynamic-schema"] }
 async-graphql-value = "6"
 async-graphql-axum = { version = "6", optional = true }
@@ -57,6 +60,14 @@ regex = "1"
 # (backend/src/services/graph, spec 003). Version pinned to the one already in
 # the workspace lock (pulled transitively via opentelemetry-otlp).
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
+# Product-owned: Postgres TLS connector (backend/src/data/clients/postgres/
+# connection.rs, backend framework replacement phase 3e). Versions matched to
+# what was already resolved transitively via the framework's provider crate.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "logging", "tls12"] }
+rustls-native-certs = "0.8"
+rustls-pki-types = "1"
+tokio-postgres-rustls = "0.13"
+webpki-roots = "1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"

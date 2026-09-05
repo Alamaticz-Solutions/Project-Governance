@@ -117,25 +117,6 @@ name = "appfw-mssql-auth"
 version = "0.1.1"
 
 [[package]]
-name = "appfw-provider-postgres"
-version = "0.2.0"
-dependencies = [
- "appfw-runtime",
- "chrono",
- "deadpool-postgres",
- "postgres-types",
- "rustls 0.23.43",
- "rustls-native-certs",
- "rustls-pki-types",
- "serde",
- "serde_json",
- "tokio-postgres",
- "tokio-postgres-rustls",
- "uuid",
- "webpki-roots 1.0.9",
-]
-
-[[package]]
 name = "appfw-runtime"
 version = "0.2.0"
 dependencies = [
@@ -513,7 +494,6 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "anyhow",
- "appfw-provider-postgres",
  "appfw-runtime",
  "async-graphql 6.0.11",
  "async-graphql-axum",
@@ -541,6 +521,9 @@ dependencies = [
  "regex",
  "regorus",
  "reqwest 0.11.27",
+ "rustls 0.23.43",
+ "rustls-native-certs",
+ "rustls-pki-types",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -550,12 +533,14 @@ dependencies = [
  "time",
  "tokio",
  "tokio-postgres",
+ "tokio-postgres-rustls",
  "tower 0.4.13",
  "tower-http 0.4.4",
  "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber",
  "uuid",
+ "webpki-roots 1.0.9",
 ]
 
 [[package]]

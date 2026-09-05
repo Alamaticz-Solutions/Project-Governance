@@ -10,16 +10,12 @@ use std::vec;
 use time::OffsetDateTime;
 use tracing::{debug, error, info};
 
-use appfw_provider_postgres::{
-    postgres_execution_client as provider_postgres_execution_client,
-    validate_postgres_connection_security as provider_validate_postgres_connection_security,
-    PostgresConnectionConfig, PostgresExecutionClient, PostgresFunctionCall,
-    PostgresStoredProcedureCall,
-};
-// Product-owned (backend framework replacement phase 3a/3b/3c/3d -- previously
+// Product-owned (backend framework replacement phases 3a-3e -- previously
 // the framework's `type_param`/`SqlParam`/`postgres_runtime_error`,
 // `mutation`/junction-table statement building, aggregate/sort query
-// building, and CTE/filter leaf SQL rendering).
+// building, CTE/filter leaf SQL rendering, and connection/execution/routine
+// handling). This crate no longer depends on the framework's Postgres
+// provider at all.
 use super::aggregate::{
     aggregate_group_by as provider_aggregate_group_by,
     aggregate_having as provider_aggregate_having, aggregate_query as provider_aggregate_query_sql,
@@ -27,10 +23,16 @@ use super::aggregate::{
     PostgresAggregateHaving, PostgresAggregateHavingPredicate, PostgresAggregateMetric,
     PostgresAggregateQuery,
 };
+use super::connection::{
+    postgres_execution_client as provider_postgres_execution_client,
+    validate_postgres_connection_security as provider_validate_postgres_connection_security,
+    PostgresConnectionConfig,
+};
 use super::cte_sql::{
     page_query_sql as provider_cte_page_query_sql,
     physical_table_name as provider_physical_table_name, PostgresCtePageQuery,
 };
+use super::execution::PostgresExecutionClient;
 use super::mutation::{
     delete_statement as provider_mutation_delete_statement,
     insert_statement as provider_mutation_insert_statement,
@@ -43,6 +45,7 @@ use super::mutation::{
 };
 use super::param::{type_param as provider_type_param, SqlParam};
 use super::pg_error::postgres_runtime_error;
+use super::routine_sql::{PostgresFunctionCall, PostgresStoredProcedureCall};
 use super::sort::{aggregate_order_by as provider_aggregate_order_by, PostgresSortField};
 use appfw_runtime::{
     extension::UserAuth, json::JsonObj, provider_keys::FrameworkProvider, PolicyAccess,

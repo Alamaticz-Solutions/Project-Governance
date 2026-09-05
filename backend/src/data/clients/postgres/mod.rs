@@ -19,3 +19,11 @@ pub(crate) mod cte_sql;
 pub(crate) mod many_to_many_config;
 
 pub(crate) mod filter_sql;
+
+pub(crate) mod routine_sql;
+
+pub(crate) mod audit_sql;
+
+pub(crate) mod execution;
+
+pub(crate) mod connection;
