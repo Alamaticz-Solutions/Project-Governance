@@ -171,4 +171,10 @@ Decisions locked with the user (2026-09-05):
   read-only dossier, pipeline ribbon, dark tabs; relational tab data + cancel /
   fast-track actions retained. Fixed: kit `secondary` Button is invisible on
   dark canvases (color token is dark) — dark screens use inline-styled buttons.
-- Next: Phase 3.8 `IntakeScreen` (+ AIPopulationDropzone), then Phase 4.
+- 2026-09-05: **Phase 3.8 done** (`a3ee3d7`). `IntakeScreen` — dark glass
+  sectioned form + "what happens next" rail + success screen; create flow
+  unchanged; document dropzone present but inert (no AI egress on this branch).
+  **Phase 3 complete.** (`AIPopulationDropzone` does not exist on this branch —
+  dropped from scope; 3.9 placeholder route landed in phase 2.)
+- Next: Phase 4 — ProjectWorkspace (858 LOC + 7 panels + 5 review forms +
+  fields.tsx + StageReviewPanel). Multi-commit.
