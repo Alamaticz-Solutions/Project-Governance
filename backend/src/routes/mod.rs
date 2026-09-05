@@ -15,10 +15,7 @@ pub(crate) mod system;
 
 #[cfg(feature = "http")]
 use appfw_runtime::{
-    ingress::{assemble_runtime_router_for_mode, RuntimeRouteSet},
-    observability::MetricsRegistry,
-    provider_keys::FrameworkProvider,
-    security::SecurityConfig,
+    observability::MetricsRegistry, provider_keys::FrameworkProvider, security::SecurityConfig,
     RuntimeAuthState, RuntimeMode, RuntimeProviderRegistry,
 };
 #[cfg(feature = "http")]
@@ -34,6 +31,8 @@ use crate::admin_ui;
 use crate::data::clients::database_client::DatabaseClientBox;
 #[cfg(all(feature = "http", feature = "mcp"))]
 use crate::mcp;
+#[cfg(feature = "http")]
+use crate::platform::routing::{assemble_runtime_router_for_mode, RuntimeRouteSet};
 #[cfg(feature = "http")]
 use crate::{
     config::app_config::AppConfig, data::data_access::DataAccess, product_api::runtime_provider,
