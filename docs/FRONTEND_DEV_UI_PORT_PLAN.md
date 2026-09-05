@@ -176,5 +176,28 @@ Decisions locked with the user (2026-09-05):
   unchanged; document dropzone present but inert (no AI egress on this branch).
   **Phase 3 complete.** (`AIPopulationDropzone` does not exist on this branch —
   dropped from scope; 3.9 placeholder route landed in phase 2.)
-- Next: Phase 4 — ProjectWorkspace (858 LOC + 7 panels + 5 review forms +
-  fields.tsx + StageReviewPanel). Multi-commit.
+- 2026-09-05: **Phase 4 done** (`dca83d6`). `ProjectWorkspaceScreen` — dark glass
+  header + current-stage badge, tabbed body (Stages / Gate submissions / Approval
+  routing), Required-Decision + Approval-Timeline widgets; real workflow
+  transitions + drawers retained. **Dev's 5 per-gate review forms + 7 committee
+  panels NOT ported** — they target form-payload fields / endpoints this
+  branch's backend does not expose. Fabricated widgets (AI confidence,
+  blockchain audit, sample comments/meetings) dropped.
+- 2026-09-05: **Phase 5 done.** `frontend/README.md` updated to describe the
+  ported IA + self-owned kit + what was intentionally left out. `scaffold-
+  manifest.json` left untouched (generated root; its `designSystem.note`
+  already states the self-owned-kit rationale). `AuditScreen` /
+  `EntityBrowserScreen` verified rendering under the light theme, kept off the
+  primary nav. Full `npm run test:frontend` green.
+
+## Outcome
+
+The `governance-restructure` frontend now presents the Dev-branch governance
+portal's layout, navigation, and visual language, built entirely from the
+self-owned `src/ui` kit (no Tailwind, no `@appfw/*`), with every data/auth
+call wired to this branch's tenant-scoped GraphQL `appfwClient`. 20 commits
+(`f313190`..`dca83d6` + docs), `npm run test:frontend` green at each.
+
+Not carried over (no data contract on this backend, flagged for a later
+decision): the five per-gate review forms, committee panels, BPMN process
+viewer, and the fabricated AI/audit dashboard widgets.
