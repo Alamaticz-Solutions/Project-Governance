@@ -5,16 +5,15 @@ use std::sync::Arc;
 use anyhow::Result;
 pub use appfw_runtime::ProviderPoolStats;
 use appfw_runtime::{
-    extension::UserAuth, json::JsonObj, model_metadata::RuntimeDataType, RuntimeAuditEvent,
-    RuntimeAuditQuery, RuntimeJsonAggregateResult, RuntimeJsonObj, RuntimeJsonQueryResult,
-    RuntimeProviderAggregatePlan, RuntimeProviderClient, RuntimeProviderDataClient,
-    RuntimeProviderIdentity, RuntimeProviderMutationPlan, RuntimeProviderPlanInput,
-    RuntimeProviderQueryPlan,
+    extension::UserAuth, model_metadata::RuntimeDataType, RuntimeAuditEvent, RuntimeAuditQuery,
+    RuntimeJsonAggregateResult, RuntimeJsonObj, RuntimeJsonQueryResult, RuntimeProviderClient,
+    RuntimeProviderDataClient, RuntimeProviderIdentity, RuntimeProviderPlanInput,
 };
 use async_trait::async_trait;
 use serde_json::Value;
 
 use crate::{
+    data::provider_plan::{self, JsonObj},
     data::query_ir::{
         AccessFilterAst, AggregateHavingAst, AggregateMetric, AggregateSortAst, FilterAst,
         GroupBySpec, SelectionTree, SortAst,
@@ -27,10 +26,15 @@ use crate::{
 pub type DatabaseClientBox = Box<dyn DatabaseClient + Send + Sync>;
 pub type JsonQueryResult = RuntimeJsonQueryResult;
 pub type JsonAggregateResult = RuntimeJsonAggregateResult;
-pub type ProviderMutationPlan = RuntimeProviderMutationPlan<Arc<EntityType>>;
-pub type ProviderQueryPlan =
-    RuntimeProviderQueryPlan<Arc<EntityType>, SelectionTree, FilterAst, SortAst, AccessFilterAst>;
-pub type ProviderAggregatePlan = RuntimeProviderAggregatePlan<
+pub type ProviderMutationPlan = provider_plan::ProviderMutationPlan<Arc<EntityType>>;
+pub type ProviderQueryPlan = provider_plan::ProviderQueryPlan<
+    Arc<EntityType>,
+    SelectionTree,
+    FilterAst,
+    SortAst,
+    AccessFilterAst,
+>;
+pub type ProviderAggregatePlan = provider_plan::ProviderAggregatePlan<
     Arc<EntityType>,
     FilterAst,
     AccessFilterAst,

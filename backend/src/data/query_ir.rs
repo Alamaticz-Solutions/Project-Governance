@@ -3,19 +3,20 @@
 use std::sync::Arc;
 
 use appfw_runtime::{
-    json::JsonObj,
     query_cost::{
         RuntimeAggregateCostInput, RuntimeFilterCostNode, RuntimeQueryCostInput,
         RuntimeRelationKind, RuntimeSelectionCostNode, RuntimeSelectionCostTree,
     },
     query_filter::conjunction_token as conjunction,
-    query_ir as runtime_query_ir, QueryCost, QueryCostBudget, RuntimeProviderAggregatePlan,
-    RuntimeProviderMutationPlan, RuntimeProviderQueryPlan,
+    query_ir as runtime_query_ir, QueryCost, QueryCostBudget,
 };
 use serde_json::{json, Map, Value};
 
 use crate::{
     config::app_config::AppConfig,
+    data::provider_plan::{
+        JsonObj, ProviderAggregatePlan, ProviderMutationPlan, ProviderQueryPlan,
+    },
     platform::policy::PolicyAccess,
     product_api::{
         runtime_model_metadata, runtime_property_metadata, RuntimeDataType, RuntimeEntityMetadata,
@@ -25,14 +26,11 @@ use crate::{
     schemas::system::{DataType, EntityType, PropertyType},
 };
 
+pub(crate) use crate::data::provider_plan::{MutationKind, Pagination, PaginationPolicy};
 pub(crate) use crate::data::query_ir_validation::{
     AggregateFieldDescriptor, AggregateFunction, SortDirection,
 };
 pub use crate::product_api::RuntimeFilterOp as FilterOp;
-pub use appfw_runtime::query_ir::{
-    RuntimePagination as Pagination, RuntimePaginationPolicy as PaginationPolicy,
-};
-pub use appfw_runtime::RuntimeProviderMutationKind as MutationKind;
 
 use crate::data::query_ir_validation as leaf;
 
@@ -253,7 +251,7 @@ impl QueryPlan {
 
     pub fn into_runtime_provider_plan(
         self,
-    ) -> RuntimeProviderQueryPlan<Arc<EntityType>, SelectionTree, FilterAst, SortAst, AccessFilterAst>
+    ) -> ProviderQueryPlan<Arc<EntityType>, SelectionTree, FilterAst, SortAst, AccessFilterAst>
     {
         let selection_json = self.selection.to_json();
         let filter_json = self.filter.as_ref().and_then(FilterAst::to_filter_value);
@@ -262,7 +260,7 @@ impl QueryPlan {
             .access_filter
             .as_ref()
             .and_then(FilterAst::to_filter_value);
-        RuntimeProviderQueryPlan::new(
+        ProviderQueryPlan::new(
             self.entity_type,
             self.selection,
             self.filter,
@@ -323,7 +321,7 @@ impl AggregatePlan {
 
     pub fn into_runtime_provider_plan(
         self,
-    ) -> RuntimeProviderAggregatePlan<
+    ) -> ProviderAggregatePlan<
         Arc<EntityType>,
         FilterAst,
         AccessFilterAst,
@@ -337,7 +335,7 @@ impl AggregatePlan {
             .access_filter
             .as_ref()
             .and_then(FilterAst::to_filter_value);
-        RuntimeProviderAggregatePlan::new(
+        ProviderAggregatePlan::new(
             self.entity_type,
             self.filter,
             self.access_filter,
@@ -721,10 +719,10 @@ impl MutationPlan {
             .and_then(FilterAst::to_filter_value)
     }
 
-    pub fn into_runtime_provider_plan(self) -> RuntimeProviderMutationPlan<Arc<EntityType>> {
+    pub fn into_runtime_provider_plan(self) -> ProviderMutationPlan<Arc<EntityType>> {
         let selection = self.selection_json();
         let access_filter = self.access_filter_json();
-        RuntimeProviderMutationPlan::new(
+        ProviderMutationPlan::new(
             self.kind,
             self.entity_type,
             selection,

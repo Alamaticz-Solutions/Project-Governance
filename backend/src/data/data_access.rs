@@ -29,6 +29,25 @@ use super::clients::database_client::{
     DatabaseClientBox, DatabaseClientRuntimeAdapter, ProviderRoutineArgument, ProviderRoutineCall,
 };
 
+fn to_runtime_pagination(
+    pagination: &crate::data::provider_plan::Pagination,
+) -> appfw_runtime::query_ir::RuntimePagination {
+    appfw_runtime::query_ir::RuntimePagination {
+        skip: pagination.skip,
+        limit: pagination.limit,
+        strategy: match &pagination.strategy {
+            crate::data::provider_plan::PaginationStrategy::Offset => {
+                appfw_runtime::query_ir::RuntimePaginationStrategy::Offset
+            }
+            crate::data::provider_plan::PaginationStrategy::Keyset { after } => {
+                appfw_runtime::query_ir::RuntimePaginationStrategy::Keyset {
+                    after: after.clone(),
+                }
+            }
+        },
+    }
+}
+
 pub struct DataAccess {
     pub app_config: Arc<AppConfig>,
     client: DatabaseClientBox,
@@ -303,7 +322,8 @@ impl DataAccess {
         };
         let budget = appfw_runtime::QueryCostBudget::from_env();
         let cost = cost_for_query(&plan);
-        let pagination = runtime_data_access::pagination_diagnostic(&plan.pagination);
+        let pagination =
+            runtime_data_access::pagination_diagnostic(&to_runtime_pagination(&plan.pagination));
         let provider_descriptor = self.provider_descriptor();
         let provider_plan = plan.clone().into_runtime_provider_plan();
         let provider = self.runtime_provider();
@@ -954,7 +974,7 @@ impl DataAccess {
         };
 
         let plan = plan.into_runtime_provider_plan();
-        let pagination = plan.pagination.clone();
+        let pagination = to_runtime_pagination(&plan.pagination);
         let runtime_sort =
             plan.sort
                 .specs

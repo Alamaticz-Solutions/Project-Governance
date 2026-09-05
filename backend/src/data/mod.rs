@@ -8,4 +8,6 @@ pub(crate) mod query_ir;
 
 pub(crate) mod query_ir_validation;
 
+pub(crate) mod provider_plan;
+
 pub(crate) mod rules;
