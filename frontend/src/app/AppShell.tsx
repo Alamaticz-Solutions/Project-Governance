@@ -1,102 +1,76 @@
-import { useMemo, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router';
+import { useState } from 'react';
+import { Outlet, useNavigate } from 'react-router';
 import {
-  AppShell as PdsAppShell,
   Badge,
   Button,
-  CommandPalette,
   Dialog,
   FormLayout,
   IdentitySummary,
   SelectField,
-  TextArea,
-  type CommandPaletteItem
+  TextArea
 } from '@ui-kit';
-import { governanceUiContract } from '../generated/appfw-ui-contract';
-import { useApp } from './providers';
+import { useApp, useAsync } from './providers';
+import { Sidebar } from '../components/layout/Sidebar';
+import { Header } from '../components/layout/Header';
+import { entityByType } from '../lib/entities';
+import type { AppfwClient } from '../lib/appfwClient';
 import { GOVERNANCE_ROLES, ROLE_CAPTIONS } from '../lib/authContext';
 
-type NavSection = { to: string; label: string };
+const approvalEntity = entityByType('ProjectApproval');
 
-const NAV: NavSection[] = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/projects', label: 'Projects' },
-  { to: '/team-inbox', label: 'Team inbox' },
-  { to: '/intake', label: 'New intake' },
-  { to: '/meeting-center', label: 'Meeting center' },
-  { to: '/notifications', label: 'Notifications' },
-  { to: '/audit', label: 'Audit log' },
-  { to: '/entities', label: 'All entities' }
-];
+async function countPendingReviews(client: AppfwClient, roles: readonly string[]): Promise<number> {
+  // `filter` args are untyped JSON and compare the raw stored SCREAMING_SNAKE
+  // text, not the enum wire value (confirmed live).
+  const enumRoles = roles.map((r) => r.toUpperCase());
+  const roleFilter = enumRoles.length ? { assigned_role: { _in: enumRoles } } : undefined;
+  try {
+    const result = await client.queryList(approvalEntity, {
+      limit: 100,
+      filter: roleFilter
+        ? { _and: [{ status: { _eq: 'PENDING' } }, roleFilter] }
+        : { status: { _eq: 'PENDING' } },
+      selection: ['id']
+    });
+    return result.page.queryCount || result.rows.length;
+  } catch {
+    return 0;
+  }
+}
 
+/**
+ * Application chrome: a fixed navigation rail, a sticky top bar, and a
+ * scrolling content region — the Dev-branch portal layout, re-expressed with
+ * product-owned components. The local-session dialog (paste a bearer token
+ * for local exploration) is retained from this branch's auth model.
+ */
 export function AppShell() {
   const navigate = useNavigate();
-  const { auth, tenant } = useApp();
+  const { auth } = useApp();
   const [sessionOpen, setSessionOpen] = useState(false);
 
-  const commands: CommandPaletteItem[] = useMemo(() => {
-    const nav: CommandPaletteItem[] = NAV.map((item) => ({
-      id: `nav:${item.to}`,
-      group: 'Navigate',
-      label: item.label,
-      onSelect: () => navigate(item.to)
-    }));
-    const entities: CommandPaletteItem[] = governanceUiContract.entities.map((entity) => ({
-      id: `entity:${entity.routeSegment}`,
-      group: 'Entities',
-      label: entity.caption.plural,
-      detail: entity.typeName,
-      onSelect: () => navigate(`/entities/${entity.routeSegment}`)
-    }));
-    return [...nav, ...entities];
-  }, [navigate]);
-
-  const identityName = auth.displayName || auth.userName || 'Not signed in';
-  const roleSummary = auth.roles.length
-    ? auth.roles.map((role) => ROLE_CAPTIONS[role as keyof typeof ROLE_CAPTIONS] ?? role).join(', ')
-    : 'No roles — actions will fail closed';
+  const pending = useAsync((client) => countPendingReviews(client, auth.roles), [auth.roles]);
 
   return (
     <>
-      <PdsAppShell
-        navigationLabel="Governance workspace"
-        responsiveCollapse
-        brand={
-          <div className="app-brand">
-            <strong>Governance</strong>
-            <span>Portfolio &amp; gate workflow</span>
-          </div>
-        }
-        navigation={
-          <nav className="app-nav" aria-label="Workspace sections">
-            {NAV.map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.to === '/dashboard'}>
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        }
-        topBar={
-          <div className="app-topbar">
-            <CommandPalette
-              items={commands}
-              triggerLabel="Search workspace"
-              searchPlaceholder="Jump to a screen or entity"
-            />
-            <Button variant="quiet" onClick={() => setSessionOpen(true)}>
-              {identityName}
-            </Button>
-          </div>
-        }
-        footer={
-          <div className="app-shell-footer">
-            <span>Tenant {tenant.tenantId}</span>
-            <span>{auth.roles.length} role(s)</span>
-          </div>
-        }
+      <div
+        style={{
+          display: 'flex',
+          height: '100vh',
+          width: '100%',
+          overflow: 'hidden',
+          background: 'var(--gov-bg)',
+          color: 'var(--gov-text)',
+          fontFamily: 'var(--gov-font)'
+        }}
       >
-        <Outlet />
-      </PdsAppShell>
+        <Sidebar pendingReviewCount={pending.data ?? 0} />
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, position: 'relative', overflow: 'hidden' }}>
+          <Header onOpenSession={() => setSessionOpen(true)} />
+          <main className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto', width: '100%' }}>
+            <Outlet />
+          </main>
+        </div>
+      </div>
 
       <SessionDialog
         open={sessionOpen}
@@ -105,8 +79,6 @@ export function AppShell() {
           setSessionOpen(false);
           navigate('/dashboard');
         }}
-        identityName={identityName}
-        roleSummary={roleSummary}
       />
     </>
   );
@@ -115,20 +87,21 @@ export function AppShell() {
 function SessionDialog({
   open,
   onClose,
-  onSaved,
-  identityName,
-  roleSummary
+  onSaved
 }: {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
-  identityName: string;
-  roleSummary: string;
 }) {
   const { auth, setAuthorization, setIdentity } = useApp();
   const [token, setToken] = useState(auth.authorization ?? '');
   const [userName, setUserName] = useState(auth.userName ?? '');
   const [role, setRole] = useState<string>(auth.roles[0] ?? 'viewer');
+
+  const identityName = auth.displayName || auth.userName || 'Not signed in';
+  const roleSummary = auth.roles.length
+    ? auth.roles.map((r) => ROLE_CAPTIONS[r as keyof typeof ROLE_CAPTIONS] ?? r).join(', ')
+    : 'No roles — actions will fail closed';
 
   return (
     <Dialog
@@ -186,10 +159,7 @@ function SessionDialog({
           label="Primary role (UI pre-gating only)"
           value={role}
           onChange={(event) => setRole(event.target.value)}
-          options={GOVERNANCE_ROLES.map((value) => ({
-            value,
-            label: ROLE_CAPTIONS[value]
-          }))}
+          options={GOVERNANCE_ROLES.map((value) => ({ value, label: ROLE_CAPTIONS[value] }))}
         />
       </FormLayout>
       <p style={{ marginTop: 'var(--gov-space-3)' }}>

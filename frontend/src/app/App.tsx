@@ -59,6 +59,15 @@ export function AppRoot({ scaffoldReference }: { scaffoldReference: ReactNode })
             </RequireAuth>
           }
         />
+        {/* Dev-branch alias — notifications / inbox rows link here. */}
+        <Route
+          path="team-inbox/:projectId/workspace"
+          element={
+            <RequireAuth roles={OPERATOR_ROLES}>
+              <ProjectWorkspaceScreen />
+            </RequireAuth>
+          }
+        />
         <Route
           path="team-inbox"
           element={
@@ -69,6 +78,15 @@ export function AppRoot({ scaffoldReference }: { scaffoldReference: ReactNode })
         />
         <Route path="intake" element={<IntakeScreen />} />
         <Route path="notifications" element={<NotificationsScreen />} />
+        <Route
+          path="analytics"
+          element={
+            <PlaceholderScreen
+              title="Analytics"
+              detail="Portfolio analytics are coming soon."
+            />
+          }
+        />
         <Route path="meeting-center" element={<MeetingCenterScreen />} />
         <Route path="meeting-center/:meetingId" element={<MeetingDetailScreen />} />
         <Route path="audit" element={<AuditScreen />} />
@@ -81,15 +99,24 @@ export function AppRoot({ scaffoldReference }: { scaffoldReference: ReactNode })
   );
 }
 
+function PlaceholderScreen({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div style={{ padding: 24 }}>
+      <PageHeader title={title} />
+      <FeedbackState kind="info" title={`${title} — not yet available`} detail={detail} />
+    </div>
+  );
+}
+
 function NotFound() {
   return (
-    <>
+    <div style={{ padding: 24 }}>
       <PageHeader title="Not found" />
       <FeedbackState
         kind="error"
         title="No such screen"
-        detail="Check the URL or use the command palette to navigate."
+        detail="Check the URL, or pick a destination from the navigation."
       />
-    </>
+    </div>
   );
 }
