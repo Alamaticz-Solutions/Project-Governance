@@ -13,6 +13,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 
 use crate::{
+    data::provider_identity::{ProviderClient, ProviderIdentity},
     data::provider_plan::{self, JsonObj},
     data::query_ir::{
         AccessFilterAst, AggregateHavingAst, AggregateMetric, AggregateSortAst, FilterAst,
@@ -104,15 +105,15 @@ impl dyn DatabaseClient + Send + Sync {
 
 impl RuntimeProviderIdentity for DatabaseClientRuntimeAdapter<'_> {
     fn data_source_name(&self) -> &str {
-        self.client.data_source_name()
+        RuntimeProviderIdentity::data_source_name(&*self.client)
     }
 
     fn framework_provider(&self) -> appfw_runtime::provider_keys::FrameworkProvider {
-        self.client.framework_provider()
+        RuntimeProviderIdentity::framework_provider(&*self.client)
     }
 
     fn pool_stats(&self) -> ProviderPoolStats {
-        self.client.pool_stats()
+        RuntimeProviderIdentity::pool_stats(&*self.client)
     }
 }
 
@@ -295,7 +296,7 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
 }
 
 #[async_trait]
-pub trait DatabaseClient: RuntimeProviderClient {
+pub trait DatabaseClient: RuntimeProviderClient + ProviderClient {
     async fn health_check(&self) -> Result<(), AppError>;
 
     /// Primary provider contract for create mutations. DataAccess builds a
@@ -382,7 +383,7 @@ pub trait DatabaseClient: RuntimeProviderClient {
         Err(AppError::DataAccess(format!(
             "provider routine `{}` is not implemented for data source `{}`",
             routine.method_name,
-            self.data_source_name()
+            ProviderIdentity::data_source_name(self)
         )))
     }
 
@@ -447,7 +448,7 @@ pub trait DatabaseClient: RuntimeProviderClient {
         &self,
         _input: RuntimeProviderPlanInput<'_, &ProviderQueryPlan>,
     ) -> Result<Value, AppError> {
-        Ok(self.provider_descriptor().unsupported_explain_diagnostic())
+        Ok(ProviderIdentity::provider_descriptor(self).unsupported_explain_diagnostic())
     }
 
     async fn create_item_json(

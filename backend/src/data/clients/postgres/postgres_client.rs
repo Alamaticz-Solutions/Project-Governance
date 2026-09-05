@@ -790,7 +790,36 @@ impl RuntimeProviderIdentity for PostgresClient {
 
     fn pool_stats(&self) -> ProviderPoolStats {
         let status = self.execution.pool().status();
-        let provider = self.provider_descriptor();
+        let provider = RuntimeProviderIdentity::provider_descriptor(self);
+        ProviderPoolStats::instrumented(
+            provider.provider_key(),
+            provider.data_source_name(),
+            status.max_size as u64,
+            status.size as u64,
+            status.available as u64,
+            status.waiting as u64,
+        )
+    }
+}
+
+// Product-owned (backend framework replacement phase 5 sub-slice 2). Mirrors
+// the framework impl above so `DatabaseClient: ProviderClient` (product) is
+// satisfied alongside the still-required `DatabaseClient: RuntimeProviderClient`
+// (framework) bound. Both stay in place until the framework orchestration
+// functions that require the latter are ported and `DatabaseClientRuntimeAdapter`
+// is deleted.
+impl crate::data::provider_identity::ProviderIdentity for PostgresClient {
+    fn data_source_name(&self) -> &str {
+        &self.data_source_name
+    }
+
+    fn framework_provider(&self) -> FrameworkProvider {
+        FrameworkProvider::Postgres
+    }
+
+    fn pool_stats(&self) -> appfw_runtime::ProviderPoolStats {
+        let status = self.execution.pool().status();
+        let provider = crate::data::provider_identity::ProviderIdentity::provider_descriptor(self);
         ProviderPoolStats::instrumented(
             provider.provider_key(),
             provider.data_source_name(),
