@@ -201,3 +201,30 @@ call wired to this branch's tenant-scoped GraphQL `appfwClient`. 20 commits
 Not carried over (no data contract on this backend, flagged for a later
 decision): the five per-gate review forms, committee panels, BPMN process
 viewer, and the fabricated AI/audit dashboard widgets.
+
+- 2026-09-05: **Post-review fixes** (`9f5e0cc`). Read-side enum casing:
+  GraphQL reads return PascalCase (confirmed live — `queryProjects` →
+  `status: "Cancelled"`), so bare `=== 'ACTIVE'` / `.includes('COMPLETED')`
+  comparisons the port added were always-false. Normalised via
+  `canonicalEnumKey` in ProjectList / Dashboard / ProjectDetail.
+  ProjectWorkspace was already correct (PascalCase `WSS` constants). Also:
+  `/login` → `/sign-in` alias; TeamInbox approval rows show `—` for priority
+  (ProjectApproval has none) instead of a fake `MEDIUM`. Verified live that
+  `createProject` accepts PascalCase `status`/`priority`.
+
+## OPEN DECISION for the user — per-gate review forms
+
+The user's locked choice was "Full Dev surface", whose option text named the
+7 panels + 5 review forms + fields.tsx + StageReviewPanel. Phase 4 delivered
+the workspace **shell** but not those, because Dev's forms bind to
+form-payload fields (`epmo_strategy`, `btaChecklist_architectural`, the
+9-screen BTA review) and `workspaceApi.saveStage` endpoints absent from this
+backend. Options:
+- **(a)** accept the shell; treat the review forms as a separate feature that
+  needs backend work first;
+- **(b)** model the gate-form payloads onto `GateSubmission.data` (the JSON
+  column — the workspace loader can select it) and build the forms against
+  that;
+- **(c)** leave as-is, revisit later.
+A test row `GOV-SMOKE-*` ("Enum smoke test", status Draft) was created in the
+local dev DB during verification — harmless, delete at leisure.
