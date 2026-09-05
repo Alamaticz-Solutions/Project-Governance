@@ -11,6 +11,11 @@ export default defineConfig({
     outDir: '../backend/product_dist',
     emptyOutDir: true
   },
+  // esbuild 0.28 errors (rather than silently lowering) on modern syntax in
+  // pre-bundled deps unless the dep-optimizer target matches the build target.
+  optimizeDeps: {
+    esbuildOptions: { target: 'esnext' }
+  },
   // '@ui-kit' is the product's own UI component library (src/ui/kit.tsx) --
   // no vendor/client-owned frontend package is used.
   resolve: {

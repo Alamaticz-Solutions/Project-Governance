@@ -253,6 +253,16 @@ h6 {
   vertical-align: middle;
 }
 
+/* Sign-in split panel: brand side is hidden on narrow viewports. */
+.gov-signin-brand {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .gov-signin-brand {
+    display: flex;
+  }
+}
+
 /* Buttons ---------------------------------------------------------------- */
 
 .gov-btn {
