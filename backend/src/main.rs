@@ -1,13 +1,12 @@
-use appfw_runtime::{
-    observability::init_tracing, security::SecurityConfig, RuntimeHostPlan, RuntimeMode,
-};
+use appfw_runtime::{security::SecurityConfig, RuntimeHostPlan, RuntimeMode};
 #[cfg(feature = "http")]
 use appfw_runtime::{RuntimeAuthState, RuntimeHttpServerConfig};
 // Product-owned (backend framework replacement phase 4 -- previously
-// `appfw_runtime::cors`).
+// `appfw_runtime::cors`/`appfw_runtime::observability`).
 use dotenv::dotenv;
 #[cfg(feature = "http")]
 use platform::cors;
+use platform::observability::init_tracing;
 #[cfg(feature = "http")]
 use std::sync::Arc;
 use tracing::error;
