@@ -3,7 +3,7 @@ import { Icon } from '@ui-kit';
 import { useApp, useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';
 import type { AppfwClient, AppfwRecord } from '../../lib/appfwClient';
-import { humanizeEnum } from '../../components/ui';
+import { canonicalEnumKey, humanizeEnum } from '../../components/ui';
 
 /**
  * Executive dashboard. Dark "portfolio analytics" presentation mirrors the
@@ -227,7 +227,7 @@ export function DashboardScreen() {
                               width: 8,
                               height: 8,
                               borderRadius: '50%',
-                              background: String(p.status) === 'COMPLETED' ? '#10B981' : '#3B82F6'
+                              background: canonicalEnumKey(String(p.status)) === 'COMPLETED' ? '#10B981' : '#3B82F6'
                             }}
                           />
                           <span

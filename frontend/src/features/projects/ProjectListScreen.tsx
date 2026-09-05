@@ -4,7 +4,7 @@ import { Icon } from '@ui-kit';
 import { useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';
 import type { AppfwRecord } from '../../lib/appfwClient';
-import { humanizeEnum, toEnumFilterValue } from '../../components/ui';
+import { canonicalEnumKey, humanizeEnum, toEnumFilterValue } from '../../components/ui';
 
 /**
  * Portfolio list. Dark "command console" presentation mirrors the Dev-branch
@@ -308,7 +308,9 @@ export function ProjectListScreen() {
                 </thead>
                 <tbody>
                   {rows.map((p) => {
-                    const st = String(p.status ?? '');
+                    // Reads come back PascalCase (async-graphql rename); normalise
+                    // to the model's SCREAMING_SNAKE before comparing.
+                    const st = canonicalEnumKey(String(p.status ?? ''));
                     const stage = String(p.current_stage ?? '');
                     const progress = progressFor(st);
                     const pTone = toneForPriority(String(p.priority ?? ''));

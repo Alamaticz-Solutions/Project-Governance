@@ -38,6 +38,8 @@ export function AppRoot({ scaffoldReference }: { scaffoldReference: ReactNode })
     <Routes>
       {/* public */}
       <Route path="/sign-in" element={<SignInScreen />} />
+      {/* Dev-branch alias */}
+      <Route path="/login" element={<Navigate to="/sign-in" replace />} />
 
       {/* everything else is behind the shell + auth guard */}
       <Route

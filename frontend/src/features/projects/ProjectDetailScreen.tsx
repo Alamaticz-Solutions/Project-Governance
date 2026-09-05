@@ -4,7 +4,7 @@ import { Button, Dialog, FormLayout, Icon, InlineAlert, TextArea } from '@ui-kit
 import { useAction, useApp, useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';
 import type { AppfwClient, AppfwRecord } from '../../lib/appfwClient';
-import { AsyncSection, humanizeEnum, formatDate, formatDateTime, asText } from '../../components/ui';
+import { AsyncSection, canonicalEnumKey, humanizeEnum, formatDate, formatDateTime, asText } from '../../components/ui';
 import { hasAnyRole } from '../../lib/authContext';
 
 /**
@@ -107,16 +107,19 @@ export function ProjectDetailScreen() {
           {(data) => {
             const project = data.project as AppfwRecord;
             const currentStage = asText(project.current_stage);
-            const approvedStages = new Set(
-              data.approvals.filter((a) => String(a.status) === 'APPROVED').map((a) => asText(a.approval_stage).toLowerCase())
-            );
+            // Reads come back PascalCase (async-graphql rename) — normalise
+            // before comparing to the model's SCREAMING_SNAKE.
+            const approvedStages = data.approvals
+              .filter((a) => canonicalEnumKey(String(a.status)) === 'APPROVED')
+              .map((a) => asText(a.approval_stage).toLowerCase());
+            const projectComplete = canonicalEnumKey(String(project.status)) === 'COMPLETED';
             const currentIdx = PIPELINE.findIndex((s) => stageMatches(currentStage, s));
 
             const isDone = (i: number, key: string) =>
               key === 'Intake' ||
               (currentIdx > i && currentIdx !== -1) ||
-              String(project.status) === 'COMPLETED' ||
-              [...approvedStages].some((s) => s.includes(key.toLowerCase()));
+              projectComplete ||
+              approvedStages.some((s) => s.includes(key.toLowerCase()));
 
             const tabs: { id: string; label: string; icon: string }[] = [
               { id: 'overview', label: 'Overview', icon: 'article' },

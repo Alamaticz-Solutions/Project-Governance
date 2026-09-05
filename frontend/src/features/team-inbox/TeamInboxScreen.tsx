@@ -61,7 +61,7 @@ async function loadInbox(client: AppfwClient, roles: readonly string[]): Promise
       kind: 'approval' as const,
       label: r.approval_stage ? humanizeEnum(r.approval_stage) : 'Approval',
       action: `${r.assigned_role ? humanizeEnum(r.assigned_role) : 'Review'} Review`,
-      priority: 'MEDIUM',
+      priority: '', // ProjectApproval rows carry no priority; only gate reviews do
       date: formatDate(r.created_at)
     })),
     ...reviews.rows.map((r) => ({
@@ -296,19 +296,23 @@ export function TeamInboxScreen() {
                         </span>
                       </td>
                       <td style={{ padding: '16px 24px' }}>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: '4px 10px',
-                            borderRadius: 6,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            ...priorityStyle(task.priority)
-                          }}
-                        >
-                          {task.priority}
-                        </span>
+                        {task.priority ? (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: '4px 10px',
+                              borderRadius: 6,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                              ...priorityStyle(task.priority)
+                            }}
+                          >
+                            {task.priority}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#64748B' }}>—</span>
+                        )}
                       </td>
                       <td style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 12, fontWeight: 500 }}>{task.date}</td>
                       <td style={{ padding: '16px 24px', textAlign: 'right' }}>
