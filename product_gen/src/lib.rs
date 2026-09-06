@@ -16,6 +16,7 @@ pub mod model;
 pub mod rego;
 pub mod relationship_model;
 pub mod relationships;
+pub mod routes_rs;
 pub mod schemas_rs;
 
 use std::fs;
