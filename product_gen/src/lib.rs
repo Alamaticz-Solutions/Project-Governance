@@ -9,12 +9,14 @@
 
 pub mod ddl;
 pub mod entity_types_yaml;
+pub mod gql_enum_types;
 pub mod ir;
 pub mod loader;
 pub mod model;
 pub mod rego;
 pub mod relationship_model;
 pub mod relationships;
+pub mod schemas_rs;
 
 use std::fs;
 use std::path::Path;

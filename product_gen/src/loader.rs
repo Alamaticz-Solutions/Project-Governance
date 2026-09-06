@@ -579,7 +579,7 @@ fn caption_n(name: &str) -> String {
     to_plural(&caption_1(name))
 }
 
-fn caption_word(name: &str) -> String {
+pub(crate) fn caption_word(name: &str) -> String {
     if is_title_case(name) {
         name.to_string()
     } else {
