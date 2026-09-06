@@ -15,6 +15,7 @@ use crate::config::app_config::AppConfig;
 use crate::data::audit as runtime_audit;
 use crate::data::query_ir::PaginationPolicy;
 use crate::data::query_ir::{cost_for_query, AggregatePlan, MutationPlan, QueryPlan};
+use crate::data::read_orchestration;
 use crate::data::rules;
 use crate::data::rules::validation as runtime_validation;
 use crate::platform::policy::{AccessAction, PolicyAccess};
@@ -789,14 +790,13 @@ impl DataAccess {
             )
             .await?;
 
-        let provider = self.runtime_provider();
-        runtime_data_access::execute_find_item_read(
-            &provider,
+        read_orchestration::execute_find_item_read(
+            self.client.as_ref(),
             entity_type.clone(),
             selections,
             id,
             &appfw_runtime::extension::UserAuth::from(&user),
-            &appfw_runtime::PolicyAccess::from(&access),
+            &access,
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
             },
@@ -886,9 +886,8 @@ impl DataAccess {
         )?;
 
         let plan = plan.into_runtime_provider_plan();
-        let provider = self.runtime_provider();
-        let res_vec = runtime_data_access::execute_get_items_plan_read(
-            &provider,
+        let res_vec = read_orchestration::execute_get_items_plan_read(
+            self.client.as_ref(),
             plan,
             &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
@@ -974,32 +973,21 @@ impl DataAccess {
         };
 
         let plan = plan.into_runtime_provider_plan();
-        let pagination = to_runtime_pagination(&plan.pagination);
-        let runtime_sort =
-            plan.sort
-                .specs
-                .first()
-                .map(|spec| runtime_data_access::RuntimeReadSort {
-                    field: spec.prop.name.clone(),
-                    direction: match spec.direction {
-                        crate::data::query_ir::SortDirection::Asc => {
-                            appfw_runtime::query_ir::RuntimeSortDirection::Asc
-                        }
-                        crate::data::query_ir::SortDirection::Desc => {
-                            appfw_runtime::query_ir::RuntimeSortDirection::Desc
-                        }
-                    },
-                });
+        let pagination = plan.pagination.clone();
+        let read_sort = plan
+            .sort
+            .specs
+            .first()
+            .map(|spec| read_orchestration::ReadSort {
+                field: spec.prop.name.clone(),
+                direction: spec.direction,
+            });
 
-        // println!("\n Database: query_items res:: {:?}", res);
-        // println!("\n\n");
-
-        let provider = self.runtime_provider();
-        let res = runtime_data_access::execute_query_items_plan_read(
-            &provider,
+        let res = read_orchestration::execute_query_items_plan_read(
+            self.client.as_ref(),
             plan,
             &pagination,
-            runtime_sort.as_ref(),
+            read_sort.as_ref(),
             &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
@@ -1094,7 +1082,7 @@ impl DataAccess {
         if ids.is_empty() {
             return Ok(Vec::new());
         }
-        let limit = runtime_data_access::batch_limit_for_ids(ids.len()).map_err(AppError::from)?;
+        let limit = read_orchestration::batch_limit_for_ids(ids.len())?;
 
         let user = self
             .require_user(entity_type.clone(), AccessAction::Read, user, None)
@@ -1103,8 +1091,7 @@ impl DataAccess {
             .authorize_entity_access(entity_type.clone(), AccessAction::Read, &user, None, None)
             .await?;
         let pk_name = self.app_config.get_primary_key_name(entity_type.clone())?;
-        let filter =
-            runtime_data_access::primary_key_in_filter(&pk_name, ids).map_err(AppError::from)?;
+        let filter = read_orchestration::primary_key_in_filter(&pk_name, ids)?;
         let plan = QueryPlan::new(
             self.app_config.clone(),
             entity_type.clone(),
@@ -1117,9 +1104,8 @@ impl DataAccess {
         )?;
 
         let plan = plan.into_runtime_provider_plan();
-        let provider = self.runtime_provider();
-        let res_vec = runtime_data_access::execute_batch_get_items_plan_read(
-            &provider,
+        let res_vec = read_orchestration::execute_batch_get_items_plan_read(
+            self.client.as_ref(),
             plan,
             &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
@@ -1173,9 +1159,8 @@ impl DataAccess {
         )?;
 
         let plan = plan.into_runtime_provider_plan();
-        let provider = self.runtime_provider();
-        let res = runtime_data_access::execute_aggregate_items_plan_read(
-            &provider,
+        let res = read_orchestration::execute_aggregate_items_plan_read(
+            self.client.as_ref(),
             plan,
             &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
