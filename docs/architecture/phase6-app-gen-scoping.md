@@ -395,12 +395,98 @@ template logic.
 (74 lines — the `Schema`/`DataSource` shapes `context::create_for_schema`
 uses), and `engine.rs` (27 lines — Tera engine setup, trivial but unread).
 
-**Do not implement slice 1's model loader from this document alone.** Treat
-§10 as a spec-in-progress, not a spec. The next session/turn on slice 1
-should start by reading `filters.rs`, `_templates/types/facets/**`, and
-`normalized_config.rs`, in that order, before writing any product code.
-Task tracking (`Slice 1: model loader + normalizer`) is left `in_progress`,
-not completed, to reflect this honestly.
+**Update: the gap is now closed.** Read `filters.rs` (796 lines, in full),
+`normalized_config.rs` (552 lines, in full), and the three template files
+that tie facet tokens to filter invocations
+(`_templates/types/entity_types/_mod.j2`, `entity_types/entity_type/_mod.j2`,
+`relationships/_mod.j2`, `gql_enum_types/_mod.j2`). Slice 1's core algorithm
+is now spec-complete:
+
+**Facet expansion, exactly:** a merged entity's `facets: [...]` list (product
+tokens like `audited`, `concurrency`, `soft-deleted` — note these are NOT the
+same strings as the `_facets/*.yaml` file names they map to, e.g. `audited` →
+`_facets/audit_entity_type.yaml`; a spec or implementation written from file
+names alone would use the wrong token) is checked three ways in the
+`entity_type` print macro:
+- `"concurrency"` → append one property, the literal unmodified content of
+  `_facets/version_property.yaml` (a `FacetFileFilter` — no per-entity
+  customization at all).
+- `"soft-deleted"` → same mechanism, `_facets/soft_deleted_property.yaml`.
+- `"audited"` → handled one level up, in the *schema's* entity-list loop, not
+  the per-entity print macro: for each entity with `audited`, print the
+  entity, then ALSO print a second full synthetic entity built from
+  `_facets/audit_entity_type.yaml`'s static prop list (confirmed against this
+  product's own copy — 20 props: `audit_id` through `signature`, matching the
+  phase-5-ported `AuditEvent` struct exactly), with only `name` → `{Name}Audit`,
+  `snake_1`/`snake_n`, and `meta.{generatedAuditEntity,sourceEntity}` set
+  per-source-entity, plus (only if the static template already has a
+  `foreign_key` object on the `record_id` prop, which this product's
+  `audit_entity_type.yaml` does not) its `type_name` patched to the source
+  entity name. **Concrete, verified negative finding:** the `audit_property`
+  filter (which would set a *different* entity's nav-to-this-audit-type FK)
+  is registered but never invoked by any file under `_templates/types/**` —
+  confirmed by grepping the whole template tree. The product's own
+  `project.yaml` comment ("generates ProjectAudit companion (+ audit_records
+  nav)") describes an `audit_records` nav property that **the real generator
+  does not actually synthesize** — it's aspirational documentation, not
+  current behavior. Slice 1 must reproduce the *actual* behavior (no nav
+  property synthesized) to stay behavior-compatible, not the comment's
+  description — implementing the comment's intent would be a *product
+  change*, not a port, and out of scope here.
+- Relationships (`_templates/types/relationships/_mod.j2`) and gql_enum_types
+  merge with no comparable per-item facet logic — relationships is a literal
+  pretty-printed JSON re-encode of the merged array (no transformation at
+  all); gql_enum_types has a per-item print macro not yet read but
+  structurally low-risk (same id/uuid-stamping shape as `entity_type::print`).
+
+**Full pipeline, three stages, all now spec'd:**
+1. **Merge + facet expansion** (`schema::preprocess` → `yaml_gen::run`, per
+   schema, per one of {entity_types, relationships, gql_enum_types}): read
+   every first-level `*.yaml` in the subdirectory except `_res.yaml`, sort by
+   filename (deliberate — seed files elsewhere in the model use numeric
+   prefixes to encode dependency order, and the sort is shared machinery),
+   concatenate into one JSON array, run it through the facet logic above,
+   write `_res.yaml`. This is where 30 base governance+system entity types
+   become the ~64 the runtime registers (base entities + one `*Audit`
+   companion per `audited`-faceted entity + a couple of enum/computed
+   pseudo-types the registry also counts — matches the earlier phase-6
+   entity-inventory finding).
+2. **Relationship resolution** (`type_relationships::run`, 925 lines, read in
+   full): load all schemas' merged `entity_types/_res.yaml`, apply each
+   schema's `relationships/_res.yaml` `RelationshipConfig` entries
+   (`OneToMany`/`OneToOne`/`ManyToMany`) to synthesize `NavToOne`/`NavToMany`/
+   `ManyToMany` `PropertyType` entries onto the relevant entities (stable
+   property `id` via `DefaultHasher` of `schema.entity.field`), validate every
+   FK/nav target exists (hard error if not), warn-only (never error) on
+   circular `NavToMany` pairs, persist the mutated entities back to each
+   schema's `entity_types/_res.yaml`.
+3. **IR normalization** (`normalized_config::build`, 552 lines, read in full):
+   purely mechanical flattening of the relationship-resolved `EntityType`/
+   `PropertyType` structs into `GeneratorIr { version, generated_at, schemas:
+   [NormalizedSchema { name, data_source_name/type, is_system_schema,
+   relationships, entities: [NormalizedEntity { ...caption/snake/table-name
+   variants, facets, execution, standard/custom method name lists split into
+   query vs. mutation by kind, primary_key, audit_table (derived by checking
+   for the "audited" facet token — same token as step 1's; a second concrete
+   place to get this wrong if it's not kept in sync), native_properties vs.
+   relationship_properties (partitioned by whether `normalize_relation`
+   finds a foreign_key/nav_by_fk/many_to_many/nested_entity_type) }] }] }` —
+   no I/O, no template engine, straightforward to reproduce as ordinary Rust
+   given the `EntityType`/`PropertyType`/`RelationshipConfig` shapes in
+   `bootstrap_types/entity_type.rs` and `relationship_config.rs` (both read
+   in full, trivial data-shape definitions, safe to reproduce verbatim as
+   they define a file format this product's own `.appfw/model/**` YAML must
+   parse into, not an algorithm).
+
+**Still not needed for slice 1's core path, deliberately deferred:**
+`app_manifest.rs`/`app_workspace.rs` multi-root resolution (this is a
+single-repo product, so path resolution is simpler than the framework's),
+`console.rs` (progress-output formatting, cosmetic), `engine.rs`/`templates.rs`
+(Tera engine setup — the product-owned implementation doesn't have to use
+Tera at all; §4 already noted plain Rust string-building is a valid choice).
+
+Task tracking (`Slice 1: model loader + normalizer`) stays `in_progress` —
+the algorithm is now spec-complete, but no product Rust code exists yet.
 
 ## 11. What's still open after this pass
 
