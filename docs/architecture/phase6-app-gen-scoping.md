@@ -557,10 +557,118 @@ Tera at all; §4 already noted plain Rust string-building is a valid choice).
 Task tracking (`Slice 1: model loader + normalizer`) stays `in_progress` —
 the algorithm is now spec-complete, but no product Rust code exists yet.
 
-## 12. What's still open after this pass
+## 13. Slice 5: implemented and verified (2026-09-06) — and a pattern worth naming
 
-Slice 5 is resolved (§3, §5) — no separate scoping/advisor pass needed before
-it starts; this document is that pass. What remains open:
+Slice 5 (backend Rust codegen: `schemas/{schema}.rs`, `routes/{schema}.rs`,
+`handlers/{schema}/{generated,mod,impl}.rs`, the three top-level `mod.rs`
+files) is done: `product_gen` gained `gql_enum_types.rs`, `schemas_rs.rs`,
+`routes_rs.rs`, `handlers_generated_rs.rs`, `handlers_mod_rs.rs`,
+`handlers_impl_rs.rs`, `top_level_mod_rs.rs`. 28 tests total (cumulative),
+every one a byte-for-byte diff against a real checked-in file, not a
+synthetic fixture. Verification strategy: emit semantically-correct Rust with
+rough formatting, pipe through `rustfmt --edition 2021` via a piped
+subprocess, diff against the oracle — this sidesteps hand-replicating Tera's
+whitespace trim rules for `.rs` output entirely (unlike slice 3's SQL, which
+had no such escape hatch and needed the trim rules reverse-engineered
+directly). Also note a corrected record: `handlers_mod_rs.rs`'s governance
+output matched its oracle on the first attempt (8,306 lines, zero diff);
+system needed one additional blank-line fix after the schema-only
+`user_info` method. Both are true; only governance was first-try.
+
+**The pattern worth naming:** every non-trivial file in this slice diverged
+from the raw framework template in some way, and each divergence was caught
+only by diffing against the actual shipped file, never by reading the
+template alone:
+
+1. `routes/{schema}.rs` — the checked-in file already uses product-owned
+   `crate::platform::{auth::JwtAuthConfig, graphql_gateway}`, not the
+   template's `appfw_runtime::routing::runtime_graphql_schema_routes` /
+   `RuntimeAuthState`. Disposition: **reproduce the shipped pattern**, not
+   the template — phase 4's routing migration already happened, in an
+   earlier, separately-scoped pass this document didn't originally know
+   about.
+2. `handlers/{schema}/mod.rs` — every resolver body inserts `let user =
+   user.map(crate::product_api::UserAuth::from);` right after
+   `into_handler_parts()`, absent from the template. `HandlerContext` still
+   internally carries the framework's `UserAuth` type; the reverse
+   conversion (`user_from_context(ctx).map(appfw_runtime::extension::UserAuth::from)`)
+   lives in `from_context`/`from_context_without_selections`. Disposition:
+   **reproduce as-is** — a known, deliberately-deferred framework
+   touchpoint, not something this slice should "fix."
+3. `schemas/system.rs` — the `Validator` union entity shows the raw
+   template's "no variants" fallback text, but `.appfw/model/schemas/system/
+   entity_types/validators.yaml` sets `base_type: Validator` on all 6
+   variants, and the already byte-verified `entity_types.yaml` oracle
+   (slice 4) reflects that. The checked-in `schemas/system.rs` is simply
+   **stale** relative to the current model. Disposition: the new generator
+   produces the model-consistent (correct, non-empty) union; the test
+   documents the staleness explicitly (asserts the oracle still contains the
+   stale marker text, so it fails loudly — as a signal to remove this
+   workaround — if the oracle is ever regenerated) rather than reproducing
+   the wrong output.
+4. `routes/mod.rs` (top-level, distinct from per-schema `routes/{schema}.rs`)
+   — rewritten far beyond the template into real phase 4/5 runtime
+   bootstrapping (JWT auth, the database client provider registry, admin UI
+   routing, MCP routing), none of it derived from `.appfw/model/**` data.
+   Disposition: **out of scope**, documented in `top_level_mod_rs.rs`'s
+   module doc comment.
+5. (Slice 4, same pattern, listed here for completeness) `config_contract.rs`
+   turned out to be an unrelated, static hand-coded docs generator — the
+   real `entity_types.yaml` emission is a plain `serde_yaml::to_string` of
+   the already-resolved entity list. An earlier pass conflated the two.
+
+Five divergences in two slices, all product-side drift the framework
+template doesn't and can't know about. The working assumption for every
+remaining slice (6, 7) has to be: **the shipped, checked-in file is the
+spec; the framework template is a lossy historical snapshot of it.** Treat
+every new file this generator touches as a byte-diff target against the real
+oracle first, and only fall back to the template when no oracle exists (e.g.
+slice 5's `handlers_impl_rs.rs` custom-methods branch, where every real
+example has been hand-edited past the stub).
+
+## 14. Slice 6 (frontend UI contract emission): scope confirmed, not yet started
+
+The plan doc's framing of the frontend as "already done / out of scope" is
+**stale** — checked directly against this repo, not assumed. `grep -rl
+"appfw-ui-contract"` under `frontend/src` (excluding the generated file
+itself) shows four live consumers: `features/entities/EntityBrowserScreen.tsx`,
+`generated/appfw-entity-workspace.tsx` (itself one of the three generated
+outputs), `lib/appfwClient.ts`, `lib/entities.ts`, and `main.tsx`. The
+generated contract is load-bearing today, not orphaned — slice 6 is real
+work, not a skip.
+
+Confirmed scope from reading `app_gen/src/frontend.rs`'s first 260 lines
+(of 2,138 total): `run()` emits three files —
+`frontend/src/generated/appfw-ui-contract.ts` (37,512 lines in this product,
+via `render_contract_module`), `.appfw-ui/scaffold-manifest.json` (via
+`render_scaffold_manifest`), and `frontend/src/generated/appfw-entity-workspace.tsx`
+(via `render_entity_workspace_module()`, which takes no arguments — likely a
+fixed/static starter file, not per-entity generated). Unlike every prior
+slice, this generator is pure Rust struct-building (not Tera-templated) over
+`GeneratorIr`/`NormalizedSchema`/`NormalizedEntity` — i.e. slice 1's *other*
+output (`product_gen::load_model`/`ir::build`), not yet exercised by slices
+2-5, which all needed the pre-IR `EntityType` shape instead. The oracle's
+head confirms `render_contract_module` emits fixed TypeScript `export type
+Appfw*` declarations mirroring each `Ui*Contract` Rust struct 1:1
+(camelCase, matching the structs' `#[serde(rename_all = "camelCase")]`);
+given ~30-40 fixed type declarations account for only a few hundred lines,
+the remaining ~37,000+ lines are almost certainly a large generated data
+payload whose exact TypeScript-serialization formatting will need to be
+reverse-engineered against the oracle, the same way slice 3's SQL whitespace
+was — expect this to be the largest single slice by effort so far, larger
+than all of slice 5 combined.
+
+Not yet done: reading `frontend.rs` past line 260 (structs
+`UiFieldContract`/`UiFieldRelationshipContract` onward, then the builder
+functions — `build_contract`, `build_entity`, `build_field`,
+`build_relationship`, `operations`, `workflow_defaults`,
+`view_registry_defaults`, `render_contract_module`, `render_scaffold_manifest`,
+`render_entity_workspace_module`), and inspecting the oracle file past its
+head to find the transition from fixed type declarations to generated data.
+No `product_gen` code exists for this slice yet — task #18 is `in_progress`
+(started, not complete), not blocked.
+
+## 15. What's still open after this pass
 
 - The `Validator::error()` diagnostic-emission signature (line ~4927 in the
   framework source) and the exact `validation.json` report shape it writes
@@ -568,10 +676,12 @@ it starts; this document is that pass. What remains open:
   contract stable for anything that parses it (CI, `boundary-check`, etc.).
 - `create_full_context`/`create_mcp_operations_context`/`annotate_entity_context`/
   `annotate_custom_method_args` (§5, slice 5) haven't been read in full yet —
-  only located and sized. This is where the actual per-property/per-method
-  derived-field computation lives and deserves a close read once slice 5
-  starts, even though the overall risk picture for that slice is now low.
+  only located and sized. Slice 5 shipped without needing this read in full;
+  revisit only if a future slice's derived-field logic doesn't match an
+  oracle and the cause isn't otherwise apparent.
 - Whether `operations/generated.rs` / MCP support should be deleted outright
   (matching phase 1's stance on unused `mcp`/`kafka` features) or left as a
   dormant, unported file the new generator simply doesn't emit — a product
   decision, not an architecture question this document needs to resolve.
+- Slice 6 (frontend UI contract emission, §14): scope confirmed, not started.
+- Slice 7 (CLI surface): not started.
