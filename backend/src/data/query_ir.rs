@@ -8,7 +8,7 @@ use appfw_runtime::{
         RuntimeRelationKind, RuntimeSelectionCostNode, RuntimeSelectionCostTree,
     },
     query_filter::conjunction_token as conjunction,
-    query_ir as runtime_query_ir, QueryCost, QueryCostBudget,
+    QueryCost, QueryCostBudget,
 };
 use serde_json::{json, Map, Value};
 
@@ -1196,7 +1196,7 @@ fn ensure_keyset_sort(
     } else {
         String::new()
     };
-    runtime_query_ir::ensure_keyset_sort(&primary_key_name, sort).map_err(AppError::from)
+    crate::data::keyset_cursor::ensure_keyset_sort(&primary_key_name, sort)
 }
 
 fn apply_keyset_cursor_filter(
@@ -1204,7 +1204,7 @@ fn apply_keyset_cursor_filter(
     sort: &Value,
     after: Option<&str>,
 ) -> Result<Option<Value>, AppError> {
-    runtime_query_ir::apply_keyset_cursor_filter(filter, sort, after).map_err(AppError::from)
+    crate::data::keyset_cursor::apply_keyset_cursor_filter(filter, sort, after)
 }
 
 fn value_kind(v: &Value) -> &'static str {
