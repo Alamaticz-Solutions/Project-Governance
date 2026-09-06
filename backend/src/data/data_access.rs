@@ -91,6 +91,14 @@ impl DataAccess {
             record_id,
             limit,
         );
+        let query = appfw_runtime::RuntimeAuditQuery::new(
+            query.schema_name,
+            query.entity_name,
+            query.audit_table_name,
+            query.tenant_id,
+            query.record_id,
+            query.limit,
+        );
         let provider = self.runtime_provider();
         runtime_data_access::execute_audit_events_read(
             &provider,

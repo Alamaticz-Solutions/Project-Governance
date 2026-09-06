@@ -13,6 +13,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 
 use crate::{
+    data::audit_event::{AuditEvent, AuditQuery},
     data::provider_identity::{ProviderClient, ProviderIdentity},
     data::provider_plan::{self, JsonObj},
     data::query_ir::{
@@ -89,6 +90,51 @@ pub struct ProviderRoutineCall {
 
 pub struct DatabaseClientRuntimeAdapter<'a> {
     client: &'a (dyn DatabaseClient + Send + Sync),
+}
+
+/// Converts the framework's own `RuntimeAuditEvent` into this crate's
+/// product-owned `AuditEvent` at the one remaining boundary that still hands
+/// this adapter a framework-typed event: `RuntimeProviderDataClient`'s fixed
+/// trait signature. A straight field copy -- both types have the identical
+/// 21-field shape verified by `audit_event::oracle_test`.
+fn product_audit_event(event: RuntimeAuditEvent) -> AuditEvent {
+    AuditEvent {
+        audit_id: event.audit_id,
+        occurred_at: event.occurred_at,
+        tenant_id: event.tenant_id,
+        actor_user_name: event.actor_user_name,
+        actor_roles: event.actor_roles,
+        action: event.action,
+        outcome: event.outcome,
+        schema_name: event.schema_name,
+        entity_name: event.entity_name,
+        table_name: event.table_name,
+        audit_table_name: event.audit_table_name,
+        record_id: event.record_id,
+        before_json: event.before_json,
+        after_json: event.after_json,
+        diff_json: event.diff_json,
+        policy_json: event.policy_json,
+        redactions_json: event.redactions_json,
+        chain_scope: event.chain_scope,
+        prev_hash: event.prev_hash,
+        event_hash: event.event_hash,
+        signature: event.signature,
+    }
+}
+
+/// Converts the framework's own `RuntimeAuditQuery` into this crate's
+/// product-owned `AuditQuery` at the same adapter boundary as
+/// `product_audit_event`.
+fn product_audit_query(query: RuntimeAuditQuery) -> AuditQuery {
+    AuditQuery::new(
+        query.schema_name,
+        query.entity_name,
+        query.audit_table_name,
+        query.tenant_id,
+        query.record_id,
+        query.limit,
+    )
 }
 
 impl<'a> DatabaseClientRuntimeAdapter<'a> {
@@ -186,14 +232,18 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
     }
 
     async fn append_audit_event(&self, event: RuntimeAuditEvent) -> Result<(), Self::Error> {
-        self.client.append_audit_event(event).await
+        self.client
+            .append_audit_event(product_audit_event(event))
+            .await
     }
 
     async fn query_audit_events(
         &self,
         query: RuntimeAuditQuery,
     ) -> Result<Vec<Value>, Self::Error> {
-        self.client.query_audit_events(query).await
+        self.client
+            .query_audit_events(product_audit_query(query))
+            .await
     }
 
     async fn create_item_json(
@@ -358,14 +408,14 @@ pub trait DatabaseClient: RuntimeProviderClient + ProviderClient {
         .await
     }
 
-    async fn append_audit_event(&self, event: RuntimeAuditEvent) -> Result<(), AppError> {
+    async fn append_audit_event(&self, event: AuditEvent) -> Result<(), AppError> {
         Err(AppError::DataAccess(format!(
             "audit append is not implemented for provider backing {}.{}",
             event.schema_name, event.entity_name
         )))
     }
 
-    async fn query_audit_events(&self, query: RuntimeAuditQuery) -> Result<Vec<Value>, AppError> {
+    async fn query_audit_events(&self, query: AuditQuery) -> Result<Vec<Value>, AppError> {
         Err(AppError::DataAccess(format!(
             "audit timeline query is not implemented for provider backing {}.{}",
             query.schema_name, query.entity_name

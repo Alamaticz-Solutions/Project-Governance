@@ -48,12 +48,13 @@ use super::pg_error::postgres_runtime_error;
 use super::routine_sql::{PostgresFunctionCall, PostgresStoredProcedureCall};
 use super::sort::{aggregate_order_by as provider_aggregate_order_by, PostgresSortField};
 use appfw_runtime::{
-    extension::UserAuth, provider_keys::FrameworkProvider, RuntimeAuditEvent, RuntimeAuditQuery,
-    RuntimeProviderIdentity, RuntimeProviderPlanInput,
+    extension::UserAuth, provider_keys::FrameworkProvider, RuntimeProviderIdentity,
+    RuntimeProviderPlanInput,
 };
 
 use super::cte::CTE;
 use crate::config::app_config::AppConfig;
+use crate::data::audit_event::{AuditEvent, AuditQuery};
 use crate::data::clients::database_client::{
     DatabaseClient, ProviderAggregatePlan, ProviderPoolStats, ProviderQueryPlan,
     ProviderRoutineArgument, ProviderRoutineCall, ProviderRoutineKind, ProviderRoutineReturns,
@@ -837,14 +838,14 @@ impl DatabaseClient for PostgresClient {
         self.execution.health_check().await.map_err(AppError::from)
     }
 
-    async fn append_audit_event(&self, event: RuntimeAuditEvent) -> Result<(), AppError> {
+    async fn append_audit_event(&self, event: AuditEvent) -> Result<(), AppError> {
         self.execution
             .append_audit_event(event)
             .await
             .map_err(AppError::from)
     }
 
-    async fn query_audit_events(&self, query: RuntimeAuditQuery) -> Result<Vec<Value>, AppError> {
+    async fn query_audit_events(&self, query: AuditQuery) -> Result<Vec<Value>, AppError> {
         self.execution
             .query_audit_events(query)
             .await

@@ -5,11 +5,13 @@
 //! docs/architecture/self-owned-backend-plan.md). Previously
 //! `appfw_provider_postgres::audit`.
 
-use appfw_runtime::{RuntimeAuditEvent, RuntimeAuditQuery, RuntimeError};
+use appfw_runtime::RuntimeError;
+
+use crate::data::audit_event::{AuditEvent, AuditQuery};
 
 use super::param::SqlParam;
 
-pub fn previous_hash_statement(event: &RuntimeAuditEvent) -> (String, Vec<SqlParam>) {
+pub fn previous_hash_statement(event: &AuditEvent) -> (String, Vec<SqlParam>) {
     let table = table_ref(&event.schema_name, &event.audit_table_name);
     (
         format!(
@@ -25,9 +27,7 @@ pub fn previous_hash_statement(event: &RuntimeAuditEvent) -> (String, Vec<SqlPar
     )
 }
 
-pub fn insert_statement(
-    event: &RuntimeAuditEvent,
-) -> Result<(String, Vec<SqlParam>), RuntimeError> {
+pub fn insert_statement(event: &AuditEvent) -> Result<(String, Vec<SqlParam>), RuntimeError> {
     let table = table_ref(&event.schema_name, &event.audit_table_name);
     let actor_roles = serde_json::to_value(&event.actor_roles)
         .map_err(|e| RuntimeError::DataAccess(e.to_string()))?;
@@ -90,7 +90,7 @@ pub fn insert_statement(
     ))
 }
 
-pub fn query_statement(query: &RuntimeAuditQuery) -> (String, Vec<SqlParam>) {
+pub fn query_statement(query: &AuditQuery) -> (String, Vec<SqlParam>) {
     let table = table_ref(&query.schema_name, &query.audit_table_name);
     (
         format!(
@@ -144,8 +144,8 @@ mod tests {
     use chrono::{DateTime, Utc};
     use serde_json::json;
 
-    fn event() -> RuntimeAuditEvent {
-        RuntimeAuditEvent {
+    fn event() -> AuditEvent {
+        AuditEvent {
             audit_id: "audit-1".to_string(),
             occurred_at: DateTime::parse_from_rfc3339("2026-05-30T00:00:00Z")
                 .expect("datetime")
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn query_statement_binds_tenant_record_id_and_limit() {
-        let query = RuntimeAuditQuery::new(
+        let query = AuditQuery::new(
             "crm",
             "Account",
             "accounts_audit",

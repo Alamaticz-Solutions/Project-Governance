@@ -5,11 +5,13 @@
 //! docs/architecture/self-owned-backend-plan.md). Previously
 //! `appfw_provider_postgres::execution`.
 
-use appfw_runtime::{RuntimeAuditEvent, RuntimeAuditQuery, RuntimeError};
+use appfw_runtime::RuntimeError;
 use deadpool_postgres::{Client, Pool};
 use postgres_types::ToSql;
 use serde_json::Value;
 use tokio_postgres::Row;
+
+use crate::data::audit_event::{AuditEvent, AuditQuery};
 
 use super::audit_sql::{
     insert_statement as audit_insert_statement,
@@ -60,7 +62,7 @@ impl PostgresExecutionClient {
         Ok(())
     }
 
-    pub async fn append_audit_event(&self, event: RuntimeAuditEvent) -> Result<(), RuntimeError> {
+    pub async fn append_audit_event(&self, event: AuditEvent) -> Result<(), RuntimeError> {
         let client = self.client().await?;
         let (prev_sql, prev_params) = audit_previous_hash_statement(&event);
         let prev_hash = client
@@ -68,7 +70,9 @@ impl PostgresExecutionClient {
             .await
             .map_err(postgres_runtime_error)?
             .map(|row| row.get::<_, String>(0));
-        let event = event.finalize(prev_hash)?;
+        let event = event
+            .finalize(prev_hash)
+            .map_err(|err| RuntimeError::DataAccess(err.to_string()))?;
 
         let (sql, params) = audit_insert_statement(&event)?;
         client
@@ -78,10 +82,7 @@ impl PostgresExecutionClient {
         Ok(())
     }
 
-    pub async fn query_audit_events(
-        &self,
-        query: RuntimeAuditQuery,
-    ) -> Result<Vec<Value>, RuntimeError> {
+    pub async fn query_audit_events(&self, query: AuditQuery) -> Result<Vec<Value>, RuntimeError> {
         let (sql, params) = audit_query_statement(&query);
         let row = self
             .client()

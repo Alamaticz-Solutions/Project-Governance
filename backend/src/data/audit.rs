@@ -7,8 +7,7 @@
 //! elsewhere in this codebase. This module only carries the small set of
 //! pure helper functions that this product's own code calls directly.
 
-use appfw_runtime::RuntimeAuditQuery;
-
+use crate::data::audit_event::AuditQuery;
 use crate::product_api::RuntimeEntityMetadata;
 
 /// True when the entity's metadata carries the `"audited"` facet.
@@ -38,8 +37,8 @@ pub(crate) fn audit_query(
     tenant_id: impl Into<String>,
     record_id: impl Into<String>,
     limit: i64,
-) -> RuntimeAuditQuery {
-    RuntimeAuditQuery::new(
+) -> AuditQuery {
+    AuditQuery::new(
         entity.schema_name.clone(),
         entity.pascal_1.clone(),
         audit_table_name(entity),
