@@ -83,6 +83,21 @@ No module is pure dead weight, but `sync_worker.rs` + `sync_descriptor.rs`
 a guess — will materially shrink the port. That audit is real Phase 6 work,
 not a resolved item here.
 
+**Correction (2026-09-06): this table undercounts `app_gen` by ~35%.** It only
+sizes `app_gen/src/*.rs` (the top-level files). `app_gen/src/utils/` is a
+separate 6,214 lines across 17 files (`type_relationships.rs` 925,
+`ddl_plan.rs` 1,027, `filters.rs` 796, `artifacts.rs` 1,837,
+`performance_recommendations.rs` 524, `context.rs` 138, `files.rs` 165,
+`console.rs` 224, `database.rs` 220, `rego_gen.rs` 39, `yaml_gen.rs` 54,
+`test_gen.rs` 67, `templates.rs` 105, `engine.rs` 27,
+`bootstrap_types_gen.rs` 37, `constants.rs` 13), and `app_gen/src/bootstrap_types/`
+is another 273 (the `EntityType`/`PropertyType`/relationship data-shape
+definitions that mirror `.appfw/model/**`'s actual YAML contract — see §10).
+Real `app_gen` total is **~24.8k lines, not 18.3k**. Discovered while starting
+slice 1's implementation (§10) — recorded here rather than left only in that
+section, since anyone reading this table without §10 would carry the same
+undercount forward.
+
 ## 3. Correction (2026-09-06): the "generated code is framework-typed" finding was overstated
 
 An earlier pass of this document claimed the generated Rust surface
@@ -323,7 +338,71 @@ fixtures), not because of multi-provider complexity — Option B only trims
 roughly 400–600 of its 6,710 lines (~6–9%), not "the single biggest place to
 cut weight" as originally guessed. Its size is real scope, not padding.
 
-## 10. What's still open after this pass
+## 10. Slice 1 recon (started, not finished — do not implement from this alone)
+
+Started slice 1 by tracing the actual model-loading pipeline instead of
+assuming "parse YAML into a struct." It's three stages, not one:
+
+1. **`schema::preprocess`** (per schema dir) calls `yaml_gen::run` once each
+   for `entity_types`, `relationships`, `gql_enum_types`. Each call: merges
+   every first-level `*.yaml` file in that subdirectory (sorted by filename,
+   `_res.yaml` itself excluded — confirmed in `context::get_dir_value`; the
+   sort-by-filename is deliberate, the same code comment notes seed files use
+   numeric prefixes to encode FK-dependency layers), feeds the merged JSON
+   array plus a registered `fragment` Tera filter (over `_fragments/**`, 50+
+   files — `property-string-required.yaml` etc.) into a Tera template at
+   `_templates/types/<template_name>/**`, and writes the rendered output to
+   `<dir>/_res.yaml`. **`_res.yaml` is a generated artifact, not hand-authored
+   source** — this confirms the earlier phase-6 entity inventory was right to
+   exclude it from the 30-entity count, but that document didn't say why;
+   noting it here so slice 1's job description is unambiguous: it has to
+   *emit* these files, not just read them.
+2. **`type_relationships::run`** (925 lines, read in full) — loads the merged
+   `entity_types/_res.yaml` across all schemas via `context::read_types`,
+   applies each schema's `relationships/_res.yaml` entries
+   (`RelationshipConfig`: `OneToMany`/`OneToOne`/`ManyToMany`) to synthesize
+   `NavToOne`/`NavToMany`/`ManyToMany` `PropertyType` entries onto the
+   relevant entities (property `id` is a stable hash of
+   `schema.entity.field`), validates every FK/nav target actually exists,
+   warns (doesn't error) on circular `NavToMany` pairs, then persists the
+   mutated entity list back to each schema's `entity_types/_res.yaml`. Fully
+   spec'd from this read — the exact resolution rule for which side of a
+   `NavToOne` gets `DirectForeignKey` vs `InverseForeignKey`, the `OneToOne`
+   owner-resolution logic, and the `ManyToMany` junction-property shape are
+   all captured in this session's transcript and portable to a written spec
+   without re-reading.
+3. **`normalized_config::build`** (552 lines, not yet read) — takes the
+   type-relationship-resolved entities and produces the final `GeneratorIr`
+   that every downstream slice (Rego, DDL, backend codegen, frontend
+   contract) consumes. This is the one piece of slice 1's core path still
+   completely unread.
+
+**What's confirmed but not yet located: where the 30 base entity types become
+the runtime's 64 `entity_types`.** Suspected to be facet expansion (most
+entities carry an `audit_entity_type` facet per the earlier phase-6 inventory
+finding) happening inside the Tera templates at `_templates/types/facets/**`
+and/or `_templates/types/entity_types/**`, orchestrated by custom Tera
+functions in `app_gen/src/utils/filters.rs` (796 lines, unread). This is a
+real gap: slice 1 cannot be correctly implemented without reading
+`filters.rs` and the `_templates/types/**` tree first — the facet-expansion
+behavior is exactly the kind of thing that looks obvious from the outside
+("copy each entity's fields into an `_audit` twin") and is wrong in some
+specific detail if implemented from that guess instead of from the real
+template logic.
+
+**Also unread, needed before slice 1 is genuinely spec-complete:**
+`normalized_config.rs` (552 lines — the final IR shape), `bootstrap_types/data_source.rs`
+(74 lines — the `Schema`/`DataSource` shapes `context::create_for_schema`
+uses), and `engine.rs` (27 lines — Tera engine setup, trivial but unread).
+
+**Do not implement slice 1's model loader from this document alone.** Treat
+§10 as a spec-in-progress, not a spec. The next session/turn on slice 1
+should start by reading `filters.rs`, `_templates/types/facets/**`, and
+`normalized_config.rs`, in that order, before writing any product code.
+Task tracking (`Slice 1: model loader + normalizer`) is left `in_progress`,
+not completed, to reflect this honestly.
+
+## 11. What's still open after this pass
 
 Slice 5 is resolved (§3, §5) — no separate scoping/advisor pass needed before
 it starts; this document is that pass. What remains open:
