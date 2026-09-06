@@ -10,6 +10,7 @@
 pub mod ddl;
 pub mod entity_types_yaml;
 pub mod gql_enum_types;
+pub mod handlers_generated_rs;
 pub mod ir;
 pub mod loader;
 pub mod model;
