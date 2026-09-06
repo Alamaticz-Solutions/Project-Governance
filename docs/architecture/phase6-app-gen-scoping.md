@@ -92,10 +92,10 @@ separate 6,214 lines across 17 files (`type_relationships.rs` 925,
 `test_gen.rs` 67, `templates.rs` 105, `engine.rs` 27,
 `bootstrap_types_gen.rs` 37, `constants.rs` 13), and `app_gen/src/bootstrap_types/`
 is another 273 (the `EntityType`/`PropertyType`/relationship data-shape
-definitions that mirror `.appfw/model/**`'s actual YAML contract — see §10).
+definitions that mirror `.appfw/model/**`'s actual YAML contract — see §11).
 Real `app_gen` total is **~24.8k lines, not 18.3k**. Discovered while starting
-slice 1's implementation (§10) — recorded here rather than left only in that
-section, since anyone reading this table without §10 would carry the same
+slice 1's implementation (§11) — recorded here rather than left only in that
+section, since anyone reading this table without §11 would carry the same
 undercount forward.
 
 ## 3. Correction (2026-09-06): the "generated code is framework-typed" finding was overstated
@@ -338,7 +338,76 @@ fixtures), not because of multi-provider complexity — Option B only trims
 roughly 400–600 of its 6,710 lines (~6–9%), not "the single biggest place to
 cut weight" as originally guessed. Its size is real scope, not padding.
 
-## 10. Slice 1 recon (started, not finished — do not implement from this alone)
+## 10. Slice 1: implemented and verified (2026-09-06)
+
+**Update: slice 1 is done.** `product_gen/` (a standalone crate — see note
+below on why it isn't a workspace member yet) implements the model
+loader/normalizer end to end: `product_gen/src/model.rs` and
+`relationship_model.rs` (the `.appfw/model/**` YAML data contract),
+`loader.rs` (merge + name-derived-default resolution + property fragment
+resolution + facet expansion), `relationships.rs` (nav/M2M synthesis, ported
+from `type_relationships.rs`), `ir.rs` (the final `GeneratorIr`, ported from
+`normalized_config.rs`), `lib.rs` (orchestration: `load_model(&Path) ->
+Result<GeneratorIr>`).
+
+8 tests pass, several of them genuine oracle tests against this product's own
+checked-in `.appfw/model/schemas/*/entity_types/_res.yaml` (the real
+`app_gen`'s last successful output) rather than hand-picked fixtures:
+`deterministic_uuid("ProjectAudit")` matches the oracle's literal `id` for
+that facet-generated entity; the derived `pascal_n`/`snake_1`/`snake_n`/
+`caption_1`/`caption_n` for the same entity match; the full governance+system
+entity name list (41 entities) matches; and a property-level check
+(`Attachment.project_id`) confirms `data_type`/`is_required`/`caption` and
+foreign-key relation resolution match the oracle exactly.
+
+**Two real gaps found and fixed only by testing against the oracle, not
+assumed correct from reading templates:**
+- `snake_n` for a facet-generated audit entity is `to_table_case(related_name)
+  + "_audit"` (pluralize-then-append), not `to_snake_case(related_name) +
+  "_audits"` (append-then-pluralize) — these differ (`"projects_audit"` vs.
+  `"project_audits"`) and only the oracle test caught it; a plausible-looking
+  guess from the template text alone would have shipped the wrong one.
+- Raw authored YAML is not the resolved shape: entities specify `name`, not
+  `pascal_1`/`snake_1`/etc. (only 4 of 30 entity-type files across both
+  schemas provide `id` explicitly; none provide the derived name variants),
+  and properties reference `fragment: <name>` far more often (46 references
+  in `project.yaml` alone) than they specify `data_type`/`is_key`/etc.
+  inline. An initial implementation that assumed raw YAML already matched
+  the final `EntityType`/`PropertyType` shape failed immediately against
+  real model files — the oracle tests aren't optional polish here, they're
+  what caught this before it became a silent divergence three slices later.
+
+**Not yet implemented, explicitly out of scope for this slice:** `_res.yaml`
+emission (this crate builds the in-memory `GeneratorIr` only, matching the
+"no emission yet" scope from the sub-slice breakdown in §5); `gql_enum_types`
+loading (relationships and entity_types are both wired, enums are not yet —
+low risk, same merge mechanism, no facet/fragment complexity observed);
+`data_source`/`schema.yaml` wiring into `NormalizedSchema` (dropped
+`data_source_name`/`data_source_type` from the ported IR shape for now,
+picking this back up whichever slice actually needs it, likely slice 3's DDL
+generation); the `Validator`-style diagnostics/error-reporting contract
+(`product validate --json`'s output shape, still an open item from §12
+below) — this crate uses plain `anyhow::Result`, adequate for slice 1's own
+tests but not yet wired to whatever CLI surface slice 7 builds.
+
+**Workspace note:** `product_gen/Cargo.toml` declares its own `[workspace]`
+(self-contained) rather than joining the repo's root workspace, because
+`api_tests`/`rego_test` still path-depend on the framework repo
+(`../../app-framework`), which isn't present in every environment this repo
+is worked in — the root workspace manifest fails to resolve without it. Once
+those two crates' framework path dependency is gone (a phase 1-4 concern,
+already largely done), fold `product_gen` into the root workspace's
+`members` list properly.
+
+## 11. Slice 1 recon notes (superseded by §10 above, kept for the record)
+
+Started slice 1 by tracing the actual model-loading pipeline instead of
+assuming "parse YAML into a struct." It's three stages, not one:
+
+1. **`schema::preprocess`** (per schema dir) calls `yaml_gen::run` once each
+   for `entity_types`, `relationships`, `gql_enum_types`. Each call: merges
+   every first-level `*.yaml` file in that subdirectory (sorted by filename,
+   `_res.yaml` itself excluded — confirmed in `context::get_dir_value`; the
 
 Started slice 1 by tracing the actual model-loading pipeline instead of
 assuming "parse YAML into a struct." It's three stages, not one:
@@ -488,7 +557,7 @@ Tera at all; §4 already noted plain Rust string-building is a valid choice).
 Task tracking (`Slice 1: model loader + normalizer`) stays `in_progress` —
 the algorithm is now spec-complete, but no product Rust code exists yet.
 
-## 11. What's still open after this pass
+## 12. What's still open after this pass
 
 Slice 5 is resolved (§3, §5) — no separate scoping/advisor pass needed before
 it starts; this document is that pass. What remains open:
