@@ -7,6 +7,7 @@
 //! No emission yet (that's slices 2-6); this crate only builds the in-memory
 //! `GeneratorIr`.
 
+pub mod ddl;
 pub mod ir;
 pub mod loader;
 pub mod model;
@@ -22,9 +23,14 @@ use anyhow::{Context, Result};
 use model::EntityType;
 use relationship_model::RelationshipConfig;
 
-/// Load every schema under `model_root/schemas/*` and build the full
-/// `GeneratorIr`. `model_root` is `.appfw/model`.
-pub fn load_model(model_root: &Path) -> Result<ir::GeneratorIr> {
+/// Stages 1+2 only: merge/resolve every schema's entity types (name-derived
+/// defaults, fragment resolution, facet expansion, relationship-driven
+/// nav/M2M synthesis) without flattening into the final IR. `model_root` is
+/// `.appfw/model`. Returns `(schema_name, is_system_schema, entities)` per
+/// schema, in schema-name order. This is the shape slice 3's DDL generator
+/// needs -- it operates on `EntityType`/`PropertyType` directly, the same as
+/// the framework's own `ddl_plan.rs`, not on the flattened `NormalizedEntity`.
+pub fn load_resolved_entities(model_root: &Path) -> Result<Vec<(String, bool, Vec<EntityType>)>> {
     let schemas_dir = model_root.join("schemas");
     let facets_dir = model_root.join("_facets");
     let fragments_dir = model_root.join("_fragments");
@@ -61,7 +67,32 @@ pub fn load_model(model_root: &Path) -> Result<ir::GeneratorIr> {
     }
 
     let resolved = relationships::resolve(all_entities, &schema_relationships)?;
-    Ok(ir::build(&schema_names, &resolved))
+    Ok(schema_names
+        .into_iter()
+        .map(|(name, is_system)| {
+            let entities = resolved
+                .iter()
+                .filter(|e| e.schema_name == name)
+                .cloned()
+                .collect();
+            (name, is_system, entities)
+        })
+        .collect())
+}
+
+/// Load every schema under `model_root/schemas/*` and build the full
+/// `GeneratorIr`. `model_root` is `.appfw/model`.
+pub fn load_model(model_root: &Path) -> Result<ir::GeneratorIr> {
+    let resolved = load_resolved_entities(model_root)?;
+    let schema_names: Vec<(String, bool)> = resolved
+        .iter()
+        .map(|(name, is_system, _)| (name.clone(), *is_system))
+        .collect();
+    let all_entities: Vec<EntityType> = resolved
+        .into_iter()
+        .flat_map(|(_, _, entities)| entities)
+        .collect();
+    Ok(ir::build(&schema_names, &all_entities))
 }
 
 fn load_relationships(relationships_dir: &Path) -> Result<Vec<RelationshipConfig>> {
