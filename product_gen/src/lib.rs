@@ -9,6 +9,7 @@
 
 pub mod ddl;
 pub mod entity_types_yaml;
+pub mod frontend_contract;
 pub mod gql_enum_types;
 pub mod handlers_generated_rs;
 pub mod handlers_impl_rs;
@@ -23,6 +24,7 @@ pub mod routes_rs;
 pub mod schemas_rs;
 pub mod top_level_mod_rs;
 
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
@@ -30,6 +32,15 @@ use anyhow::{Context, Result};
 
 use model::EntityType;
 use relationship_model::RelationshipConfig;
+
+/// Per-schema data gathered directly from the filesystem (not yet merged
+/// with resolved entities) -- `_res.yaml`'s `data_source_name` (its `id` is
+/// consumed immediately by `loader::load_entity_types`, not needed after)
+/// and the schema's own `relationships/*.yaml`.
+struct SchemaFsMeta {
+    data_source_name: Option<String>,
+    relationships: Vec<RelationshipConfig>,
+}
 
 /// Stages 1+2 only: merge/resolve every schema's entity types (name-derived
 /// defaults, fragment resolution, facet expansion, relationship-driven
@@ -39,6 +50,15 @@ use relationship_model::RelationshipConfig;
 /// needs -- it operates on `EntityType`/`PropertyType` directly, the same as
 /// the framework's own `ddl_plan.rs`, not on the flattened `NormalizedEntity`.
 pub fn load_resolved_entities(model_root: &Path) -> Result<Vec<(String, bool, Vec<EntityType>)>> {
+    Ok(load_resolved_entities_with_meta(model_root)?
+        .into_iter()
+        .map(|(name, is_system, entities, _meta)| (name, is_system, entities))
+        .collect())
+}
+
+fn load_resolved_entities_with_meta(
+    model_root: &Path,
+) -> Result<Vec<(String, bool, Vec<EntityType>, SchemaFsMeta)>> {
     let schemas_dir = model_root.join("schemas");
     let facets_dir = model_root.join("_facets");
     let fragments_dir = model_root.join("_fragments");
@@ -46,6 +66,7 @@ pub fn load_resolved_entities(model_root: &Path) -> Result<Vec<(String, bool, Ve
     let mut schema_names: Vec<(String, bool)> = vec![];
     let mut all_entities: Vec<EntityType> = vec![];
     let mut schema_relationships: Vec<(String, Vec<RelationshipConfig>)> = vec![];
+    let mut fs_meta: HashMap<String, SchemaFsMeta> = HashMap::new();
 
     let mut dir_names: Vec<String> = fs::read_dir(&schemas_dir)
         .with_context(|| format!("could not read {}", schemas_dir.display()))?
@@ -59,7 +80,9 @@ pub fn load_resolved_entities(model_root: &Path) -> Result<Vec<(String, bool, Ve
         let schema_dir = schemas_dir.join(&schema_name);
         let entity_types_dir = schema_dir.join("entity_types");
         let relationships_dir = schema_dir.join("relationships");
-        let schema_id = read_schema_id(&schema_dir.join("_res.yaml"))?;
+        let schema_res_file = schema_dir.join("_res.yaml");
+        let schema_id = read_schema_field(&schema_res_file, "id")?;
+        let data_source_name = read_schema_field(&schema_res_file, "data_source_name")?;
 
         let entities = loader::load_entity_types(
             &entity_types_dir,
@@ -71,7 +94,14 @@ pub fn load_resolved_entities(model_root: &Path) -> Result<Vec<(String, bool, Ve
         all_entities.extend(entities);
 
         let relationships = load_relationships(&relationships_dir)?;
-        schema_relationships.push((schema_name.clone(), relationships));
+        schema_relationships.push((schema_name.clone(), relationships.clone()));
+        fs_meta.insert(
+            schema_name.clone(),
+            SchemaFsMeta {
+                data_source_name,
+                relationships,
+            },
+        );
 
         schema_names.push((schema_name.clone(), schema_name == "system"));
     }
@@ -85,7 +115,8 @@ pub fn load_resolved_entities(model_root: &Path) -> Result<Vec<(String, bool, Ve
                 .filter(|e| e.schema_name == name)
                 .cloned()
                 .collect();
-            (name, is_system, entities)
+            let meta = fs_meta.remove(&name).expect("schema meta collected above");
+            (name, is_system, entities, meta)
         })
         .collect())
 }
@@ -93,24 +124,40 @@ pub fn load_resolved_entities(model_root: &Path) -> Result<Vec<(String, bool, Ve
 /// Load every schema under `model_root/schemas/*` and build the full
 /// `GeneratorIr`. `model_root` is `.appfw/model`.
 pub fn load_model(model_root: &Path) -> Result<ir::GeneratorIr> {
-    let resolved = load_resolved_entities(model_root)?;
-    let schema_names: Vec<(String, bool)> = resolved
+    let resolved = load_resolved_entities_with_meta(model_root)?;
+    let data_source_types = read_data_source_types(&model_root.join("data_sources/_res.yaml"))?;
+
+    let schema_meta: Vec<ir::SchemaMeta> = resolved
         .iter()
-        .map(|(name, is_system, _)| (name.clone(), *is_system))
+        .map(|(name, is_system, _, meta)| {
+            let data_source_name = meta.data_source_name.clone().unwrap_or_default();
+            let data_source_type = data_source_types
+                .get(&data_source_name)
+                .cloned()
+                .unwrap_or_default();
+            ir::SchemaMeta {
+                name: name.clone(),
+                is_system_schema: *is_system,
+                data_source_name,
+                data_source_type,
+                relationships: meta.relationships.clone(),
+            }
+        })
         .collect();
     let all_entities: Vec<EntityType> = resolved
         .into_iter()
-        .flat_map(|(_, _, entities)| entities)
+        .flat_map(|(_, _, entities, _)| entities)
         .collect();
-    Ok(ir::build(&schema_names, &all_entities))
+    Ok(ir::build(&schema_meta, &all_entities))
 }
 
-/// Read the schema's own `id` field. Unlike `entity_types/relationships/_res.yaml`
-/// (generated by merging per-item files), the schema-level `_res.yaml` --
-/// `files::get_schema_file` in the reference implementation -- is read
-/// directly as the schema's config source itself; there is no separate
-/// hand-authored file to merge it from in this product's model.
-fn read_schema_id(schema_res_file: &Path) -> Result<Option<String>> {
+/// Read a single top-level string field from the schema's own `_res.yaml`.
+/// Unlike `entity_types/relationships/_res.yaml` (generated by merging
+/// per-item files), the schema-level `_res.yaml` -- `files::get_schema_file`
+/// in the reference implementation -- is read directly as the schema's
+/// config source itself; there is no separate hand-authored file to merge
+/// it from in this product's model.
+fn read_schema_field(schema_res_file: &Path, field: &str) -> Result<Option<String>> {
     if !schema_res_file.exists() {
         return Ok(None);
     }
@@ -118,7 +165,33 @@ fn read_schema_id(schema_res_file: &Path) -> Result<Option<String>> {
         .with_context(|| format!("could not open {}", schema_res_file.display()))?;
     let value: serde_json::Value = serde_yaml::from_reader(file)
         .with_context(|| format!("could not parse {}", schema_res_file.display()))?;
-    Ok(value.get("id").and_then(|v| v.as_str()).map(str::to_string))
+    Ok(value
+        .get(field)
+        .and_then(|v| v.as_str())
+        .map(str::to_string))
+}
+
+/// Read `.appfw/model/data_sources/_res.yaml` -- a single hand-authored file
+/// (not a merge target, same status as the schema-level `_res.yaml`) listing
+/// every data source by name with its `data_source_type`. Returns a
+/// name -> type map.
+fn read_data_source_types(data_sources_res_file: &Path) -> Result<HashMap<String, String>> {
+    if !data_sources_res_file.exists() {
+        return Ok(HashMap::new());
+    }
+    let file = fs::File::open(data_sources_res_file)
+        .with_context(|| format!("could not open {}", data_sources_res_file.display()))?;
+    let value: serde_json::Value = serde_yaml::from_reader(file)
+        .with_context(|| format!("could not parse {}", data_sources_res_file.display()))?;
+    let entries = value.as_array().cloned().unwrap_or_default();
+    Ok(entries
+        .into_iter()
+        .filter_map(|entry| {
+            let name = entry.get("name")?.as_str()?.to_string();
+            let data_source_type = entry.get("data_source_type")?.as_str()?.to_string();
+            Some((name, data_source_type))
+        })
+        .collect())
 }
 
 fn load_relationships(relationships_dir: &Path) -> Result<Vec<RelationshipConfig>> {

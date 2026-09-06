@@ -10,6 +10,7 @@ use crate::model::{
     CustomMethod, CustomMethodKind, DataAccessExecution, DataType, EntityType, PropertyType,
     ProviderRoutineBinding, ProviderRoutineName, StandardMethod,
 };
+use crate::relationship_model::RelationshipConfig;
 
 #[derive(Debug, Serialize)]
 pub struct GeneratorIr {
@@ -18,11 +19,65 @@ pub struct GeneratorIr {
     pub schemas: Vec<NormalizedSchema>,
 }
 
+/// Per-schema metadata not derivable from `EntityType` alone -- the data
+/// source binding (`.appfw/model/schemas/{schema}/_res.yaml`'s
+/// `data_source_name`, resolved against `.appfw/model/data_sources/_res.yaml`)
+/// and the schema's own relationship declarations (distinct from the
+/// nav/M2M properties `relationships::resolve` already synthesizes onto
+/// entities -- these are the raw relationship configs themselves, needed by
+/// the frontend UI contract's `relationships` array).
+pub struct SchemaMeta {
+    pub name: String,
+    pub is_system_schema: bool,
+    pub data_source_name: String,
+    pub data_source_type: String,
+    pub relationships: Vec<RelationshipConfig>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct NormalizedSchema {
     pub name: String,
+    pub data_source_name: String,
+    pub data_source_type: String,
     pub is_system_schema: bool,
+    pub relationships: Vec<NormalizedRelationship>,
     pub entities: Vec<NormalizedEntity>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NormalizedRelationship {
+    pub name: String,
+    pub kind: String,
+    pub left: Option<NormalizedRelationshipEndpoint>,
+    pub right: Option<NormalizedRelationshipEndpoint>,
+    pub one: Option<NormalizedRelationshipEndpoint>,
+    pub many: Option<NormalizedRelationshipEndpoint>,
+    pub storage: Option<NormalizedRelationshipStorage>,
+    pub junction: Option<NormalizedRelationshipJunction>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NormalizedRelationshipEndpoint {
+    pub schema_name: Option<String>,
+    pub entity_name: String,
+    pub field_name: String,
+    pub caption: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NormalizedRelationshipStorage {
+    pub storage_type: String,
+    pub owner_schema: Option<String>,
+    pub owner: String,
+    pub field: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NormalizedRelationshipJunction {
+    pub schema_name: Option<String>,
+    pub entity_name: String,
+    pub left_key: String,
+    pub right_key: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -111,19 +166,26 @@ pub struct NormalizedRelation {
 
 /// `entity_types` must already be relationship-resolved (output of
 /// `crate::relationships::resolve`), covering every schema.
-pub fn build(schema_names: &[(String, bool)], entity_types: &[EntityType]) -> GeneratorIr {
-    let mut schemas: Vec<NormalizedSchema> = schema_names
+pub fn build(schema_meta: &[SchemaMeta], entity_types: &[EntityType]) -> GeneratorIr {
+    let mut schemas: Vec<NormalizedSchema> = schema_meta
         .iter()
-        .map(|(name, is_system_schema)| {
+        .map(|meta| {
             let mut entities: Vec<NormalizedEntity> = entity_types
                 .iter()
-                .filter(|e| &e.schema_name == name)
+                .filter(|e| e.schema_name == meta.name)
                 .map(normalize_entity)
                 .collect();
             entities.sort_by(|a, b| a.name.cmp(&b.name));
             NormalizedSchema {
-                name: name.clone(),
-                is_system_schema: *is_system_schema,
+                name: meta.name.clone(),
+                data_source_name: meta.data_source_name.clone(),
+                data_source_type: meta.data_source_type.clone(),
+                is_system_schema: meta.is_system_schema,
+                relationships: meta
+                    .relationships
+                    .iter()
+                    .map(normalize_relationship)
+                    .collect(),
                 entities,
             }
         })
@@ -134,6 +196,58 @@ pub fn build(schema_names: &[(String, bool)], entity_types: &[EntityType]) -> Ge
         version: 1,
         generated_at: chrono::Utc::now().to_rfc3339(),
         schemas,
+    }
+}
+
+fn normalize_relationship(relationship: &RelationshipConfig) -> NormalizedRelationship {
+    NormalizedRelationship {
+        name: relationship.name.clone(),
+        kind: format!("{:?}", relationship.kind),
+        left: relationship
+            .left
+            .as_ref()
+            .map(normalize_relationship_endpoint),
+        right: relationship
+            .right
+            .as_ref()
+            .map(normalize_relationship_endpoint),
+        one: relationship
+            .one
+            .as_ref()
+            .map(normalize_relationship_endpoint),
+        many: relationship
+            .many
+            .as_ref()
+            .map(normalize_relationship_endpoint),
+        storage: relationship
+            .storage
+            .as_ref()
+            .map(|storage| NormalizedRelationshipStorage {
+                storage_type: format!("{:?}", storage.storage_type),
+                owner_schema: storage.owner_schema.clone(),
+                owner: storage.owner.clone(),
+                field: storage.field.clone(),
+            }),
+        junction: relationship
+            .junction
+            .as_ref()
+            .map(|junction| NormalizedRelationshipJunction {
+                schema_name: junction.schema.clone(),
+                entity_name: junction.entity.clone(),
+                left_key: junction.left_key.clone(),
+                right_key: junction.right_key.clone(),
+            }),
+    }
+}
+
+fn normalize_relationship_endpoint(
+    endpoint: &crate::relationship_model::RelationshipEndpoint,
+) -> NormalizedRelationshipEndpoint {
+    NormalizedRelationshipEndpoint {
+        schema_name: endpoint.schema.clone(),
+        entity_name: endpoint.entity.clone(),
+        field_name: endpoint.field.clone(),
+        caption: endpoint.caption.clone(),
     }
 }
 

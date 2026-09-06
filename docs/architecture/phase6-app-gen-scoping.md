@@ -658,15 +658,48 @@ reverse-engineered against the oracle, the same way slice 3's SQL whitespace
 was — expect this to be the largest single slice by effort so far, larger
 than all of slice 5 combined.
 
-Not yet done: reading `frontend.rs` past line 260 (structs
-`UiFieldContract`/`UiFieldRelationshipContract` onward, then the builder
-functions — `build_contract`, `build_entity`, `build_field`,
-`build_relationship`, `operations`, `workflow_defaults`,
-`view_registry_defaults`, `render_contract_module`, `render_scaffold_manifest`,
-`render_entity_workspace_module`), and inspecting the oracle file past its
-head to find the transition from fixed type declarations to generated data.
-No `product_gen` code exists for this slice yet — task #18 is `in_progress`
-(started, not complete), not blocked.
+**Update: slice 6 is done.** Finished reading `frontend.rs` in full (2,138
+lines) and implemented `product_gen::frontend_contract`. The risk profile
+was much lower than feared: `render_contract_module`'s ~37k-line payload is
+just `serde_json::to_string_pretty` of a typed `UiContract` struct (2-space
+indent, deterministic struct-field order, no Tera whitespace and no
+`BTreeMap`-reordering risk since nothing here is a raw `serde_json::Value`)
+— it matched the checked-in `appfw-ui-contract.ts` byte-for-byte on the
+first attempt, no whitespace archaeology needed unlike slices 3/5.
+
+`ir.rs`'s `NormalizedSchema` gained the fields slice 1 deliberately deferred
+(`data_source_name`, `data_source_type`, `relationships`) — sourced from
+each schema's own `_res.yaml` (`data_source_name`) and
+`.appfw/model/data_sources/_res.yaml` (name → `data_source_type` map), both
+single hand-authored files read directly as source, same status as the
+schema-level `_res.yaml`'s `id` field.
+
+Two more confirmed divergences from the raw template, extending the §13
+pattern:
+- `workflow_defaults`/`route_segment`'s special case are hardcoded to a
+  `"crm"` schema with literal CRM entity names (Account, Opportunity, ...)
+  that don't exist in this product's model at all. Unlike slice 5's
+  ManyToMany/`provider_routine` paths (real generic mechanisms worth
+  porting for fidelity even unexercised), this is another client's business
+  domain baked into the framework as reference code — dropped rather than
+  ported, since reproducing it would mean copying irrelevant, misleading
+  code into this product. `workflow_defaults` always returns `[]` here
+  (confirmed against the oracle: `"workflows": []`, `"viewRegistry"` has no
+  workflow-derived entries).
+- `build_scaffold_manifest`'s `designSystem` block is entirely rewritten in
+  the checked-in `.appfw-ui/scaffold-manifest.json` away from the
+  framework's "PDS Health" branding to a self-owned in-repo kit, with an
+  extra `note` field (not in the framework's struct at all) explaining why.
+  Same for `render_entity_workspace_module`'s import source
+  (`@ui-kit` vs. the template's `@appfw/pds-health-components`) — reproduced
+  as the current checked-in bytes for both.
+
+All three of `frontend::run`'s emitted files are covered: `appfw-ui-contract.ts`
+(governance only — `run()` filters `!schema.is_system_schema`, confirmed
+against the oracle which has exactly one `export const governanceUiContract`),
+`.appfw-ui/scaffold-manifest.json`, `appfw-entity-workspace.tsx` (static,
+byte-copied from the current oracle). 3 new tests (31 cumulative), all
+byte-for-byte, `cargo fmt` clean. Task #18 is complete.
 
 ## 15. What's still open after this pass
 
