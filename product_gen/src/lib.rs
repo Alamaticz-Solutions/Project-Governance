@@ -10,6 +10,7 @@
 pub mod ir;
 pub mod loader;
 pub mod model;
+pub mod rego;
 pub mod relationship_model;
 pub mod relationships;
 
