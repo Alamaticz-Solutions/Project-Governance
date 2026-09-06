@@ -1,5 +1,7 @@
 pub(crate) mod audit;
 
+pub(crate) mod audit_event;
+
 pub(crate) mod data_access;
 
 pub(crate) mod clients;
