@@ -8,7 +8,11 @@ edition = "2021"
 [dependencies]
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+# preserve_order: this product's checked-in oracle YAML preserves the
+# insertion order of nested JSON objects (meta.relationship's fields,
+# validator objects like {name, max}); without this feature serde_json's
+# Value::Object is a BTreeMap and silently re-sorts keys alphabetically.
+serde_json = { version = "1", features = ["preserve_order"] }
 serde_yaml = "0.9"
 sha2 = "0.10"
 chrono = { version = "0.4", features = ["clock"] }

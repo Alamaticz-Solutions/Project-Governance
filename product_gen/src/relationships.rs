@@ -169,6 +169,11 @@ fn apply_schema_relationships(
                             resolved: None,
                         }),
                         None,
+                        &relationship.name,
+                        "OneToMany",
+                        default_schema,
+                        "Many",
+                        "InverseForeignKey",
                     ),
                 )?;
                 upsert_relationship_property(
@@ -186,6 +191,11 @@ fn apply_schema_relationships(
                             resolved: None,
                         }),
                         None,
+                        &relationship.name,
+                        "OneToMany",
+                        default_schema,
+                        "One",
+                        "DirectForeignKey",
                     ),
                 )?;
             }
@@ -236,6 +246,11 @@ fn apply_schema_relationships(
                 for endpoint in [&left, &right] {
                     let is_owner =
                         endpoint.schema == owner.schema && endpoint.entity == owner.entity;
+                    let storage_path = if is_owner {
+                        "DirectForeignKey"
+                    } else {
+                        "InverseForeignKey"
+                    };
                     upsert_relationship_property(
                         all_types,
                         &endpoint.schema,
@@ -251,9 +266,13 @@ fn apply_schema_relationships(
                                 resolved: None,
                             }),
                             None,
+                            &relationship.name,
+                            "OneToOne",
+                            default_schema,
+                            "One",
+                            storage_path,
                         ),
                     )?;
-                    let _ = is_owner; // storage_path distinction is metadata-only; see nav_property doc.
                 }
             }
             RelationshipKind::ManyToMany => {
@@ -298,6 +317,11 @@ fn apply_schema_relationships(
                             target_schema: right.schema.clone(),
                             target_type: right.entity.clone(),
                         }),
+                        &relationship.name,
+                        "ManyToMany",
+                        default_schema,
+                        "Many",
+                        "Junction",
                     ),
                 )?;
                 upsert_relationship_property(
@@ -316,6 +340,11 @@ fn apply_schema_relationships(
                             target_schema: left.schema.clone(),
                             target_type: left.entity.clone(),
                         }),
+                        &relationship.name,
+                        "ManyToMany",
+                        default_schema,
+                        "Many",
+                        "Junction",
                     ),
                 )?;
             }
@@ -428,11 +457,22 @@ fn ensure_fk_target(
     Ok(())
 }
 
+/// Matches the framework's `nav_property`: every synthesized nav/M2M
+/// property carries a `meta.relationship` object recording which
+/// relationship produced it and how (verified against the checked-in
+/// `entity_types.yaml` oracle -- omitting this was a real gap, not a
+/// cosmetic one, since it's part of the persisted contract).
+#[allow(clippy::too_many_arguments)]
 fn nav_property(
     endpoint: &ResolvedEndpoint,
     data_type: DataType,
     nav_by_fk_property: Option<NavByFkProperty>,
     many_to_many_property: Option<ManyToManyProperty>,
+    relationship_name: &str,
+    relationship_kind: &'static str,
+    default_schema: &str,
+    cardinality: &'static str,
+    storage_path: &'static str,
 ) -> PropertyType {
     PropertyType {
         id: stable_property_id(&endpoint.schema, &endpoint.entity, &endpoint.field),
@@ -452,9 +492,17 @@ fn nav_property(
         foreign_key: None,
         nav_by_fk_property,
         many_to_many_property,
+        meta: Some(serde_json::json!({
+            "relationship": {
+                "name": relationship_name,
+                "kind": relationship_kind,
+                "source_schema": default_schema,
+                "cardinality": cardinality,
+                "storage_path": storage_path,
+            }
+        })),
         nested_entity_type: None,
         enum_type_name: None,
-        meta: None,
     }
 }
 

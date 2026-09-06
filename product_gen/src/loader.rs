@@ -74,6 +74,7 @@ pub fn merge_dir_as_array(dir: &Path) -> Result<Vec<Value>> {
 pub fn load_entity_types(
     entity_types_dir: &Path,
     schema_name: &str,
+    schema_id: Option<&str>,
     facets_dir: &Path,
     fragments_dir: &Path,
 ) -> Result<Vec<EntityType>> {
@@ -83,7 +84,7 @@ pub fn load_entity_types(
 
     let mut result = vec![];
     for mut raw in merged {
-        resolve_entity_json(&mut raw, schema_name, &fragments)?;
+        resolve_entity_json(&mut raw, schema_name, schema_id, &fragments)?;
         let name_for_error = raw
             .get("name")
             .and_then(Value::as_str)
@@ -96,8 +97,12 @@ pub fn load_entity_types(
 
         if let Some(facets) = &entity.facets {
             if facets.iter().any(|f| f == "audited") {
-                let audit_entity =
-                    build_audit_entity(&audit_entity_type_template, &entity, schema_name)?;
+                let audit_entity = build_audit_entity(
+                    &audit_entity_type_template,
+                    &entity,
+                    schema_name,
+                    schema_id,
+                )?;
                 result.push(entity.clone());
                 result.push(audit_entity);
                 continue;
@@ -121,6 +126,7 @@ pub fn load_entity_types(
 fn resolve_entity_json(
     raw: &mut Value,
     schema_name: &str,
+    schema_id: Option<&str>,
     fragments: &std::collections::HashMap<String, Value>,
 ) -> Result<()> {
     let obj = raw
@@ -150,17 +156,52 @@ fn resolve_entity_json(
     // context in the reference generator, never authored per-entity.
     obj.entry("schema_name")
         .or_insert_with(|| Value::String(schema_name.to_string()));
-    obj.entry("schema_id").or_insert(Value::Null);
+    obj.entry("schema_id").or_insert_with(|| match schema_id {
+        Some(id) => Value::String(id.to_string()),
+        None => Value::Null,
+    });
     obj.entry("is_union").or_insert(Value::Bool(false));
     obj.entry("is_table").or_insert(Value::Bool(false));
     obj.entry("base_type").or_insert(Value::Null);
-    obj.entry("facets").or_insert(Value::Null);
-    obj.entry("indexes").or_insert(Value::Null);
-    obj.entry("constraints").or_insert(Value::Null);
+    obj.entry("facets").or_insert_with(|| Value::Array(vec![]));
+    // indexes/constraints default to an empty list, not null, when absent --
+    // confirmed against the oracle (`indexes: []`, not `indexes: null`).
+    obj.entry("indexes").or_insert_with(|| Value::Array(vec![]));
+    obj.entry("constraints")
+        .or_insert_with(|| Value::Array(vec![]));
     obj.entry("meta").or_insert(Value::Null);
     obj.entry("execution").or_insert(Value::Null);
-    obj.entry("standard_methods").or_insert(Value::Null);
-    obj.entry("custom_methods").or_insert(Value::Null);
+    // standard_methods defaults to the full CRUD set when absent, but only
+    // for is_table entities -- confirmed against the oracle: every governance
+    // (is_table: true) entity gets all 6 methods, while system schema's
+    // metadata-only (is_table: false) entities keep `standard_methods: null`.
+    let is_table_entity = obj
+        .get("is_table")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    obj.entry("standard_methods").or_insert_with(|| {
+        if !is_table_entity {
+            return Value::Null;
+        }
+        Value::Array(
+            ["FindById", "GetAll", "Query", "Create", "Update", "Delete"]
+                .into_iter()
+                .map(|m| Value::String(m.to_string()))
+                .collect(),
+        )
+    });
+    if let Some(methods) = obj.get_mut("custom_methods").and_then(Value::as_array_mut) {
+        for method in methods {
+            if let Some(method_obj) = method.as_object_mut() {
+                method_obj
+                    .entry("mcp_enabled")
+                    .or_insert(Value::Bool(false));
+                method_obj.entry("provider_routine").or_insert(Value::Null);
+            }
+        }
+    } else {
+        obj.entry("custom_methods").or_insert(Value::Null);
+    }
 
     let pascal_1_value = obj
         .get("pascal_1")
@@ -254,20 +295,20 @@ fn resolve_property_json(
         .and_then(|f| f.get("default_value"))
         .cloned()
         .or_else(|| obj.get("default_value").cloned());
-    if let Some(default_value) = default_value {
-        obj.insert("default_value".to_string(), default_value);
-    } else {
-        obj.remove("default_value");
-    }
+    // Absent default_value/meta render as `{}` in the oracle, not `null` --
+    // the template's `{% else %}{}{% endif %}` fallback (properties/property/_mod.j2).
+    obj.insert(
+        "default_value".to_string(),
+        default_value.unwrap_or_else(|| Value::Object(serde_json::Map::new())),
+    );
     let meta = fragment_obj
         .and_then(|f| f.get("meta"))
         .cloned()
         .or_else(|| obj.get("meta").cloned());
-    if let Some(meta) = meta {
-        obj.insert("meta".to_string(), meta);
-    } else {
-        obj.remove("meta");
-    }
+    obj.insert(
+        "meta".to_string(),
+        meta.unwrap_or_else(|| Value::Object(serde_json::Map::new())),
+    );
 
     obj.insert("id".to_string(), Value::String(id));
     obj.insert("name".to_string(), Value::String(name));
@@ -371,6 +412,7 @@ fn build_audit_entity(
     template: &Value,
     source: &EntityType,
     schema_name: &str,
+    schema_id: Option<&str>,
 ) -> Result<EntityType> {
     let mut item = template
         .as_object()
@@ -413,7 +455,12 @@ fn build_audit_entity(
     }
 
     let mut raw = Value::Object(item);
-    resolve_entity_json(&mut raw, schema_name, &std::collections::HashMap::new())?;
+    resolve_entity_json(
+        &mut raw,
+        schema_name,
+        schema_id,
+        &std::collections::HashMap::new(),
+    )?;
     let mut entity: EntityType = serde_json::from_value(raw)
         .context("synthesized audit entity does not match EntityType shape")?;
     entity.schema_name = schema_name.to_string();
