@@ -10,6 +10,7 @@
 pub mod boundary_check;
 pub mod ddl;
 pub mod entity_types_yaml;
+pub mod feature_check;
 pub mod frontend_contract;
 pub mod generate;
 pub mod gql_enum_types;
@@ -26,6 +27,7 @@ pub mod relationships;
 pub mod routes_rs;
 pub mod schemas_rs;
 pub mod top_level_mod_rs;
+pub mod validate;
 
 use std::collections::HashMap;
 use std::fs;

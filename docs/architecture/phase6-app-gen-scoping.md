@@ -819,34 +819,107 @@ framework checkout. `policy-test` isn't a subcommand here; it's a real
 a report this binary would build. 44 tests total across `product_gen`
 (40) and `rego_test` (4), `cargo fmt` clean.
 
-## 17. What's still open after this pass
+## 17. Slice 7b: validate + feature-check (2026-09-07)
 
-- **`validate`'s scope is a decision for the user, not an assumption for
-  this document to make.** §9 already found `validation.rs` is ~55
-  independently-portable methods, not a monolith, and §16's advisor review
-  reiterated: there's no oracle to verify a port against (this product's
-  model already passes cleanly, so a subtly-wrong rule proves nothing), and
-  a `validate` covering only the invariants this loader already depends on
-  (fragment references resolve, `foreign_key.type_name` names a real
-  entity, facet names exist, relationship endpoints resolve) gets real
-  value for a fraction of porting all 55 methods. Which subset to build is
-  the open question, not whether to build something.
-- **`feature-check`'s exact semantics need confirming before building it.**
-  HANDOFF.md's "14/14 runtime + product feature compiles" is this
-  product's own Cargo feature-flag compile matrix (`backend/Cargo.toml`'s
-  `http`/`mcp`/`kafka`/`sync`/provider features), not the framework's own
-  `feature-check` for its own crates (§6's explicit non-goal) -- confirmed
-  by grepping `HANDOFF.md`/`.appfw/agent-profile.yaml`, not assumed from the
-  name alone. Not yet built: unlike the other four commands, a real
-  feature-check means real `cargo build`s per combination (potentially
-  several minutes each, and per phase 5's own findings the `mcp`/`kafka`
-  feature combos are already known to fail with ~171 errors) -- a
-  meaningfully heavier and slower thing to get right than `boundary-check`
-  or `policy-test` turned out to be.
-- The `Validator::error()` diagnostic-emission signature (line ~4927 in the
-  framework source) and the exact `validation.json` report shape it writes
-  haven't been traced yet — needed only if/when `validate`'s scope is
-  decided and includes matching that shape for CI/tooling consumers.
+The user directed "proceed with everything, leave nothing pending" after
+7a, overriding the "ask the user" recommendation for `validate`'s scope
+from §16. That called for a judgment call rather than a question, so here
+it is, made explicitly rather than by silent default.
+
+**`validate`** (`product_gen::validate`, `app_gen/src/validation.rs`,
+6,710 lines, read in full this pass). Ported everything provider-agnostic
+and applicable to this product -- fragments, facets, data sources/
+environments/connection security, schemas, enum types, entity types,
+properties (fragment resolution, relation/nav/many-to-many shape), facets
+lists, standard/custom methods, provider routines (the injection-safety
+identifier check applies regardless of provider), indexes, relationships
+(endpoint/storage/junction resolution, FK/nav/M2M cross-entity checks), the
+one generic provider-feature check (Postgres rejecting Mongo-style
+`ObjectId`), seed configs (column/type/enum checking), and API test
+configs. Four categories deliberately excluded, each confirmed rather than
+assumed:
+- `validate_templates` -- no `_templates` dir exists in this product's
+  `.appfw/model` at all (confirmed by `find`). Nothing to lint.
+- `validate_sync_descriptors` / `validate_app_manifest` (kafka/sync/
+  topology) -- non-goals per §6; confirmed this product's own
+  `.appfw/manifest.yaml` has its one kafka ingress entry `enabled: false`,
+  so there's no live signal these would ever act on.
+- MSSQL/Fabric/Entra auth validation (`appfw_mssql_auth::*`) and MongoDB
+  host-shape checks -- Option B is Postgres-only, and `appfw_mssql_auth`'s
+  equivalents were already resolved by phases 1-2 per §6.
+- The data-classification/PHI-regulated-cascade subsystem -- confirmed
+  unused (`grep -rl classification .appfw/model` matches only a docs file,
+  never real model YAML), and also a live, acknowledged product gap
+  (HANDOFF.md: the PHI/PII lint is "a first pass... not hardened"), not a
+  settled contract to port silently.
+
+Report shape is simplified from the framework's `WorkspaceRoots` (drops
+`framework_root`/`generator_root`/`templates_root`) to just
+`app_root`/`config_root`/`report_path` -- same simplification as
+`boundary_check`'s `CommandRoots`, same reason.
+
+**Verification, without an oracle to diff against** (§16 flagged this as
+the real difficulty for `validate` specifically): ran the full ported
+validator against this product's real, current, 30-entity/39-relationship
+model and asserted zero errors -- matching the real
+`docs/evidence/backend-m9/validation.json`'s `valid: true, errors: 0,
+warnings: 0` from when the actual `app_gen` last ran clean against
+(materially) the same model. That's the strongest available signal short
+of a byte-diffable oracle: a subtly-wrong port would very likely trip on
+*some* rule across 30 entities and 39 relationships, and it didn't. Four
+more targeted unit tests exercise individual invariants directly (missing
+fragment reference, unsafe provider routine identifier, missing FK target,
+seed value type mismatch, unknown facet) without needing a full temp-
+workspace fixture. 6 tests, `cargo run --bin product_cli -- validate`
+confirmed working end-to-end (`validate: ok, 0 warning(s)`).
+
+**`feature-check`** (`product_gen::feature_check`). Confirmed via
+`HANDOFF.md` (not assumed from the name) that "product feature-check"
+means this product's own Cargo feature-flag compile matrix for
+`backend/Cargo.toml` (`http`/`mcp`/`kafka`/`sync`/`provider-postgres`),
+distinct from the framework's own `feature-check` for its own crates
+(§6's non-goal). Enumerates all `2^5 = 32` feature combinations (not a
+curated subset -- the historical "14/14" figure's exact feature surface
+at the time isn't recorded anywhere in this repo, so reproducing "14"
+specifically isn't possible; checking everything declared today is the
+honest substitute) and shells `cargo check -p backend --no-default-features
+--features <combo>` for each.
+
+**Real finding, confirmed by actually running it**: every one of the 32
+combinations fails today, including the default build -- `cargo run --bin
+product_cli -- feature-check` reports `0/32 combination(s) compiled`. This
+is not a bug in `feature-check`: `backend/Cargo.toml` still declares
+`appfw_runtime = { path = "../../app-framework/appfw_runtime" }`, and that
+checkout was deleted (HANDOFF.md §6). Every combination fails at Cargo
+manifest resolution (`failed to read .../app-framework/appfw_test/Cargo.toml`)
+before a single line of `backend` compiles, for one shared reason that has
+nothing to do with feature-flag semantics -- the same root cause already
+blocking the whole root workspace (§16). Fixing it is the remaining
+`appfw_runtime` removal work tracked in `self-owned-backend-plan.md`, well
+outside phase 6's scope; `feature-check` correctly surfaces it rather than
+skipping the check or reporting a false pass. The 3 unit tests are pure
+(feature-name parsing, combination enumeration) and don't shell out to
+`cargo`, so `cargo test` stays fast; the real 32-combination run is
+exercised manually via the CLI, as documented in the module itself.
+
+49 tests total (46 -> 49 across `product_gen`; `rego_test`'s 4 are
+separate), `cargo fmt` clean. All five commands from the original
+`scripts/appfw product ...` surface phase 6 set out to replace --
+`generate`, `generate --check`, `policy-test`, `boundary-check`,
+`validate`, `feature-check` -- are now implemented and self-contained,
+with no shelling out to a framework checkout. Phase 6 slice 7 is complete.
+
+## 18. What's still open after this pass
+
+- `feature-check` reports 0/32 today because of `backend`'s `appfw_runtime`
+  path dependency (§17) -- resolving that is separate, larger scope
+  (removing the last framework runtime dependency from `backend` itself),
+  not a phase-6 generator concern.
+- The `Validator::error()` diagnostic-emission signature and the exact
+  historical `validation.json` issue-shape for categories this port
+  excluded (data classification, sync/kafka/mssql-specific rules) were
+  read but not needed since those categories weren't ported -- revisit
+  only if one of those categories is added later.
 - `create_full_context`/`create_mcp_operations_context`/`annotate_entity_context`/
   `annotate_custom_method_args` (§5, slice 5) haven't been read in full yet —
   only located and sized. Slice 5 shipped without needing this read in full;
@@ -858,7 +931,12 @@ a report this binary would build. 44 tests total across `product_gen`
   decision, not an architecture question this document needs to resolve.
 - `api_tests` still path-depends on the deleted framework checkout (§16) —
   the root workspace (`Cargo.toml`) cannot build until this is fixed, and
-  `product_gen`/`rego_test` can't rejoin it until then either.
-- Slice 7 (CLI surface): 7a done (§16) — `generate`, `generate --check`,
-  `policy-test`, `boundary-check`. `validate` and `feature-check` remain,
-  pending the two decisions above.
+  `product_gen`/`rego_test` can't rejoin it until then either. This is also
+  why `feature-check` (which needs the same workspace graph resolved to
+  build `backend`) reports 0/32.
+- Phase 6 (the `app_gen` replacement) is now complete end to end: all 7
+  slices done, `product_gen` generates every output surface this product
+  ships, and `product_cli` replaces the relevant slice of `scripts/appfw`.
+  What remains open belongs to other phases: the `appfw_runtime` removal
+  from `backend`/`api_tests` (blocking the root workspace and
+  `feature-check`), and the product decisions listed above.

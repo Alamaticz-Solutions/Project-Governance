@@ -23,5 +23,7 @@ regorus = "0.2"
 # boundary-check's forbidden-import/standard-handler-override checks parse
 # and walk real backend Rust source with syn's visitor API.
 syn = { version = "2", features = ["full", "visit"] }
+# validate's UUID/date/time seed-value shape checks -- matches backend/Cargo.toml's pin.
+uuid = "1"
 
 [dev-dependencies]
