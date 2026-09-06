@@ -18,9 +18,10 @@ http = [
     "dep:tower",
     "dep:tower-http",
 ]
-mcp = ["appfw_runtime/mcp"]
-kafka = ["appfw_runtime/kafka"]
-sync = ["appfw_runtime/sync"]
+# mcp/kafka/sync were deleted outright (backend framework replacement phase
+# 7, 2026-09-07): none were in `default`, none were ever enabled by any
+# Dockerfile/compose/CI in this repo, and this product never runs a
+# worker-mode process. See docs/architecture/self-owned-backend-plan.md.
 # The Postgres SQL-generation/execution layer (backend/src/data/clients/postgres)
 # is product-owned code, not a framework dependency (backend framework
 # replacement phase 3 -- docs/architecture/self-owned-backend-plan.md).

@@ -30,10 +30,9 @@
 //!
 //! `chat` is unreachable in this product (`backend/Cargo.toml` never defines
 //! or forwards a `chat` feature to `appfw_runtime`) and is dropped entirely.
-//! `mcp` is very likely dead too (no Dockerfile, compose file, or CI in this
-//! repo ever enables it) but is still a live `backend/Cargo.toml` feature
-//! with a real call site in `routes/mod.rs`, so its cfg-gated branch is kept
-//! -- actually removing `mcp` is a separate, not-yet-authorized cleanup.
+//! `mcp`/`kafka`/`sync` were deleted outright (backend framework replacement
+//! phase 7, 2026-09-07) -- none were in `default = ["http",
+//! "provider-postgres"]` and this product never enabled them.
 
 use std::{env, time::Duration};
 
@@ -72,8 +71,6 @@ pub(crate) struct RuntimeRouteSet {
     info: Option<Router>,
     admin: Option<Router>,
     product_ui: Option<Router>,
-    #[cfg(feature = "mcp")]
-    mcp: Option<Router>,
     schemas: Vec<Router>,
 }
 
@@ -94,12 +91,6 @@ impl RuntimeRouteSet {
 
     pub(crate) fn with_product_ui(mut self, router: Router) -> Self {
         self.product_ui = Some(router);
-        self
-    }
-
-    #[cfg(feature = "mcp")]
-    pub(crate) fn with_mcp(mut self, router: Router) -> Self {
-        self.mcp = Some(router);
         self
     }
 
@@ -129,18 +120,6 @@ impl RuntimeRouteSet {
             if security.product_ui_enabled {
                 if let Some(product_ui) = self.product_ui {
                     router = router.merge(product_ui);
-                }
-            }
-        }
-
-        #[cfg(feature = "mcp")]
-        {
-            // MCP is an independent ingress surface from plain HTTP for mode
-            // selection purposes, even though it currently rides the same
-            // HTTP transport.
-            if security.mcp_enabled && mode.enables(RuntimeIngressKind::Mcp) {
-                if let Some(mcp) = self.mcp {
-                    router = router.merge(mcp);
                 }
             }
         }
@@ -368,10 +347,6 @@ mod tests {
         config.admin_ui_enabled = admin_ui_enabled;
         config.admin_troubleshooting_enabled = false;
         config.product_ui_enabled = true;
-        #[cfg(feature = "mcp")]
-        {
-            config.mcp_enabled = mcp_enabled;
-        }
         config.graphql_introspection_enabled = false;
         config.graphql_max_depth = 12;
         config.graphql_max_complexity = 500;
@@ -413,8 +388,6 @@ mod tests {
             .with_info(ok_route("/info"))
             .with_admin(ok_route("/admin"))
             .with_schema(ok_route("/crm"));
-        #[cfg(feature = "mcp")]
-        let route_set = route_set.with_mcp(ok_route("/mcp"));
         let router = assemble_runtime_router(
             route_set,
             CorsLayer::new(),
@@ -425,43 +398,6 @@ mod tests {
         assert_eq!(status(router.clone(), "/info").await, 200);
         assert_eq!(status(router.clone(), "/crm").await, 200);
         assert_eq!(status(router.clone(), "/admin").await, 404);
-        assert_eq!(status(router, "/mcp").await, 404);
-    }
-
-    #[cfg(feature = "mcp")]
-    #[tokio::test]
-    async fn mounts_admin_and_mcp_only_when_enabled() {
-        let security = security(true, true);
-        let router = assemble_runtime_router(
-            RuntimeRouteSet::new()
-                .with_admin(ok_route("/admin"))
-                .with_mcp(ok_route("/mcp")),
-            CorsLayer::new(),
-            MetricsRegistry::from_env(),
-            &security,
-        );
-
-        assert_eq!(status(router.clone(), "/admin").await, 200);
-        assert_eq!(status(router, "/mcp").await, 200);
-    }
-
-    #[cfg(feature = "mcp")]
-    #[tokio::test]
-    async fn runtime_mode_can_disable_mcp_route() {
-        let security = security(true, true);
-        let router = assemble_runtime_router_for_mode(
-            RuntimeRouteSet::new()
-                .with_info(ok_route("/info"))
-                .with_mcp(ok_route("/mcp"))
-                .with_schema(ok_route("/crm")),
-            CorsLayer::new(),
-            MetricsRegistry::from_env(),
-            &security,
-            &RuntimeMode::http(),
-        );
-
-        assert_eq!(status(router.clone(), "/info").await, 200);
-        assert_eq!(status(router.clone(), "/crm").await, 200);
         assert_eq!(status(router, "/mcp").await, 404);
     }
 

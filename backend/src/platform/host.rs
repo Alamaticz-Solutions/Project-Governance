@@ -12,6 +12,12 @@
 //! them before it knows whether it will serve HTTP. Only the pieces that
 //! actually touch `axum` (`RuntimeHttpServerConfig`, `serve_http_router`)
 //! are gated on the `http` feature.
+//!
+//! `mcp`/`kafka`/`sync` transports were deleted outright (backend framework
+//! replacement phase 7, 2026-09-07) rather than ported off `appfw_runtime`:
+//! none of the three were in `default = ["http", "provider-postgres"]`, and
+//! this product never runs a worker-mode process. `http` is the only
+//! transport this build supports.
 
 use std::{collections::BTreeSet, env, fmt, str::FromStr};
 
@@ -52,8 +58,8 @@ pub(crate) enum HostError {
     Serve(String),
 }
 
-/// A single runtime ingress transport. Each variant exists only when the
-/// matching Cargo feature is compiled in; this product builds `http` only.
+/// A single runtime ingress transport. Only `http` exists in this build --
+/// `mcp`/`kafka`/`sync` were deleted (see this module's doc comment).
 ///
 /// `chat` has no variant at all -- unlike the framework, this product never
 /// forwards a `chat` feature to `appfw_runtime`, so the transport simply does
@@ -62,12 +68,6 @@ pub(crate) enum HostError {
 pub(crate) enum RuntimeIngressKind {
     #[cfg(feature = "http")]
     Http,
-    #[cfg(feature = "mcp")]
-    Mcp,
-    #[cfg(feature = "kafka")]
-    Kafka,
-    #[cfg(feature = "sync")]
-    Sync,
 }
 
 impl RuntimeIngressKind {
@@ -76,12 +76,6 @@ impl RuntimeIngressKind {
         match self {
             #[cfg(feature = "http")]
             Self::Http => "http",
-            #[cfg(feature = "mcp")]
-            Self::Mcp => "mcp",
-            #[cfg(feature = "kafka")]
-            Self::Kafka => "kafka",
-            #[cfg(feature = "sync")]
-            Self::Sync => "sync",
         }
     }
 }
@@ -112,35 +106,12 @@ impl FromStr for RuntimeIngressKind {
                     Err(HostError::ModuleFeatureDisabled("http"))
                 }
             }
-            "mcp" => {
-                #[cfg(feature = "mcp")]
-                {
-                    Ok(Self::Mcp)
-                }
-                #[cfg(not(feature = "mcp"))]
-                {
-                    Err(HostError::ModuleFeatureDisabled("mcp"))
-                }
-            }
+            "mcp" => Err(HostError::ModuleFeatureDisabled("mcp")),
             "kafka" | "consumer" | "consumers" => {
-                #[cfg(feature = "kafka")]
-                {
-                    Ok(Self::Kafka)
-                }
-                #[cfg(not(feature = "kafka"))]
-                {
-                    Err(HostError::ModuleFeatureDisabled("kafka"))
-                }
+                Err(HostError::ModuleFeatureDisabled("kafka"))
             }
             "sync" | "sync-worker" | "sync-workers" => {
-                #[cfg(feature = "sync")]
-                {
-                    Ok(Self::Sync)
-                }
-                #[cfg(not(feature = "sync"))]
-                {
-                    Err(HostError::ModuleFeatureDisabled("sync"))
-                }
+                Err(HostError::ModuleFeatureDisabled("sync"))
             }
             other => Err(HostError::InvalidMode(format!(
                 "unknown runtime ingress module `{other}`"
@@ -164,12 +135,6 @@ impl RuntimeMode {
         let mut kinds = BTreeSet::new();
         #[cfg(feature = "http")]
         kinds.insert(RuntimeIngressKind::Http);
-        #[cfg(feature = "mcp")]
-        kinds.insert(RuntimeIngressKind::Mcp);
-        #[cfg(feature = "kafka")]
-        kinds.insert(RuntimeIngressKind::Kafka);
-        #[cfg(feature = "sync")]
-        kinds.insert(RuntimeIngressKind::Sync);
         Self { kinds }
     }
 
@@ -184,45 +149,15 @@ impl RuntimeMode {
         Self::from_kinds([RuntimeIngressKind::Http])
     }
 
-    #[cfg(feature = "mcp")]
-    pub(crate) fn mcp() -> Self {
-        Self::from_kinds([RuntimeIngressKind::Mcp])
-    }
-
-    #[cfg(feature = "kafka")]
-    pub(crate) fn consumers() -> Self {
-        Self::from_kinds([RuntimeIngressKind::Kafka])
-    }
-
-    #[cfg(feature = "sync")]
-    pub(crate) fn sync_workers() -> Self {
-        Self::from_kinds([RuntimeIngressKind::Sync])
-    }
-
     /// The mode a process runs when nothing is configured: the HTTP listener
-    /// if this build has it, otherwise the single worker transport it does
-    /// have, otherwise everything.
+    /// if this build has it, otherwise nothing (`http` is the only
+    /// transport this build supports).
     pub(crate) fn default_mode() -> Self {
         #[cfg(feature = "http")]
         {
             Self::http()
         }
-        #[cfg(all(not(feature = "http"), feature = "mcp"))]
-        {
-            Self::mcp()
-        }
-        #[cfg(all(not(any(feature = "http", feature = "mcp")), feature = "kafka"))]
-        {
-            Self::consumers()
-        }
-        #[cfg(all(
-            not(any(feature = "http", feature = "mcp", feature = "kafka")),
-            feature = "sync"
-        ))]
-        {
-            Self::sync_workers()
-        }
-        #[cfg(not(any(feature = "http", feature = "mcp", feature = "kafka", feature = "sync")))]
+        #[cfg(not(feature = "http"))]
         {
             Self::all()
         }
@@ -262,39 +197,12 @@ impl RuntimeMode {
             "chat" | "serve-chat" | "conversation" => {
                 Err(HostError::ModuleFeatureDisabled("chat"))
             }
-            "mcp" | "serve-mcp" => single_transport_mode("mcp", {
-                #[cfg(feature = "mcp")]
-                {
-                    Some(RuntimeIngressKind::Mcp)
-                }
-                #[cfg(not(feature = "mcp"))]
-                {
-                    None
-                }
-            }),
+            "mcp" | "serve-mcp" => Err(HostError::ModuleFeatureDisabled("mcp")),
             "consumer" | "consumers" | "kafka" | "run-consumers" => {
-                single_transport_mode("kafka", {
-                    #[cfg(feature = "kafka")]
-                    {
-                        Some(RuntimeIngressKind::Kafka)
-                    }
-                    #[cfg(not(feature = "kafka"))]
-                    {
-                        None
-                    }
-                })
+                Err(HostError::ModuleFeatureDisabled("kafka"))
             }
             "sync" | "sync-worker" | "sync-workers" | "run-sync-workers" => {
-                single_transport_mode("sync", {
-                    #[cfg(feature = "sync")]
-                    {
-                        Some(RuntimeIngressKind::Sync)
-                    }
-                    #[cfg(not(feature = "sync"))]
-                    {
-                        None
-                    }
-                })
+                Err(HostError::ModuleFeatureDisabled("sync"))
             }
             other => Err(HostError::InvalidMode(format!(
                 "APPFW_RUNTIME_MODE must be one of all, http, chat, mcp, consumers, sync; got `{other}`"
@@ -327,22 +235,11 @@ impl RuntimeMode {
         self.kinds.contains(&kind)
     }
 
-    /// Whether any enabled transport is served over the shared HTTP listener
-    /// -- plain HTTP, and (when the `mcp` feature is compiled in) MCP, which
-    /// rides the same socket.
+    /// Whether any enabled transport is served over the shared HTTP listener.
     pub(crate) fn enables_http_listener(&self) -> bool {
         #[cfg(feature = "http")]
         {
-            self.enables(RuntimeIngressKind::Http) || {
-                #[cfg(feature = "mcp")]
-                {
-                    self.enables(RuntimeIngressKind::Mcp)
-                }
-                #[cfg(not(feature = "mcp"))]
-                {
-                    false
-                }
-            }
+            self.enables(RuntimeIngressKind::Http)
         }
         #[cfg(not(feature = "http"))]
         {
@@ -397,23 +294,10 @@ impl RuntimeHostPlan {
     }
 
     /// Names of enabled transports that run as background workers rather than
-    /// on the HTTP listener. Empty for an `http`-only build.
+    /// on the HTTP listener. Always empty -- `http` is the only transport
+    /// this build supports, and it rides the HTTP listener.
     pub(crate) fn worker_module_names(&self) -> Vec<&'static str> {
-        #[allow(unused_mut)]
-        let mut names = Vec::new();
-        #[cfg(all(feature = "mcp", not(feature = "http")))]
-        if self.mode.enables(RuntimeIngressKind::Mcp) {
-            names.push(RuntimeIngressKind::Mcp.as_str());
-        }
-        #[cfg(feature = "kafka")]
-        if self.mode.enables(RuntimeIngressKind::Kafka) {
-            names.push(RuntimeIngressKind::Kafka.as_str());
-        }
-        #[cfg(feature = "sync")]
-        if self.mode.enables(RuntimeIngressKind::Sync) {
-            names.push(RuntimeIngressKind::Sync.as_str());
-        }
-        names
+        Vec::new()
     }
 
     pub(crate) fn has_unsupported_worker_modules(&self) -> bool {
@@ -422,21 +306,6 @@ impl RuntimeHostPlan {
 
     pub(crate) fn has_multiple_worker_modules(&self) -> bool {
         self.worker_module_names().len() > 1
-    }
-
-    #[cfg(feature = "kafka")]
-    pub(crate) fn runs_kafka_workers(&self) -> bool {
-        self.mode.enables(RuntimeIngressKind::Kafka)
-    }
-
-    #[cfg(feature = "sync")]
-    pub(crate) fn runs_sync_workers(&self) -> bool {
-        self.mode.enables(RuntimeIngressKind::Sync)
-    }
-
-    #[cfg(feature = "sync")]
-    pub(crate) fn has_sync_worker_with_listener_modules(&self) -> bool {
-        self.runs_sync_workers() && self.serves_http_listener()
     }
 }
 

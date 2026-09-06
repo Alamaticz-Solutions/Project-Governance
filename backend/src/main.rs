@@ -23,19 +23,11 @@ mod admin_ui;
 mod config;
 mod data;
 mod handlers;
-#[cfg(feature = "kafka")]
-mod kafka;
-#[cfg(all(feature = "http", feature = "mcp"))]
-mod mcp;
-#[cfg(any(feature = "mcp", feature = "kafka"))]
-mod operations;
 mod platform;
 mod product_api;
 mod routes;
 mod schemas;
 mod services;
-#[cfg(feature = "sync")]
-mod sync_workers;
 
 #[cfg(feature = "http")]
 use config::app_config::AppConfig;
@@ -61,17 +53,6 @@ async fn main() {
     };
     let host_plan = RuntimeHostPlan::new(runtime_mode);
 
-    #[cfg(feature = "sync")]
-    if host_plan.has_sync_worker_with_listener_modules() {
-        error!(
-            modules = ?host_plan.module_names(),
-            workers = ?host_plan.worker_module_names(),
-            "SaaS sync workers must run in a worker-only process; deploy APPFW_RUNTIME_MODE=sync separately from the HTTP backend"
-        );
-        observability_guard.shutdown();
-        std::process::exit(1);
-    }
-
     if host_plan.has_multiple_worker_modules() {
         error!(
             modules = ?host_plan.module_names(),
@@ -80,30 +61,6 @@ async fn main() {
         );
         observability_guard.shutdown();
         std::process::exit(1);
-    }
-
-    #[cfg(feature = "kafka")]
-    if host_plan.runs_kafka_workers() {
-        if let Err(e) = kafka::run_workers(&host_plan).await {
-            error!(error = %e, "Kafka runtime worker host error");
-            observability_guard.shutdown();
-            std::process::exit(1);
-        }
-
-        observability_guard.shutdown();
-        return;
-    }
-
-    #[cfg(feature = "sync")]
-    if host_plan.runs_sync_workers() {
-        if let Err(e) = sync_workers::run_workers(&host_plan).await {
-            error!(error = %e, "SaaS sync runtime worker host error");
-            observability_guard.shutdown();
-            std::process::exit(1);
-        }
-
-        observability_guard.shutdown();
-        return;
     }
 
     if host_plan.has_unsupported_worker_modules() {

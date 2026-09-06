@@ -585,33 +585,6 @@ where
     .await
 }
 
-#[cfg(feature = "mcp")]
-pub async fn append_mcp_tool_audit_event<E, Fut>(
-    entity: &crate::product_api::RuntimeEntityMetadata,
-    user: &crate::platform::user_auth::UserAuth,
-    outcome: &str,
-    metadata_json: serde_json::Value,
-    append_event: impl FnOnce(crate::data::audit_event::AuditEvent) -> Fut,
-) -> Result<(), E>
-where
-    Fut: std::future::Future<Output = Result<(), E>>,
-{
-    if !crate::data::audit::is_audited(entity) {
-        return Ok(());
-    }
-    let event = crate::data::audit_event::AuditEvent::entity_event(
-        entity,
-        "mcp_tool",
-        Some(user),
-        outcome,
-        None,
-        None,
-        None,
-        Some(metadata_json),
-    );
-    append_event(event).await
-}
-
 pub async fn provider_append_audit_event(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
     event: crate::data::audit_event::AuditEvent,

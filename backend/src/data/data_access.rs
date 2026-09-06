@@ -1227,27 +1227,6 @@ impl DataAccess {
         })
     }
 
-    #[cfg(feature = "mcp")]
-    pub(crate) async fn append_mcp_tool_audit_event(
-        &self,
-        entity_type: Arc<EntityType>,
-        user: &UserAuth,
-        outcome: &str,
-        metadata_json: Value,
-    ) -> Result<(), AppError> {
-        let entity = runtime_entity_metadata(&entity_type);
-        mutation_orchestration::append_mcp_tool_audit_event(
-            &entity,
-            user,
-            outcome,
-            metadata_json,
-            |event| {
-                mutation_orchestration::provider_append_audit_event(self.client.as_ref(), event)
-            },
-        )
-        .await
-    }
-
     async fn require_user(
         &self,
         entity_type: Arc<EntityType>,
