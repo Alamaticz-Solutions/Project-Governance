@@ -7,9 +7,11 @@
 //! No emission yet (that's slices 2-6); this crate only builds the in-memory
 //! `GeneratorIr`.
 
+pub mod boundary_check;
 pub mod ddl;
 pub mod entity_types_yaml;
 pub mod frontend_contract;
+pub mod generate;
 pub mod gql_enum_types;
 pub mod handlers_generated_rs;
 pub mod handlers_impl_rs;
@@ -17,6 +19,7 @@ pub mod handlers_mod_rs;
 pub mod ir;
 pub mod loader;
 pub mod model;
+pub mod policy;
 pub mod rego;
 pub mod relationship_model;
 pub mod relationships;

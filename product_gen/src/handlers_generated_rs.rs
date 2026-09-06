@@ -31,7 +31,7 @@ pub fn render(schema_name: &str, entities: &[EntityType]) -> String {
     out
 }
 
-fn has_generated_handler(entity: &EntityType) -> bool {
+pub fn has_generated_handler(entity: &EntityType) -> bool {
     entity
         .standard_methods
         .as_ref()

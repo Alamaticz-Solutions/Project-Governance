@@ -81,12 +81,17 @@ pub fn wrap_policy(schema_name: &str, entity_type_name: &str, entity_type_rego: 
     )
 }
 
-/// Render every `*.rego` file in `rbac_dir` into `output_dir`, one-to-one,
-/// preserving the source file's stem as the output file name (which doubles
-/// as `entity_type_name`).
-pub fn generate_schema_rego(rbac_dir: &Path, output_dir: &Path, schema_name: &str) -> Result<()> {
+/// Render every `*.rego` file in `rbac_dir`, one-to-one, without writing
+/// anything -- returns `(output_file_name, wrapped_content)` pairs, source
+/// file stem doubling as both `entity_type_name` and the output file's stem.
+/// Shared by `generate_schema_rego` (write mode) and `generate --check`
+/// (diff mode, which must not touch disk).
+pub fn render_schema_rego_files(
+    rbac_dir: &Path,
+    schema_name: &str,
+) -> Result<Vec<(String, String)>> {
     if !rbac_dir.exists() {
-        return Ok(());
+        return Ok(vec![]);
     }
     let mut entries: Vec<_> = fs::read_dir(rbac_dir)
         .with_context(|| format!("could not read {}", rbac_dir.display()))?
@@ -95,20 +100,35 @@ pub fn generate_schema_rego(rbac_dir: &Path, output_dir: &Path, schema_name: &st
         .collect();
     entries.sort();
 
+    entries
+        .into_iter()
+        .map(|source_path| {
+            let entity_type_name = source_path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .with_context(|| format!("invalid rego file name {}", source_path.display()))?
+                .to_string();
+            let entity_type_rego = fs::read_to_string(&source_path)
+                .with_context(|| format!("could not read {}", source_path.display()))?;
+            let wrapped = wrap_policy(schema_name, &entity_type_name, &entity_type_rego);
+            Ok((format!("{entity_type_name}.rego"), wrapped))
+        })
+        .collect()
+}
+
+/// Render every `*.rego` file in `rbac_dir` into `output_dir`, one-to-one,
+/// preserving the source file's stem as the output file name (which doubles
+/// as `entity_type_name`).
+pub fn generate_schema_rego(rbac_dir: &Path, output_dir: &Path, schema_name: &str) -> Result<()> {
+    let files = render_schema_rego_files(rbac_dir, schema_name)?;
+    if files.is_empty() {
+        return Ok(());
+    }
     fs::create_dir_all(output_dir)
         .with_context(|| format!("could not create {}", output_dir.display()))?;
-
-    for source_path in entries {
-        let entity_type_name = source_path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .with_context(|| format!("invalid rego file name {}", source_path.display()))?
-            .to_string();
-        let entity_type_rego = fs::read_to_string(&source_path)
-            .with_context(|| format!("could not read {}", source_path.display()))?;
-        let wrapped = wrap_policy(schema_name, &entity_type_name, &entity_type_rego);
-        let target_path = output_dir.join(format!("{entity_type_name}.rego"));
-        fs::write(&target_path, wrapped)
+    for (file_name, content) in files {
+        let target_path = output_dir.join(file_name);
+        fs::write(&target_path, content)
             .with_context(|| format!("could not write {}", target_path.display()))?;
     }
     Ok(())

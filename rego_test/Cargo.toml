@@ -1,3 +1,9 @@
+[workspace]
+# Standalone, like product_gen/Cargo.toml -- see the root Cargo.toml's note.
+# Path-depends on product_gen, which is itself a separate workspace root; a
+# member of the root workspace can't also be one, so this crate moved out
+# of root's `members` at the same time this marker was added.
+
 [package]
 name = "rego_test"
 version = "0.1.0"
@@ -5,5 +11,5 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-appfw_test = { package = "appfw-test", path = "../../app-framework/appfw_test" }
+product_gen = { path = "../product_gen" }
 serde_json = "1.0"

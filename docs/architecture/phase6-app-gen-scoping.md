@@ -701,12 +701,152 @@ against the oracle which has exactly one `export const governanceUiContract`),
 byte-copied from the current oracle). 3 new tests (31 cumulative), all
 byte-for-byte, `cargo fmt` clean. Task #18 is complete.
 
-## 15. What's still open after this pass
+## 16. Slice 7a: generate / generate --check / policy-test / boundary-check (2026-09-06)
 
+Before starting, an advisor review flagged that slice 7 changes character
+from every prior slice: `scripts/appfw` is a 41-line wrapper that `exec`s
+`cargo run --manifest-path "$framework_root"` for every subcommand -- there
+is no existing product-owned behavior to preserve, and (per §1)
+`HANDOFF.md` already says these gates are non-functional today. The
+byte-diff-against-oracle discipline that made slices 1-6 reliable doesn't
+apply to a command that has never run without the (now-deleted) framework.
+Recommendation: build the four commands with a real, self-verifying check
+first (`generate`, `generate --check`, `policy-test`, `boundary-check`),
+and put `validate`'s scope to the user as its own decision rather than
+guessing at a 55-method linter with no oracle. That's what this section
+covers; `validate` and `feature-check` remain open (§17).
+
+**`policy-test`** (mechanism traced in §8): ported `appfw_test::policy`
+into `product_gen::policy` near-verbatim (four types, two functions over
+`regorus`, already a direct non-framework `backend/Cargo.toml` dependency).
+This uncovered that `rego_test` -- this crate's whole reason for
+existing -- had **never actually called the mechanism**: its one test was
+a 4-line naming tautology, and its only dependency was the framework's
+`appfw_test` crate. Rewired `rego_test` to depend on `product_gen::policy`
+instead, and wrote real tests against the checked-in
+`backend/config/generated/schemas/governance/comment.rego`: admin
+full-access, the shared authenticated-role read/create rule, unrecognized-role
+default-deny, and `check_schema_type()`'s mismatched-entity_type guard. Not
+tested: the author-ownership update/delete branch, which reads
+`input.user.id` -- `AccessUser` doesn't carry that field, and HANDOFF.md §8
+decision A ("whether the actor id belongs in the Rego input for single-row
+ownership filters") is still an open product decision. Testing that branch
+would mean silently resolving it rather than reporting it, so it's left
+alone.
+
+Side effect worth its own line: this removes one of `product_gen`'s two
+framework path-dependency blockers. `rego_test/Cargo.toml` now declares its
+own `[workspace]` (same pattern as `product_gen`, same reason: a crate that
+path-depends on a separate-workspace crate can't also be a member of a
+third workspace) and was dropped from the root `Cargo.toml`'s `members`
+list. `api_tests` still path-depends on the deleted framework, so the root
+workspace remains unbuildable regardless -- this change doesn't fix that,
+it just stops compounding it. Fold `rego_test` back into the root workspace
+(dropping its own `[workspace]` marker) once `api_tests` is fixed.
+
+**`boundary-check`** (traced in this pass, not previously read in full):
+lives in `appfw_introspect.rs` (the 19,127-line binary otherwise entirely
+out of scope per §6) as `build_boundary_check` -- a genuinely self-contained
+`syn`-based static check, confirmed independently portable as §1 predicted.
+Ported into `product_gen::boundary_check::build`. Two deliberate
+simplifications from the framework shape:
+- `CommandRoots`' `framework_root`/`generator_root`/`templates_root` are
+  dropped -- that shape assumes a live framework checkout alongside the
+  product, which phase 6 exists precisely because this product no longer
+  has. `check_retired_framework_root_surfaces` (which scanned
+  `framework_root`) is dropped entirely for the same reason;
+  `check_retired_product_template_surfaces` (scans the product root) is
+  kept.
+- **Real finding from running the ported check unmodified against this
+  repo**: it flagged `backend/src/data/audit.rs` and
+  `backend/src/data/rules/{computed,timezone,version}.rs` as
+  `retired_product_template_surface` violations -- the framework's rule
+  assumes these concerns stay owned by `appfw_runtime`. But this product's
+  own phase 5 (`self-owned-backend-plan.md`) deliberately reimplemented
+  exactly these four files as self-owned code, and each file's own doc
+  comment says so ("ported off `appfw_runtime`, backend framework
+  replacement phase 5"). Flagging them would be backwards for this
+  product's actual architecture, so those four entries were dropped from
+  the ported table (the other sixteen are kept in full -- none of them
+  exist in this repo, so keeping the check meaningful for future drift
+  costs nothing). This is the same divergence pattern as §13/§14, found the
+  same way: run the real check against the real tree, don't assume the
+  framework's table is still accurate.
+
+Not byte-diffable against `docs/evidence/backend-m9/boundary_check.json`
+(a real, retained oracle from a framework-backed run at `937dfbd`) -- its
+`roots` block has `/app-framework/...` paths that don't exist anymore, and
+its `checked_files: 62` count is a snapshot, not a live contract. Verified
+instead by running the real check against the current tree: `ok: true`,
+`checked_files: 62` (same count, coincidentally, but earned fresh -- not
+copied), Postgres the only active provider. Two tests, both passing.
+
+**`generate` / `generate --check`**: `product_gen::generate` orchestrates
+every slice 1-6 module into one plan (a `(relative_path, content,
+create_once)` list) and either writes it (`write_all`) or diffs it against
+disk without touching anything (`check`). Create-once files
+(`handlers/{schema}/{entity}.rs` impl stubs) are gated by
+`handlers_generated_rs::has_generated_handler` -- confirmed against the
+real tree that system schema's metadata-only entity types (Validator,
+PropertyType, ...) never got impl stubs at all, only the two entities that
+actually generate a handler (`entity_type.rs`, `schema.rs`) did; an
+earlier attempt that planned a stub for every entity produced ~30 spurious
+"missing hand-owned file" reports for entities that were never supposed to
+have one. `check()` deliberately does NOT special-case the known stale
+`schemas/system.rs` (§13's Validator-union finding) -- it correctly reports
+that file as drifted, because it genuinely has, and that's exactly what
+`generate --check` is for. The test asserts drift is exactly that one file,
+not zero, so it stays honest about a real, already-documented gap instead
+of hiding it.
+
+**Not tested against the live tree**: `write_all`. A test that writes over
+real checked-in source files as a side effect of `cargo test` is a hazard
+regardless of whether the content is expected to match -- a bug in `plan()`
+would silently corrupt checked-in files instead of failing loudly. It
+shares `plan()` with `check()`, which the test suite already verifies
+byte-for-byte against disk without writing anything, so `write_all`'s only
+untested logic is its own file I/O (directory creation, `create_once`
+handling) -- exercised manually via the CLI (`cargo run --bin product_cli --
+boundary-check` / `generate --check`, confirmed working end-to-end), not in
+an automated test that touches the real tree.
+
+**`product_cli`** (`product_gen/src/bin/product_cli.rs`): a small binary
+implementing `generate [--check]` and `boundary-check`, both with `--json`.
+This is the product-owned replacement for the relevant slice of
+`scripts/appfw product ...` -- unlike that script, it never shells out to a
+framework checkout. `policy-test` isn't a subcommand here; it's a real
+`cargo test` suite (`cargo test --manifest-path rego_test/Cargo.toml`), not
+a report this binary would build. 44 tests total across `product_gen`
+(40) and `rego_test` (4), `cargo fmt` clean.
+
+## 17. What's still open after this pass
+
+- **`validate`'s scope is a decision for the user, not an assumption for
+  this document to make.** §9 already found `validation.rs` is ~55
+  independently-portable methods, not a monolith, and §16's advisor review
+  reiterated: there's no oracle to verify a port against (this product's
+  model already passes cleanly, so a subtly-wrong rule proves nothing), and
+  a `validate` covering only the invariants this loader already depends on
+  (fragment references resolve, `foreign_key.type_name` names a real
+  entity, facet names exist, relationship endpoints resolve) gets real
+  value for a fraction of porting all 55 methods. Which subset to build is
+  the open question, not whether to build something.
+- **`feature-check`'s exact semantics need confirming before building it.**
+  HANDOFF.md's "14/14 runtime + product feature compiles" is this
+  product's own Cargo feature-flag compile matrix (`backend/Cargo.toml`'s
+  `http`/`mcp`/`kafka`/`sync`/provider features), not the framework's own
+  `feature-check` for its own crates (§6's explicit non-goal) -- confirmed
+  by grepping `HANDOFF.md`/`.appfw/agent-profile.yaml`, not assumed from the
+  name alone. Not yet built: unlike the other four commands, a real
+  feature-check means real `cargo build`s per combination (potentially
+  several minutes each, and per phase 5's own findings the `mcp`/`kafka`
+  feature combos are already known to fail with ~171 errors) -- a
+  meaningfully heavier and slower thing to get right than `boundary-check`
+  or `policy-test` turned out to be.
 - The `Validator::error()` diagnostic-emission signature (line ~4927 in the
   framework source) and the exact `validation.json` report shape it writes
-  haven't been traced yet — needed to keep `product validate --json`'s output
-  contract stable for anything that parses it (CI, `boundary-check`, etc.).
+  haven't been traced yet — needed only if/when `validate`'s scope is
+  decided and includes matching that shape for CI/tooling consumers.
 - `create_full_context`/`create_mcp_operations_context`/`annotate_entity_context`/
   `annotate_custom_method_args` (§5, slice 5) haven't been read in full yet —
   only located and sized. Slice 5 shipped without needing this read in full;
@@ -716,5 +856,9 @@ byte-for-byte, `cargo fmt` clean. Task #18 is complete.
   (matching phase 1's stance on unused `mcp`/`kafka` features) or left as a
   dormant, unported file the new generator simply doesn't emit — a product
   decision, not an architecture question this document needs to resolve.
-- Slice 6 (frontend UI contract emission, §14): scope confirmed, not started.
-- Slice 7 (CLI surface): not started.
+- `api_tests` still path-depends on the deleted framework checkout (§16) —
+  the root workspace (`Cargo.toml`) cannot build until this is fixed, and
+  `product_gen`/`rego_test` can't rejoin it until then either.
+- Slice 7 (CLI surface): 7a done (§16) — `generate`, `generate --check`,
+  `policy-test`, `boundary-check`. `validate` and `feature-check` remain,
+  pending the two decisions above.

@@ -17,5 +17,11 @@ serde_yaml = "0.9"
 sha2 = "0.10"
 chrono = { version = "0.4", features = ["clock"] }
 Inflector = "0.11"
+# Matches backend/Cargo.toml's pin -- policy-test evaluates the same
+# generated Rego files the runtime does, so the engine version must agree.
+regorus = "0.2"
+# boundary-check's forbidden-import/standard-handler-override checks parse
+# and walk real backend Rust source with syn's visitor API.
+syn = { version = "2", features = ["full", "visit"] }
 
 [dev-dependencies]
