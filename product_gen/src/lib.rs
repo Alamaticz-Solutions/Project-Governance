@@ -20,6 +20,7 @@ pub mod relationship_model;
 pub mod relationships;
 pub mod routes_rs;
 pub mod schemas_rs;
+pub mod top_level_mod_rs;
 
 use std::fs;
 use std::path::Path;
