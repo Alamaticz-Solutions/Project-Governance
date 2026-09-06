@@ -13,6 +13,7 @@ use tracing::debug;
 
 use crate::config::app_config::AppConfig;
 use crate::data::audit as runtime_audit;
+use crate::data::mutation_orchestration;
 use crate::data::query_ir::PaginationPolicy;
 use crate::data::query_ir::{cost_for_query, AggregatePlan, MutationPlan, QueryPlan};
 use crate::data::read_orchestration;
@@ -423,9 +424,8 @@ impl DataAccess {
         )?
         .into_runtime_provider_plan();
 
-        let provider = self.runtime_provider();
-        let client_res = match runtime_data_access::execute_create_item_plan_mutation(
-            &provider,
+        let client_res = match mutation_orchestration::execute_create_item_plan_mutation(
+            self.client.as_ref(),
             plan,
             &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
@@ -452,9 +452,9 @@ impl DataAccess {
         };
 
         if audit_enabled {
-            let record_id = runtime_data_access::mutation_record_id(
+            let record_id = mutation_orchestration::mutation_record_id(
                 &runtime_entity_metadata(&entity_type),
-                runtime_data_access::RuntimeMutationKind::Create,
+                mutation_orchestration::MutationTraceKind::Create,
                 Some(&evaluated_input),
                 Some(&client_res),
                 None,
@@ -524,7 +524,7 @@ impl DataAccess {
         let access_visible_before = self
             .record_before_with_access(entity_type.clone(), &input, &user, &access)
             .await?;
-        if runtime_data_access::should_check_filtered_update_denial(
+        if mutation_orchestration::should_check_filtered_update_denial(
             access.filter.as_ref(),
             input_record_id.as_deref(),
             access_visible_before.as_ref(),
@@ -573,9 +573,8 @@ impl DataAccess {
         )?
         .into_runtime_provider_plan();
 
-        let provider = self.runtime_provider();
-        let client_res = match runtime_data_access::execute_update_item_plan_mutation(
-            &provider,
+        let client_res = match mutation_orchestration::execute_update_item_plan_mutation(
+            self.client.as_ref(),
             plan,
             &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
@@ -615,9 +614,9 @@ impl DataAccess {
         };
 
         if audit_enabled {
-            let record_id = runtime_data_access::mutation_record_id(
+            let record_id = mutation_orchestration::mutation_record_id(
                 &runtime_entity_metadata(&entity_type),
-                runtime_data_access::RuntimeMutationKind::Update,
+                mutation_orchestration::MutationTraceKind::Update,
                 Some(&input),
                 Some(&client_res),
                 audit_before.as_ref(),
@@ -698,9 +697,8 @@ impl DataAccess {
         )?
         .into_runtime_provider_plan();
 
-        let provider = self.runtime_provider();
-        let client_res = match runtime_data_access::execute_delete_item_plan_mutation(
-            &provider,
+        let client_res = match mutation_orchestration::execute_delete_item_plan_mutation(
+            self.client.as_ref(),
             plan,
             &appfw_runtime::extension::UserAuth::from(&user),
             &appfw_runtime::PolicyAccess::from(&access),
@@ -726,11 +724,11 @@ impl DataAccess {
             }
         };
 
-        match runtime_data_access::delete_audit_outcome(audit_enabled, client_res) {
-            Some(runtime_data_access::RuntimeDeleteAuditOutcome::Mutation) => {
-                let record_id = runtime_data_access::mutation_record_id(
+        match mutation_orchestration::delete_audit_outcome(audit_enabled, client_res) {
+            Some(mutation_orchestration::DeleteAuditOutcome::Mutation) => {
+                let record_id = mutation_orchestration::mutation_record_id(
                     &runtime_entity_metadata(&entity_type),
-                    runtime_data_access::RuntimeMutationKind::Delete,
+                    mutation_orchestration::MutationTraceKind::Delete,
                     Some(&input),
                     None,
                     audit_before.as_ref(),
@@ -746,10 +744,10 @@ impl DataAccess {
                 )
                 .await?;
             }
-            Some(runtime_data_access::RuntimeDeleteAuditOutcome::NotApplied) => {
-                let record_id = runtime_data_access::mutation_record_id(
+            Some(mutation_orchestration::DeleteAuditOutcome::NotApplied) => {
+                let record_id = mutation_orchestration::mutation_record_id(
                     &runtime_entity_metadata(&entity_type),
-                    runtime_data_access::RuntimeMutationKind::Delete,
+                    mutation_orchestration::MutationTraceKind::Delete,
                     Some(&input),
                     None,
                     audit_before.as_ref(),
@@ -1238,13 +1236,14 @@ impl DataAccess {
         metadata_json: Value,
     ) -> Result<(), AppError> {
         let entity = runtime_entity_metadata(&entity_type);
-        let provider = self.runtime_provider();
-        runtime_data_access::append_mcp_tool_audit_event(
+        mutation_orchestration::append_mcp_tool_audit_event(
             &entity,
             user,
             outcome,
             metadata_json,
-            |event| runtime_data_access::provider_append_audit_event(&provider, event),
+            |event| {
+                mutation_orchestration::provider_append_audit_event(self.client.as_ref(), event)
+            },
         )
         .await
     }
@@ -1384,16 +1383,17 @@ impl DataAccess {
         access: &PolicyAccess,
     ) -> Result<(), AppError> {
         let entity = runtime_entity_metadata(&entity_type);
-        let provider = self.runtime_provider();
-        runtime_data_access::append_audit_mutation(
+        mutation_orchestration::append_audit_mutation(
             &entity,
-            action.into(),
-            &appfw_runtime::extension::UserAuth::from(user),
+            action,
+            user,
             record_id,
             before_json,
             after_json,
-            &appfw_runtime::PolicyAccess::from(access),
-            |event| runtime_data_access::provider_append_audit_event(&provider, event),
+            access,
+            |event| {
+                mutation_orchestration::provider_append_audit_event(self.client.as_ref(), event)
+            },
         )
         .await
     }
@@ -1406,13 +1406,14 @@ impl DataAccess {
         error: &AppError,
     ) -> Result<(), AppError> {
         let entity = runtime_entity_metadata(&entity_type);
-        let provider = self.runtime_provider();
-        runtime_data_access::append_missing_user_audit_attempt(
+        mutation_orchestration::append_missing_user_audit_attempt(
             &entity,
-            action.into(),
+            action,
             record_id,
             error,
-            |event| runtime_data_access::provider_append_audit_event(&provider, event),
+            |event| {
+                mutation_orchestration::provider_append_audit_event(self.client.as_ref(), event)
+            },
         )
         .await
     }
@@ -1428,16 +1429,17 @@ impl DataAccess {
         access: &PolicyAccess,
     ) -> Result<(), AppError> {
         let entity = runtime_entity_metadata(&entity_type);
-        let provider = self.runtime_provider();
-        runtime_data_access::append_policy_denied_audit_attempt_on_record_chain(
+        mutation_orchestration::append_policy_denied_audit_attempt_on_record_chain(
             &entity,
-            action.into(),
-            &appfw_runtime::extension::UserAuth::from(user),
+            action,
+            user,
             record_id,
             before_json,
             attempted_json,
-            &appfw_runtime::PolicyAccess::from(access),
-            |event| runtime_data_access::provider_append_audit_event(&provider, event),
+            access,
+            |event| {
+                mutation_orchestration::provider_append_audit_event(self.client.as_ref(), event)
+            },
         )
         .await
     }
@@ -1452,15 +1454,16 @@ impl DataAccess {
         error: &AppError,
     ) -> Result<(), AppError> {
         let entity = runtime_entity_metadata(&entity_type);
-        let provider = self.runtime_provider();
-        runtime_data_access::append_policy_error_audit_attempt(
+        mutation_orchestration::append_policy_error_audit_attempt(
             &entity,
-            action.into(),
-            &appfw_runtime::extension::UserAuth::from(user),
+            action,
+            user,
             record_id,
             attempted_json,
             error,
-            |event| runtime_data_access::provider_append_audit_event(&provider, event),
+            |event| {
+                mutation_orchestration::provider_append_audit_event(self.client.as_ref(), event)
+            },
         )
         .await
     }
@@ -1476,16 +1479,17 @@ impl DataAccess {
         error: &AppError,
     ) -> Result<(), AppError> {
         let entity = runtime_entity_metadata(&entity_type);
-        let provider = self.runtime_provider();
-        runtime_data_access::append_operation_failed_audit_attempt(
+        mutation_orchestration::append_operation_failed_audit_attempt(
             &entity,
-            action.into(),
-            &appfw_runtime::extension::UserAuth::from(user),
+            action,
+            user,
             record_id,
             before_json,
             after_json,
             error,
-            |event| runtime_data_access::provider_append_audit_event(&provider, event),
+            |event| {
+                mutation_orchestration::provider_append_audit_event(self.client.as_ref(), event)
+            },
         )
         .await
     }
@@ -1499,14 +1503,15 @@ impl DataAccess {
         before_json: Option<Value>,
     ) -> Result<(), AppError> {
         let entity = runtime_entity_metadata(&entity_type);
-        let provider = self.runtime_provider();
-        runtime_data_access::append_operation_not_applied_audit_attempt(
+        mutation_orchestration::append_operation_not_applied_audit_attempt(
             &entity,
-            action.into(),
-            &appfw_runtime::extension::UserAuth::from(user),
+            action,
+            user,
             record_id,
             before_json,
-            |event| runtime_data_access::provider_append_audit_event(&provider, event),
+            |event| {
+                mutation_orchestration::provider_append_audit_event(self.client.as_ref(), event)
+            },
         )
         .await
     }
@@ -1533,14 +1538,13 @@ impl DataAccess {
         let Some(id) = input.get(&pk_name).and_then(runtime_audit::value_to_string) else {
             return Ok(None);
         };
-        let provider = self.runtime_provider();
-        runtime_data_access::provider_find_item_json(
-            &provider,
+        read_orchestration::provider_find_item_json(
+            self.client.as_ref(),
             entity_type.clone(),
             runtime_audit::audit_selection(&runtime_entity_metadata(&entity_type)),
             id,
             &appfw_runtime::extension::UserAuth::from(user),
-            &appfw_runtime::PolicyAccess::from(access),
+            access,
         )
         .await
     }
@@ -1585,9 +1589,8 @@ impl DataAccess {
                     access,
                 )?;
                 let plan = plan.into_runtime_provider_plan();
-                let provider = self.runtime_provider();
-                runtime_data_access::validate_unique_record(
-                    &provider,
+                mutation_orchestration::validate_unique_record(
+                    self.client.as_ref(),
                     plan,
                     &appfw_runtime::extension::UserAuth::from(user),
                     &appfw_runtime::PolicyAccess::from(access),
@@ -1618,14 +1621,13 @@ impl DataAccess {
         else {
             return Ok(());
         };
-        let provider = self.runtime_provider();
-        runtime_data_access::validate_primary_key_available(
-            &provider,
+        mutation_orchestration::validate_primary_key_available(
+            self.client.as_ref(),
             entity_type.clone(),
             runtime_audit::audit_selection(&runtime_entity_metadata(&entity_type)),
             Some(id),
             &appfw_runtime::extension::UserAuth::from(user),
-            &appfw_runtime::PolicyAccess::from(access),
+            access,
         )
         .await
     }
@@ -1657,14 +1659,13 @@ impl DataAccess {
             let target_access =
                 self.app_config
                     .evaluate_user_access(target.clone(), AccessAction::Read, user)?;
-            let provider = self.runtime_provider();
-            runtime_data_access::validate_foreign_key_exists(
-                &provider,
+            mutation_orchestration::validate_foreign_key_exists(
+                self.client.as_ref(),
                 target.clone(),
                 runtime_audit::audit_selection(&runtime_entity_metadata(&target)),
                 Some(id),
                 &appfw_runtime::extension::UserAuth::from(user),
-                &appfw_runtime::PolicyAccess::from(&target_access),
+                &target_access,
             )
             .await?;
         }
