@@ -19,5 +19,33 @@
 //! replaced by self-owned code.
 
 #![allow(unused_imports)]
+#![allow(ambiguous_glob_reexports)]
 
 pub use appfw_runtime::*;
+
+// --- self-owned overrides ---------------------------------------------
+//
+// Each of these shadows the framework re-export above with a self-owned
+// implementation (a Rust explicit `use` always wins over a glob import of
+// the same name, so these lines are the only edit needed per symbol -- no
+// call site elsewhere in `backend/src` changes). Move a name down here as
+// each slice of docs/architecture/self-owned-backend-plan.md's Phase 7
+// lands; when this list covers everything the glob above brings in, the
+// glob itself -- and the `appfw_runtime` Cargo dependency -- comes out in
+// slice 8.
+
+// Slice 2 (leaf error/id types):
+pub use crate::platform::errors::{
+    ConfigError, DataStoreError, MetadataError, QueryBuildError, RuntimeAppError, RuntimeError,
+};
+//
+// `provider_keys::FrameworkProvider` and `provider_error` are NOT overridden
+// yet, even though self-owned equivalents exist at `platform::provider_keys`/
+// `platform::provider_error` -- `appfw_runtime::provider_bridge::
+// RuntimeProviderIdentity::framework_provider(&self)` has a fixed (not
+// generic/associated) return type of the framework's own internal
+// `FrameworkProvider`, and `DatabaseClientRuntimeAdapter` (still
+// framework-owned, deferred per phase 5's notes) implements that trait.
+// Shadowing the name here would make every such impl a type mismatch
+// against a same-named-but-different type. Move these down once slice 5
+// replaces `RuntimeProviderIdentity`/`DatabaseClientRuntimeAdapter` itself.

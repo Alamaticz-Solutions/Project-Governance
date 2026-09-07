@@ -7,30 +7,33 @@
 //! that module belongs to the runtime crate, not the postgres provider, and
 //! is in scope for a later phase (see the design doc).
 
-use crate::platform::runtime::{
-    provider_error, provider_keys::FrameworkProvider, DataStoreError, RuntimeError,
-};
+use crate::platform::errors::DataStoreError;
+use crate::platform::runtime::{provider_error, provider_keys::FrameworkProvider, RuntimeError};
 
 pub fn classify_postgres_error_code(code: &str, field: Option<&str>) -> Option<DataStoreError> {
-    provider_error::classify_postgres_code(code, field)
+    provider_error::classify_postgres_code(code, field).map(Into::into)
 }
 
 pub fn postgres_runtime_error(error: tokio_postgres::Error) -> RuntimeError {
     let message = error.to_string();
     if let Some(db_error) = error.as_db_error() {
-        if let Some(kind) = classify_postgres_error_code(db_error.code().code(), db_error.column())
+        // Classified in `provider_error`'s own (still framework-owned)
+        // `DataStoreError` terms here, not `classify_postgres_error_code`'s
+        // self-owned return type above -- `stable_provider_error` (also not
+        // yet ported) needs its `kind` argument in that same type. Converted
+        // once, at the end, into the self-owned `RuntimeError::DataStore`.
+        if let Some(kind) =
+            provider_error::classify_postgres_code(db_error.code().code(), db_error.column())
         {
-            return RuntimeError::DataStore(provider_error::stable_provider_error(
-                FrameworkProvider::Postgres,
-                message,
-                kind,
-            ));
+            return RuntimeError::DataStore(
+                provider_error::stable_provider_error(FrameworkProvider::Postgres, message, kind)
+                    .into(),
+            );
         }
     }
-    RuntimeError::DataStore(provider_error::normalize_provider_error(
-        FrameworkProvider::Postgres,
-        message,
-    ))
+    RuntimeError::DataStore(
+        provider_error::normalize_provider_error(FrameworkProvider::Postgres, message).into(),
+    )
 }
 
 #[cfg(test)]

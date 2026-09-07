@@ -12,6 +12,8 @@ pub(crate) mod auth;
 #[cfg(feature = "http")]
 pub(crate) mod cors;
 
+pub(crate) mod errors;
+
 #[cfg(feature = "http")]
 pub(crate) mod graphql_gateway;
 
@@ -25,6 +27,10 @@ pub(crate) mod identifier;
 pub(crate) mod observability;
 
 pub(crate) mod policy;
+
+pub(crate) mod provider_error;
+
+pub(crate) mod provider_keys;
 
 pub(crate) mod record_locator;
 
