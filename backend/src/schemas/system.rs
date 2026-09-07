@@ -932,8 +932,37 @@ pub struct InputManyToManyProperty {
     pub target_type: String,
 }
 
-// Validator is_union: true ////////////////////////////////////////////////////////////// WARNING: Union type Validator has no variants - skipping generation
-// Add entity types with base_type: Validator to generate this union
+// Validator is_union: true ////////////////////////////////////////////////////////////
+
+#[derive(Union, Debug, Clone, Serialize, Deserialize)]
+pub enum Validator {
+    ValueRangeValidator(ValueRangeValidator),
+    ArrayLengthValidator(ArrayLengthValidator),
+    StringLengthValidator(StringLengthValidator),
+    StringPatternValidator(StringPatternValidator),
+    UniquenessValidator(UniquenessValidator),
+    FunctionValidator(FunctionValidator),
+}
+
+#[derive(Union, Debug, Clone, Serialize, Deserialize)]
+pub enum ValidatorProjection {
+    ValueRangeValidator(ValueRangeValidatorProjection),
+    ArrayLengthValidator(ArrayLengthValidatorProjection),
+    StringLengthValidator(StringLengthValidatorProjection),
+    StringPatternValidator(StringPatternValidatorProjection),
+    UniquenessValidator(UniquenessValidatorProjection),
+    FunctionValidator(FunctionValidatorProjection),
+}
+
+#[derive(OneofObject, Debug, Clone, Serialize, Deserialize)]
+pub enum InputValidator {
+    ValueRangeValidator(InputValueRangeValidator),
+    ArrayLengthValidator(InputArrayLengthValidator),
+    StringLengthValidator(InputStringLengthValidator),
+    StringPatternValidator(InputStringPatternValidator),
+    UniquenessValidator(InputUniquenessValidator),
+    FunctionValidator(InputFunctionValidator),
+}
 
 // ValueRangeValidator is_union: false ////////////////////////////////////////////////////////////
 

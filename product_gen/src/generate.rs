@@ -152,7 +152,7 @@ fn plan(app_root: &Path) -> Result<Vec<PlannedFile>> {
         let seeds = crate::ddl::load_seeds(&seeds_dir)?;
         files.push(PlannedFile {
             relative_path: format!("database/_pkg/schemas/{schema_name}/seed.pg.sql"),
-            content: crate::ddl::render_seed_sql(schema_name, &seeds),
+            content: crate::ddl::render_seed_sql(schema_name, &seeds, &table_entities),
             create_once: false,
         });
     }
@@ -283,29 +283,23 @@ mod tests {
     }
 
     /// The strongest possible check-mode test: run it against the real,
-    /// currently checked-in tree. If this fails with anything beyond the
-    /// one already-documented exception below, either `product_gen`
+    /// currently checked-in tree. If this fails, either `product_gen`
     /// diverges from what's on disk (a real bug -- the whole point of
     /// every prior slice's oracle tests), or a checked-in file is
     /// genuinely stale and needs regenerating. Either way, worth knowing.
     ///
-    /// `backend/src/schemas/system.rs` is a *known* exception, not a false
-    /// positive: `schemas_rs.rs`'s own test documents that this file's
-    /// checked-in `Validator` union is stale relative to the current model
-    /// (shows the template's "no variants" fallback even though
-    /// `entity_types.yaml` -- already verified against its own oracle --
-    /// has all 6 variants wired). `check()` has no special case for this;
-    /// it correctly reports the drift a real `generate --check` run would
-    /// report today. Regenerating `system.rs` would fix it (and is the
-    /// right fix), it just hasn't been done as part of this port.
+    /// Used to carry a documented exception for `backend/src/schemas/
+    /// system.rs` (its checked-in `Validator` union was stale relative to
+    /// the model). Running `product_cli generate` for real during backend
+    /// framework replacement phase 7's app-bring-up (2026-09-07) actually
+    /// fixed it -- see `schemas_rs.rs`'s test -- so `check()` now reports
+    /// zero drift against the real tree, no exception needed.
     #[test]
-    fn generate_check_reports_no_drift_against_current_tree_except_the_known_stale_validator_union()
-    {
+    fn generate_check_reports_no_drift_against_current_tree() {
         let report = check(&app_root()).expect("check should run");
-        assert_eq!(
-            report.drifted,
-            vec!["backend/src/schemas/system.rs".to_string()],
-            "expected only the known stale-Validator-union drift; got: {:#?}",
+        assert!(
+            report.drifted.is_empty(),
+            "expected no drift; got: {:#?}",
             report.drifted
         );
         assert!(

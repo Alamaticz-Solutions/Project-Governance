@@ -381,20 +381,19 @@ mod tests {
         assert_eq!(rendered, oracle);
     }
 
-    /// The checked-in `schemas/system.rs` is confirmed STALE relative to the
-    /// current model, not a divergence in this port. `.appfw/model/schemas/system/entity_types/validators.yaml`
-    /// sets `base_type: Validator` on all 6 validator variants, and the
-    /// already byte-verified `entity_types.yaml` oracle (slice 4) reflects
-    /// that. But `schemas/system.rs` still has the union-with-no-variants
-    /// fallback text ("WARNING: Union type Validator has no variants"),
-    /// meaning it predates that model change and was never regenerated.
-    /// Reproducing that stale text would mean reproducing a bug, not the
-    /// generator's actual behavior -- so this test compares against the
-    /// oracle everywhere except the Validator union section, and separately
-    /// asserts the (correct, model-consistent) union output this port
-    /// produces.
+    /// Used to carry an asterisked exception here: the checked-in
+    /// `schemas/system.rs` was confirmed stale relative to the model
+    /// (`.appfw/model/schemas/system/entity_types/validators.yaml` sets
+    /// `base_type: Validator` on all 6 validator variants, but the
+    /// checked-in file still had the union-with-no-variants fallback text,
+    /// meaning it predated that model change and was never regenerated).
+    /// Running `product_cli generate` for real during backend framework
+    /// replacement phase 7's app-bring-up (2026-09-07) wrote the
+    /// model-consistent output -- the drift is actually fixed now, not
+    /// just explained away, so this is a plain byte-for-byte oracle test
+    /// again like every other `schemas_rs` entry.
     #[test]
-    fn system_schema_rs_matches_checked_in_oracle_except_stale_validator_union() {
+    fn system_schema_rs_matches_checked_in_oracle_byte_for_byte() {
         let resolved = crate::load_resolved_entities(&model_root()).expect("model should load");
         let entities = resolved
             .iter()
@@ -410,23 +409,6 @@ mod tests {
         let oracle = std::fs::read_to_string(backend_src_root().join("schemas/system.rs"))
             .expect("read oracle schemas/system.rs");
 
-        let stale_marker = "// WARNING: Union type Validator has no variants - skipping generation";
-        assert!(
-            oracle.contains(stale_marker),
-            "oracle no longer contains the expected stale marker -- re-check this test's premise"
-        );
-        assert!(
-            rendered
-                .contains("pub enum Validator {\n    ValueRangeValidator(ValueRangeValidator),"),
-            "this port should produce the model-consistent Validator union with its 6 variants"
-        );
-
-        // Compare everything up to the Validator section (this covers all
-        // 8 other system entities plus every gql_enum_type -- a real,
-        // substantive check, not a token no-op).
-        let cut = "// Validator is_union: true";
-        let rendered_prefix = rendered.split(cut).next().unwrap();
-        let oracle_prefix = oracle.split(cut).next().unwrap();
-        assert_eq!(rendered_prefix, oracle_prefix);
+        assert_eq!(rendered, oracle);
     }
 }

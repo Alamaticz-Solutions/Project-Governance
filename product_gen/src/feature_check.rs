@@ -173,19 +173,19 @@ mod tests {
 
     /// Fast, pure test -- no subprocess. `run()`'s real `cargo check`
     /// invocations are exercised manually via the CLI, not in the test
-    /// suite (32 real cargo invocations, all of which fail today per this
-    /// module's doc comment, would make `cargo test` slow without proving
-    /// anything `cargo test` itself needs).
+    /// suite (4 real cargo invocations would make `cargo test` slow
+    /// without proving anything `cargo test` itself needs).
     #[test]
     fn declared_features_matches_backends_real_feature_table() {
+        // `kafka`/`mcp`/`sync` were deleted outright (backend framework
+        // replacement phase 7, 2026-09-07) -- this assertion was never
+        // updated when that happened. Only `http`/`provider-postgres`
+        // remain declared.
         let features =
             declared_features(&app_root().join("backend/Cargo.toml")).expect("parse features");
         let mut sorted = features.clone();
         sorted.sort();
-        assert_eq!(
-            sorted,
-            vec!["http", "kafka", "mcp", "provider-postgres", "sync"]
-        );
+        assert_eq!(sorted, vec!["http", "provider-postgres"]);
     }
 
     #[test]
@@ -200,10 +200,10 @@ mod tests {
     }
 
     #[test]
-    fn five_declared_features_enumerate_to_thirty_two_combinations() {
+    fn two_declared_features_enumerate_to_four_combinations() {
         let features =
             declared_features(&app_root().join("backend/Cargo.toml")).expect("parse features");
         let combos = enumerate_combinations(&features);
-        assert_eq!(combos.len(), 32);
+        assert_eq!(combos.len(), 4);
     }
 }
