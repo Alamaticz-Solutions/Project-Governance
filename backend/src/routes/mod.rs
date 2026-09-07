@@ -29,8 +29,6 @@ use tower_http::cors::CorsLayer;
 use crate::admin_ui;
 #[cfg(feature = "http")]
 use crate::data::clients::database_client::DatabaseClientBox;
-#[cfg(all(feature = "http", feature = "mcp"))]
-use crate::mcp;
 #[cfg(feature = "http")]
 use crate::platform::{
     auth::JwtAuthConfig,
@@ -87,14 +85,6 @@ pub async fn get_routes(
         security.clone(),
         data_access_by_schema.clone(),
     );
-    #[cfg(all(feature = "http", feature = "mcp"))]
-    let mcp_router = mcp::get_routes(
-        app_config.clone(),
-        jwt_auth.clone(),
-        security.clone(),
-        data_access_by_schema.clone(),
-    );
-
     let mut route_set = RuntimeRouteSet::new()
         .with_info(info_router)
         .with_admin(admin_router)
@@ -108,9 +98,6 @@ pub async fn get_routes(
             route_set = route_set.with_product_ui(product_ui_router);
         }
     }
-
-    #[cfg(all(feature = "http", feature = "mcp"))]
-    let route_set = route_set.with_mcp(mcp_router);
 
     Ok(assemble_runtime_router_for_mode(
         route_set,

@@ -15,7 +15,7 @@ use crate::{
     },
     services::{
         audit,
-        support::{entity, field, primary_role, require_user, resolve_user_id, selection},
+        support::{entity, field, require_user, resolve_user_id, selection},
     },
 };
 

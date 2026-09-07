@@ -6,7 +6,7 @@ use anyhow::Result;
 pub use crate::platform::runtime::ProviderPoolStats;
 use crate::platform::runtime::{
     extension::UserAuth, model_metadata::RuntimeDataType, RuntimeJsonAggregateResult,
-    RuntimeJsonObj, RuntimeJsonQueryResult, RuntimeProviderPlanInput,
+    RuntimeJsonQueryResult, RuntimeProviderPlanInput,
 };
 use async_trait::async_trait;
 use serde_json::Value;
