@@ -1,4 +1,7 @@
 # Generated API scenario for User — find a seeded demo user (seeds/01_users.yaml).
+# GraphQL enum values on the wire are PascalCase (backend enums carry
+# `#[graphql(rename_items = "PascalCase")]`), so `role` is `Admin`, not the
+# model's SCREAMING_SNAKE `ADMIN`. The frontend uses the same PascalCase.
 - name: find_seeded_admin_user
   description: the seeded admin demo user is retrievable
   auth_token: pdsh_admin
@@ -15,5 +18,5 @@
     data:
       email: admin@abchealth.com
       username: admin
-      role: ADMIN
+      role: Admin
       is_active: true

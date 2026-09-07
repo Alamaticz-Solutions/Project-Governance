@@ -37,7 +37,7 @@ mod tests {
     "#;
 
         let variables = Some(json!({
-        "input": {"project_number":"GOV-TEST-0001","project_name":"Test Governance Project","business_unit":"Information Technology","manager_id":"b0000000-0000-4000-8000-000000000001","priority":"MEDIUM","status":"DRAFT","version":0}
+        "input": {"project_number":"GOV-TEST-0001","project_name":"Test Governance Project","business_unit":"Information Technology","manager_id":"b0000000-0000-4000-8000-000000000001","priority":"Medium","status":"Draft","version":0}
         }));
 
         let gql_result = ctx
@@ -49,7 +49,7 @@ mod tests {
       "create_project",
       &gql_result,
       "createProject",
-      json!({"project_number":"GOV-TEST-0001","project_name":"Test Governance Project","business_unit":"Information Technology","status":"DRAFT"}),
+      json!({"project_number":"GOV-TEST-0001","project_name":"Test Governance Project","business_unit":"Information Technology","status":"Draft"}),
       Some("create_project_result"),
     )?;
 

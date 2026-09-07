@@ -32,8 +32,45 @@ use config::app_config::AppConfig;
 #[cfg(feature = "http")]
 use routes::get_routes;
 
-#[tokio::main]
-async fn main() {
+/// Tokio worker-thread stack size, in MiB, when `BACKEND_WORKER_STACK_MIB`
+/// is unset or unparseable. See [`main`] for why this is not the 2 MiB
+/// tokio default.
+const DEFAULT_WORKER_STACK_MIB: usize = 128;
+
+/// Resolve the tokio worker-thread stack size (bytes) from
+/// `BACKEND_WORKER_STACK_MIB`, falling back to [`DEFAULT_WORKER_STACK_MIB`].
+fn worker_stack_bytes() -> usize {
+    let mib = std::env::var("BACKEND_WORKER_STACK_MIB")
+        .ok()
+        .and_then(|raw| raw.trim().parse::<usize>().ok())
+        .filter(|mib| *mib > 0)
+        .unwrap_or(DEFAULT_WORKER_STACK_MIB);
+    mib * 1024 * 1024
+}
+
+/// Entry point. Deliberately NOT `#[tokio::main]`: the self-owned
+/// `platform::host` that replaced `appfw_runtime` (backend framework
+/// replacement phase 7 final cutover) never re-established the larger
+/// worker-thread stack the old framework host ran with, so worker threads
+/// got tokio's 2 MiB default. The phase-7-ported self-owned read path
+/// (read-orchestration -> projection resolvers -> filter-IR -> regorus
+/// eval) recurses deeply enough on a real query to overflow 2 MiB and
+/// abort the whole process (`thread 'tokio-rt-worker' has overflowed its
+/// stack`) -- deep, not infinite, recursion (it completes with
+/// `RUST_MIN_STACK=128MiB`). Until that recursion is flattened this builds
+/// the multi-thread runtime by hand with a generous, env-overridable
+/// worker stack. `thread_stack_size` is reserved address space committed
+/// lazily by the OS, not resident memory, so a large value is cheap.
+fn main() {
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_stack_size(worker_stack_bytes())
+        .build()
+        .expect("failed to build tokio runtime");
+    runtime.block_on(run());
+}
+
+async fn run() {
     dotenv().ok();
     let observability_guard = init_tracing();
     let security = SecurityConfig::from_env();

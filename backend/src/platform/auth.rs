@@ -59,10 +59,26 @@ pub(crate) struct JwtAuthConfig {
 
 impl JwtAuthConfig {
     pub(crate) fn from_env() -> Result<Self, ConfigError> {
+        // On a local developer workstation (`ENV_NAME=local`) `resolve_user`
+        // returns on its `local_dev` branch before `verify_bearer` is ever
+        // reached, so `issuer`/`client_id` are never read -- requiring them
+        // here only forced local/CI runs to invent dummy Okta values just to
+        // start the process. Outside local dev they stay mandatory: an empty
+        // issuer must never reach real RS256 verification.
+        let issuer = if is_dev_workstation_env() {
+            optional_env("OKTA_ISSUER")
+        } else {
+            require_env("OKTA_ISSUER")?
+        };
+        let client_id = if is_dev_workstation_env() {
+            optional_env("OKTA_CLIENT_ID")
+        } else {
+            require_env("OKTA_CLIENT_ID")?
+        };
         Ok(Self {
-            issuer: require_env("OKTA_ISSUER")?,
+            issuer,
             audience: std::env::var("OKTA_AUDIENCE").unwrap_or_else(|_| DEFAULT_AUDIENCE.into()),
-            client_id: require_env("OKTA_CLIENT_ID")?,
+            client_id,
         })
     }
 }
@@ -72,6 +88,16 @@ fn require_env(name: &str) -> Result<String, ConfigError> {
         .ok()
         .filter(|value| !value.trim().is_empty())
         .ok_or_else(|| ConfigError::MissingEnvVar { name: name.into() })
+}
+
+/// Like [`require_env`] but returns an empty string instead of an error when
+/// the variable is unset or blank. Only used on the local-dev path, where
+/// the value is never read.
+fn optional_env(name: &str) -> String {
+    std::env::var(name)
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_default()
 }
 
 /// Resolves the caller's identity for one request. Returns `None` only for

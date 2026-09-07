@@ -45,7 +45,7 @@ mod tests {
       "find_seeded_admin_user",
       &gql_result,
       "findUser",
-      json!({"email":"admin@abchealth.com","username":"admin","role":"ADMIN","is_active":true}),
+      json!({"email":"admin@abchealth.com","username":"admin","role":"Admin","is_active":true}),
       None,
     )?;
 
