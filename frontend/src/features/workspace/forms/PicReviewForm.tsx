@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TextArea, TextField } from '@ui-kit';
 import { FieldGrid, GateWizard, WizardSectionHeading, YesNo, type WizardSection } from './GateWizard';
+import { AIPopulationDropzone } from '../../shared/AIPopulationDropzone';
 
 /**
  * PIC (Project Investment Committee) Review gate form — ported from
@@ -64,9 +65,11 @@ function isValid(data: PicFormData): boolean {
 
 export function PicReviewForm({
   initialData,
+  projectId,
   onChange
 }: {
   initialData?: Partial<PicFormData>;
+  projectId?: string;
   onChange: (data: PicFormData, valid: boolean) => void;
 }) {
   const [form, setForm] = useState<PicFormData>({ ...EMPTY, ...initialData });
@@ -97,6 +100,13 @@ export function PicReviewForm({
       {sectionId === 'definition' && (
         <>
           <WizardSectionHeading title="Core Project Definition" />
+          {projectId && (
+            <AIPopulationDropzone
+              team="pic"
+              projectId={projectId}
+              onExtractionComplete={(data) => setForm((prev) => ({ ...prev, ...(data as Partial<PicFormData>) }))}
+            />
+          )}
           <div style={{ display: 'grid', gap: 16 }}>
             <TextArea label="Problem statement" rows={3} required value={form.problemStatement} onChange={(e) => set('problemStatement', e.target.value)} />
             <TextArea label="Scope" rows={3} value={form.scope} onChange={(e) => set('scope', e.target.value)} />

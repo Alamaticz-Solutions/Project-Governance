@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TextArea } from '@ui-kit';
 import { YesNo } from './GateWizard';
+import { AIPopulationDropzone } from '../../shared/AIPopulationDropzone';
 
 /**
  * EPMO Review gate form — ported from origin/Dev's `EpmoReviewForm.tsx`
@@ -31,9 +32,11 @@ function isValid(data: EpmoFormData): boolean {
 
 export function EpmoReviewForm({
   initialData,
+  projectId,
   onChange
 }: {
   initialData?: Partial<EpmoFormData>;
+  projectId?: string;
   onChange: (data: EpmoFormData, valid: boolean) => void;
 }) {
   const [form, setForm] = useState<EpmoFormData>({ ...EMPTY, ...initialData });
@@ -53,6 +56,13 @@ export function EpmoReviewForm({
         <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 800, color: 'white' }}>EPMO Review</h3>
         <p style={{ margin: 0, fontSize: 12, color: '#94A3B8' }}>Enterprise PMO intake checklist.</p>
       </div>
+      {projectId && (
+        <AIPopulationDropzone
+          team="epmo"
+          projectId={projectId}
+          onExtractionComplete={(data) => setForm((prev) => ({ ...prev, ...(data as Partial<EpmoFormData>) }))}
+        />
+      )}
       <YesNo label="Does this align with strategy?" required value={form.epmo_strategy} onChange={(v) => set('epmo_strategy', v)} />
       <YesNo label="Is a PIC review needed?" required value={form.epmo_pic_needed} onChange={(v) => set('epmo_pic_needed', v)} />
       <YesNo label="Is a dedicated Project Manager required?" value={form.epmo_pm_required} onChange={(v) => set('epmo_pm_required', v)} />

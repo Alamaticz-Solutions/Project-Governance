@@ -16,7 +16,7 @@ use crate::{
     product_api::{DataAccess, EntityType, HandlerResult, JsonValue, UserAuth},
     schemas::common::AggregateResult,
     schemas::governance::{InputProject, ProjectProjection, ProjectQueryResult},
-    services::{approval_state_machine, gate_eligibility, workspace},
+    services::{ai_extraction, approval_state_machine, gate_eligibility, workspace},
 };
 
 pub async fn submit_decision_impl(
@@ -80,4 +80,26 @@ pub async fn cancel_impl(
     reason: String,
 ) -> HandlerResult<serde_json::Value> {
     approval_state_machine::cancel(data_access, &user, project_id, reason).await
+}
+
+pub async fn extract_intake_impl(
+    user: Option<UserAuth>,
+    data_access: &Arc<DataAccess>,
+    _entity_type: &Arc<EntityType>,
+    _selections: JsonValue,
+    payload: serde_json::Value,
+) -> HandlerResult<serde_json::Value> {
+    ai_extraction::extract_intake(data_access, &user, payload).await
+}
+
+pub async fn extract_team_fields_impl(
+    user: Option<UserAuth>,
+    data_access: &Arc<DataAccess>,
+    _entity_type: &Arc<EntityType>,
+    _selections: JsonValue,
+    project_id: String,
+    team: String,
+    payload: serde_json::Value,
+) -> HandlerResult<serde_json::Value> {
+    ai_extraction::extract_team_fields(data_access, &user, project_id, team, payload).await
 }

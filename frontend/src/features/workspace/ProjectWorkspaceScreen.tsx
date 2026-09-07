@@ -508,6 +508,7 @@ export function ProjectWorkspaceScreen() {
                       {kind === 'epmo' && (
                         <EpmoReviewForm
                           initialData={gateFormDataRef.current}
+                          projectId={projectId}
                           onChange={(next, valid) => {
                             gateFormDataRef.current = next;
                             setGateFormValid(valid);
@@ -517,6 +518,7 @@ export function ProjectWorkspaceScreen() {
                       {kind === 'bta' && (
                         <BtaReviewForm
                           initialData={gateFormDataRef.current}
+                          projectId={projectId}
                           onChange={(next, valid) => {
                             gateFormDataRef.current = next;
                             setGateFormValid(valid);
@@ -526,6 +528,7 @@ export function ProjectWorkspaceScreen() {
                       {kind === 'eac' && (
                         <EacReviewForm
                           initialData={gateFormDataRef.current}
+                          projectId={projectId}
                           onChange={(next, valid) => {
                             gateFormDataRef.current = next;
                             setGateFormValid(valid);
@@ -535,6 +538,7 @@ export function ProjectWorkspaceScreen() {
                       {kind === 'pic' && (
                         <PicReviewForm
                           initialData={gateFormDataRef.current}
+                          projectId={projectId}
                           onChange={(next, valid) => {
                             gateFormDataRef.current = next;
                             setGateFormValid(valid);

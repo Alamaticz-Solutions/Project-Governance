@@ -39,6 +39,10 @@ axum = { version = "0.6", features = ["macros"], optional = true }
 # provider crate already resolves, to avoid a duplicate dependency tree.
 base64 = "0.22"
 bson = "2.0"
+# AI intake/gate-form document extraction (services::ai_extraction): pure-Rust
+# PDF text extraction, no system deps. .txt is decoded directly; .docx is not
+# supported yet (documented limitation, see ai_extraction::text_extract).
+pdf-extract = "0.7"
 bytes = "1.7"
 chrono = { version = "0.4", features = ["clock", "serde"] }
 chrono-tz = "0.10"

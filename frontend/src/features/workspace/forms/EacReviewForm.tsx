@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TextArea, TextField } from '@ui-kit';
 import { FieldGrid, GateWizard, WizardSectionHeading, YesNo, type WizardSection } from './GateWizard';
+import { AIPopulationDropzone } from '../../shared/AIPopulationDropzone';
 
 /**
  * EAC (Enterprise Architecture Committee) Review gate form — ported from
@@ -72,9 +73,11 @@ function isValid(data: EacFormData): boolean {
 
 export function EacReviewForm({
   initialData,
+  projectId,
   onChange
 }: {
   initialData?: Partial<EacFormData>;
+  projectId?: string;
   onChange: (data: EacFormData, valid: boolean) => void;
 }) {
   const [form, setForm] = useState<EacFormData>({ ...EMPTY, ...initialData });
@@ -106,6 +109,13 @@ export function EacReviewForm({
       {sectionId === 'overview' && (
         <>
           <WizardSectionHeading title="Project Overview & Identification" />
+          {projectId && (
+            <AIPopulationDropzone
+              team="eac"
+              projectId={projectId}
+              onExtractionComplete={(data) => setForm((prev) => ({ ...prev, ...(data as Partial<EacFormData>) }))}
+            />
+          )}
           <FieldGrid>
             <TextField label="Project name" value={form.projectName} onChange={(e) => set('projectName', e.target.value)} />
             <TextField label="Project type" value={form.projectType} onChange={(e) => set('projectType', e.target.value)} />

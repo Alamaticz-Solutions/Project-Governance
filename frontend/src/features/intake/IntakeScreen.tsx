@@ -5,14 +5,16 @@ import { useAction, useApp, useAsync } from '../../app/providers';
 import { entityByType } from '../../lib/entities';
 import type { AppfwRecord } from '../../lib/appfwClient';
 import { PROJECT_PRIORITY, PROJECT_RISK } from '../shared/enums';
+import { AIPopulationDropzone } from '../shared/AIPopulationDropzone';
 
 /**
  * New-request intake. Dark glass, sectioned presentation mirrors the
  * Dev-branch "New Proposal Intake" (three sections + "what happens next" rail +
  * success screen). The create flow is this branch's: a Draft assembled into a
  * Project row through the App Framework client, with the manager FK resolved
- * from the seeded users. Document AI pre-fill is shown but inert — the
- * extraction egress boundary does not exist on this branch yet.
+ * from the seeded users. Document AI pre-fill goes through `extractIntake`
+ * (services::ai_extraction) — pasted/uploaded text, PHI-gated before any
+ * OpenAI call — and merges non-empty extracted fields into the draft.
  */
 
 const projectEntity = entityByType('Project');
@@ -125,7 +127,6 @@ export function IntakeScreen() {
   const { auth } = useApp();
   const [draft, setDraft] = useState<Draft>(() => emptyDraft(auth.displayName || auth.userName || ''));
   const [errors, setErrors] = useState<string[]>([]);
-  const [aiNote, setAiNote] = useState(false);
   const [done, setDone] = useState<{ id: string; number: string } | null>(null);
 
   const create = useAction((client, input: AppfwRecord) => client.saveRecord(projectEntity, 'create', input));
@@ -144,6 +145,19 @@ export function IntakeScreen() {
   }, [managers.status]);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((prev) => ({ ...prev, [key]: value }));
+
+  function applyExtracted(data: Record<string, unknown>) {
+    setDraft((prev) => {
+      const next: Record<string, unknown> = { ...prev };
+      for (const key of Object.keys(data)) {
+        if (!(key in next)) continue;
+        const v = data[key];
+        if (typeof v === 'string') next[key] = v;
+        else if (typeof v === 'number' && key === 'budget_estimated') next.budget_estimated = String(v);
+      }
+      return next as unknown as Draft;
+    });
+  }
 
   const managerOptions = (managers.data?.rows ?? []).map((row) => ({
     value: String(row.id),
@@ -259,35 +273,7 @@ export function IntakeScreen() {
                   <div style={sectionCard}>
                     <SectionHeader icon="info" tone="#818CF8">1. Project Information</SectionHeader>
 
-                    <button
-                      type="button"
-                      onClick={() => setAiNote(true)}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 20,
-                        border: '2px dashed rgba(255,255,255,0.15)',
-                        borderRadius: 16,
-                        padding: 20,
-                        marginBottom: 28,
-                        background: 'rgba(15,23,42,0.3)',
-                        cursor: 'pointer',
-                        textAlign: 'left'
-                      }}
-                    >
-                      <span style={{ width: 56, height: 56, borderRadius: '50%', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name="cloud_upload" size={24} />
-                      </span>
-                      <span style={{ flex: 1 }}>
-                        <span style={{ display: 'block', fontWeight: 700, fontSize: 14, color: '#e2e8f0' }}>Upload a project document (optional)</span>
-                        <span style={{ display: 'block', fontSize: 12, color: '#64748B', marginTop: 4 }}>
-                          {aiNote
-                            ? 'AI extraction is gated pending the document-egress boundary — enter details manually for now.'
-                            : 'AI pre-fill · PDF, DOCX, TXT'}
-                        </span>
-                      </span>
-                    </button>
+                    <AIPopulationDropzone onExtractionComplete={applyExtracted} />
 
                     <div style={{ display: 'grid', gap: 20 }}>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>

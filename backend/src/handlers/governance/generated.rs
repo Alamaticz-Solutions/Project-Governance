@@ -3370,6 +3370,32 @@ pub(crate) mod project {
             "custom method `cancel` is not implemented yet"
         ))
     }
+    #[allow(unused)]
+    pub(crate) async fn extract_intake_impl(
+        user: Option<UserAuth>,
+        data_access: &Arc<DataAccess>,
+        entity_type: &Arc<EntityType>,
+        selections: JsonValue,
+        payload: serde_json::Value,
+    ) -> HandlerResult<serde_json::Value> {
+        Err(anyhow::anyhow!(
+            "custom method `extract_intake` is not implemented yet"
+        ))
+    }
+    #[allow(unused)]
+    pub(crate) async fn extract_team_fields_impl(
+        user: Option<UserAuth>,
+        data_access: &Arc<DataAccess>,
+        entity_type: &Arc<EntityType>,
+        selections: JsonValue,
+        project_id: String,
+        team: String,
+        payload: serde_json::Value,
+    ) -> HandlerResult<serde_json::Value> {
+        Err(anyhow::anyhow!(
+            "custom method `extract_team_fields` is not implemented yet"
+        ))
+    }
 }
 pub(crate) mod project_audit {
     #[allow(unused_imports)]

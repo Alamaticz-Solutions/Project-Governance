@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { SelectField, TextArea, TextField } from '@ui-kit';
 import { FieldGrid, GateWizard, WizardSectionHeading, YesNo, type WizardSection } from './GateWizard';
+import { AIPopulationDropzone } from '../../shared/AIPopulationDropzone';
 
 /**
  * BTA (Business Technology Analyst) Review gate form — ported from
@@ -95,9 +96,11 @@ function isValid(data: BtaFormData): boolean {
 
 export function BtaReviewForm({
   initialData,
+  projectId,
   onChange
 }: {
   initialData?: Partial<BtaFormData>;
+  projectId?: string;
   onChange: (data: BtaFormData, valid: boolean) => void;
 }) {
   const [form, setForm] = useState<BtaFormData>({ ...EMPTY, ...initialData });
@@ -128,6 +131,13 @@ export function BtaReviewForm({
       {sectionId === 'identification' && (
         <>
           <WizardSectionHeading title="Project Identification" />
+          {projectId && (
+            <AIPopulationDropzone
+              team="bta"
+              projectId={projectId}
+              onExtractionComplete={(data) => setForm((prev) => ({ ...prev, ...(data as Partial<BtaFormData>) }))}
+            />
+          )}
           <FieldGrid>
             <TextField label="Project name" required value={form.projectName} onChange={(e) => set('projectName', e.target.value)} />
             <TextField label="Requestor name" value={form.requestorName} onChange={(e) => set('requestorName', e.target.value)} />

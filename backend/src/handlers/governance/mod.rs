@@ -7087,6 +7087,59 @@ impl GovernanceMutation {
         }
     }
 
+    async fn extract_intake(
+        &self,
+        ctx: &Context<'_>,
+        payload: serde_json::Value,
+    ) -> FieldResult<serde_json::Value> {
+        // Custom-method context: do NOT parse selections against the calling entity's props,
+        // because the return type is `serde_json::Value` whose fields generally do not
+        // exist on `Project`. Resolver receives Null selections.
+        let handler_context = from_context_without_selections(ctx, "governance", "Project")?;
+        let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
+
+        let res =
+            project::extract_intake_impl(user, &data_access, &entity_type, selections, payload)
+                .await;
+
+        match res {
+            Ok(res) => Ok(res),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    async fn extract_team_fields(
+        &self,
+        ctx: &Context<'_>,
+        project_id: String,
+        team: String,
+        payload: serde_json::Value,
+    ) -> FieldResult<serde_json::Value> {
+        // Custom-method context: do NOT parse selections against the calling entity's props,
+        // because the return type is `serde_json::Value` whose fields generally do not
+        // exist on `Project`. Resolver receives Null selections.
+        let handler_context = from_context_without_selections(ctx, "governance", "Project")?;
+        let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
+
+        let res = project::extract_team_fields_impl(
+            user,
+            &data_access,
+            &entity_type,
+            selections,
+            project_id,
+            team,
+            payload,
+        )
+        .await;
+
+        match res {
+            Ok(res) => Ok(res),
+            Err(e) => Err(e.into()),
+        }
+    }
+
     async fn create_project_audit(
         &self,
         ctx: &Context<'_>,

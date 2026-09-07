@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { TextArea, TextField } from '@ui-kit';
 import { FieldGrid, GateWizard, WizardSectionHeading, YesNo, type WizardSection } from './GateWizard';
+import { AIPopulationDropzone } from '../../shared/AIPopulationDropzone';
 
 /**
  * Finance Review gate form — ported from origin/Dev's `FinanceReviewForm.tsx`
@@ -74,10 +75,12 @@ function isValid(data: FinanceFormData): boolean {
 export function FinanceReviewForm({
   initialData,
   initialCostItems,
+  projectId,
   onChange
 }: {
   initialData?: Partial<FinanceFormData>;
   initialCostItems?: CostItem[];
+  projectId?: string;
   onChange: (data: FinanceFormData & { costItems: CostItem[] }, valid: boolean) => void;
 }) {
   const [form, setForm] = useState<FinanceFormData>({ ...EMPTY, ...initialData });
@@ -121,6 +124,13 @@ export function FinanceReviewForm({
       {sectionId === 'cost-plan' && (
         <>
           <WizardSectionHeading title="Detailed Cost Plan" />
+          {projectId && (
+            <AIPopulationDropzone
+              team="finance"
+              projectId={projectId}
+              onExtractionComplete={(data) => setForm((prev) => ({ ...prev, ...(data as Partial<FinanceFormData>) }))}
+            />
+          )}
           <FieldGrid>
             <TextField label="Total CAPEX" value={form.totalCapex} onChange={(e) => set('totalCapex', e.target.value)} />
             <TextField label="Total OPEX" value={form.totalOpex} onChange={(e) => set('totalOpex', e.target.value)} />

@@ -6098,6 +6098,26 @@
     return_type: serde_json::Value
     mcp_enabled: false
     provider_routine: null
+  - name: extract_intake
+    kind: Mutation
+    args:
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+    mcp_enabled: false
+    provider_routine: null
+  - name: extract_team_fields
+    kind: Mutation
+    args:
+    - name: project_id
+      arg_type: String
+    - name: team
+      arg_type: String
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+    mcp_enabled: false
+    provider_routine: null
   props:
   - id: 5bfa31c6059727e1
     name: id

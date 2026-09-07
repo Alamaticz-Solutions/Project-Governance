@@ -74,6 +74,29 @@
       arg_type: String
     return_type: serde_json::Value
 
+  # AI document extraction (spec 004 AI-egress boundary). No project exists
+  # yet at intake time, so extract_intake takes no project_id -- unlike
+  # every other custom method on this entity. Both run behind
+  # services::ai_extraction's pre-egress PHI/PII gate; see that module.
+  - name: extract_intake
+    kind: Mutation
+    mcp_enabled: false
+    args:
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+  - name: extract_team_fields
+    kind: Mutation
+    mcp_enabled: false
+    args:
+    - name: project_id
+      arg_type: String
+    - name: team
+      arg_type: String
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+
   props:
 
   - name: id
