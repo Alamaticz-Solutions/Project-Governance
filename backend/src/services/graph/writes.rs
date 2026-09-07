@@ -14,9 +14,11 @@
 //!   G1.7 WritePolicyAndScopeEnforcement  `policy_check`, role + tenant gate
 //!   G1.8 WriteAuditAndEvidence       `AuditEvent` + the ledger row, every outcome
 //!
-//! Design: `docs/architecture/m10-g1-governed-write-plan.md`. Two operations
-//! are wired to a callable custom method today (`ScheduleTeamsMeeting`,
-//! `CancelCalendarEvent`, both on `Meeting`); the subscription/SharePoint
+//! Design: `docs/architecture/m10-g1-governed-write-plan.md`. Three
+//! operations are wired to a callable custom method today
+//! (`ScheduleTeamsMeeting`, plus `CancelOnlineMeeting`/`CancelCalendarEvent`
+//! -- `Meeting.cancel_via_graph` picks whichever matches what
+//! `schedule_via_graph` actually created); the subscription/SharePoint
 //! operations are registered (G1.4/G1.5 apply to them too) but have no
 //! GraphQL entry point yet -- `POST /subscriptions` needs a public HTTPS
 //! callback this environment does not have (spec 003 D2), and SharePoint
@@ -82,8 +84,14 @@ impl WriteContext {
 /// caller cannot add an unbound field to the request body.
 #[derive(Debug, Clone)]
 pub enum WriteOperation {
-    /// `POST /users/{organizer}/onlineMeetings` (creates the Teams meeting;
-    /// the calendar event + join link come back on the same response).
+    /// `POST /users/{organizer}/onlineMeetings`. Creates a Teams meeting as
+    /// its own Graph resource (an "online meeting"), distinct from a
+    /// calendar event -- this call alone does NOT put anything on the
+    /// organizer's calendar. `organizer` must be an AAD object id (a GUID);
+    /// Graph rejects a UPN/email here with `400 InvalidArgument: "The
+    /// userId in request URL is not a valid GUID."` (found live,
+    /// 2026-09-07, against the lventur.com tenant). The response carries
+    /// `joinWebUrl`, which `schedule_via_graph` persists as `join_url`.
     ScheduleTeamsMeeting {
         organizer: String,
         subject: String,
@@ -91,7 +99,21 @@ pub enum WriteOperation {
         end_iso: String,
         attendees: Vec<String>,
     },
-    /// `DELETE /users/{organizer}/events/{event_id}`
+    /// `DELETE /users/{organizer}/onlineMeetings/{online_meeting_id}` --
+    /// cancels the online-meeting resource `ScheduleTeamsMeeting` created.
+    /// This, not `CancelCalendarEvent`, is what actually cleans up a
+    /// meeting scheduled through this stack (see `ScheduleTeamsMeeting`'s
+    /// doc comment: no separate calendar event exists to delete).
+    CancelOnlineMeeting {
+        organizer: String,
+        online_meeting_id: String,
+    },
+    /// `DELETE /users/{organizer}/events/{event_id}` -- cancels a genuine
+    /// calendar event. Only applicable when a meeting's `graph_event_id`
+    /// is actually set (e.g. a future portal path that schedules via
+    /// `POST /events` with `isOnlineMeeting: true` instead of
+    /// `/onlineMeetings` directly); `ScheduleTeamsMeeting` above never sets
+    /// it, so `cancel_via_graph` prefers `CancelOnlineMeeting`.
     CancelCalendarEvent { organizer: String, event_id: String },
     /// `POST /subscriptions` -- tenant-wide transcript change-notification.
     /// Registered (G1.4/G1.5 apply) but not reachable from any handler: it
@@ -124,6 +146,7 @@ impl WriteOperation {
     pub fn name(&self) -> &'static str {
         match self {
             Self::ScheduleTeamsMeeting { .. } => "schedule_teams_meeting",
+            Self::CancelOnlineMeeting { .. } => "cancel_online_meeting",
             Self::CancelCalendarEvent { .. } => "cancel_calendar_event",
             Self::CreateSubscription { .. } => "create_subscription",
             Self::RenewSubscription { .. } => "renew_subscription",
@@ -136,7 +159,11 @@ impl WriteOperation {
     fn policy_action(&self) -> &'static str {
         match self {
             Self::ScheduleTeamsMeeting { .. } => "schedule_teams_meeting",
-            Self::CancelCalendarEvent { .. } => "cancel_calendar_event",
+            // Same gate as CancelCalendarEvent -- both are "cancel the
+            // meeting I scheduled", just against the right Graph resource.
+            Self::CancelOnlineMeeting { .. } | Self::CancelCalendarEvent { .. } => {
+                "cancel_calendar_event"
+            }
             Self::CreateSubscription { .. }
             | Self::RenewSubscription { .. }
             | Self::DeleteSubscription { .. } => "manage_subscription",
@@ -153,6 +180,20 @@ impl WriteOperation {
                 "/users/{}/onlineMeetings",
                 path_segment(organizer)
             ))),
+            Self::CancelOnlineMeeting {
+                organizer,
+                online_meeting_id,
+            } => Some(RequestPlan {
+                method: reqwest::Method::DELETE,
+                path: format!(
+                    "/users/{}/onlineMeetings/{}",
+                    path_segment(organizer),
+                    path_segment(online_meeting_id)
+                ),
+                query: Vec::new(),
+                headers: Vec::new(),
+                accept: vec!["application/json"],
+            }),
             Self::CancelCalendarEvent {
                 organizer,
                 event_id,
@@ -201,17 +242,26 @@ impl WriteOperation {
                 end_iso,
                 attendees,
                 ..
-            } => Some(serde_json::json!({
-                "subject": subject,
-                "startDateTime": start_iso,
-                "endDateTime": end_iso,
-                "participants": {
-                    "attendees": attendees.iter().map(|a| serde_json::json!({
-                        "upn": a,
-                        "role": "attendee",
-                    })).collect::<Vec<_>>(),
-                },
-            })),
+            } => {
+                // `participants` is omitted entirely when there are no
+                // attendees -- an empty `participants.attendees: []` was
+                // rejected live by Graph with `400 InvalidArgument`
+                // (verified 2026-09-07 against the lventur.com tenant).
+                let mut body = serde_json::json!({
+                    "subject": subject,
+                    "startDateTime": start_iso,
+                    "endDateTime": end_iso,
+                });
+                if !attendees.is_empty() {
+                    body["participants"] = serde_json::json!({
+                        "attendees": attendees.iter().map(|a| serde_json::json!({
+                            "upn": a,
+                            "role": "attendee",
+                        })).collect::<Vec<_>>(),
+                    });
+                }
+                Some(body)
+            }
             Self::CreateSubscription {
                 resource,
                 notification_url,
@@ -227,7 +277,9 @@ impl WriteOperation {
             Self::RenewSubscription { expiration_iso, .. } => Some(serde_json::json!({
                 "expirationDateTime": expiration_iso,
             })),
-            Self::CancelCalendarEvent { .. } | Self::DeleteSubscription { .. } => None,
+            Self::CancelOnlineMeeting { .. }
+            | Self::CancelCalendarEvent { .. }
+            | Self::DeleteSubscription { .. } => None,
             Self::SharePointUpload { .. } => None,
         }
     }
@@ -248,6 +300,13 @@ impl WriteOperation {
                 ("start_iso", start_iso.clone()),
                 ("end_iso", end_iso.clone()),
                 ("attendees", attendees.join(",")),
+            ],
+            Self::CancelOnlineMeeting {
+                organizer,
+                online_meeting_id,
+            } => vec![
+                ("organizer", organizer.clone()),
+                ("online_meeting_id", online_meeting_id.clone()),
             ],
             Self::CancelCalendarEvent {
                 organizer,
@@ -430,8 +489,14 @@ async fn send_mutation(
         serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::Null);
 
     if !status.is_success() {
+        let message = value
+            .get("error")
+            .and_then(|e| e.get("message"))
+            .and_then(|m| m.as_str())
+            .unwrap_or("");
         tracing::warn!(
             status = status.as_u16(),
+            error_message = message,
             "Microsoft Graph write returned an error status"
         );
         return Err(WriteError::Graph(classify(status, &value)));
@@ -454,6 +519,9 @@ fn resource_id_from_response(
             .get("id")
             .and_then(|v| v.as_str())
             .map(str::to_string),
+        WriteOperation::CancelOnlineMeeting {
+            online_meeting_id, ..
+        } => Some(online_meeting_id.clone()),
         WriteOperation::CancelCalendarEvent { event_id, .. } => Some(event_id.clone()),
         WriteOperation::DeleteSubscription { subscription_id } => Some(subscription_id.clone()),
         WriteOperation::SharePointUpload { .. } => None,

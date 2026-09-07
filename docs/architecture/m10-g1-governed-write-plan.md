@@ -1,20 +1,30 @@
 # M10 — G1 governed-write stack: implementation plan
 
-**Status (2026-09-07, updated):** **built.** All 8 G1 components exist and
-`schedule_teams_meeting` / `cancel_calendar_event` execute behind the full
-gate (`backend/src/services/graph/writes.rs` + `services/meeting_scheduling.rs`,
-commit `e5b6df0`). Live-verified with Graph credentials deliberately blanked
-(the fail-closed / no-credential path, policy denial, idempotency conflict,
-and retry-collapses-to-one-row all confirmed against the local DB with a real
-Meeting row) -- **no live WRITE has reached the real tenant.** What's left is
-purely external to this repo: the Azure AD write application permissions +
-admin consent (§4) are not confirmed granted, and a retained live WRITE
-certification run (distinct from the live read/token-acquisition check
-already done) has not happened. Subscription management and SharePoint
-upload remain `write_gated` -- no public HTTPS callback in this environment
-(spec 003 D2), no SharePoint decision (spec 004 D1). §1-§7 below are kept as
+**Status (2026-09-07, updated twice):** **built and live-certified for two
+operations.** All 8 G1 components exist
+(`backend/src/services/graph/writes.rs` + `services/meeting_scheduling.rs`,
+commit `e5b6df0`). First verified with Graph credentials deliberately
+blanked (fail-closed / no-credential path, policy denial, idempotency
+conflict, retry-collapses-to-one-row -- all against the local DB with a real
+Meeting row, no network reached). Then, with the user confirming the Azure
+AD write application permissions (§4) were granted, `scheduleViaGraph` and
+`cancelViaGraph` were fired for real against the `lventur.com` tenant: a
+live Teams meeting was created and immediately cancelled, both outcomes
+`succeeded` in the `graph_write_attempts` ledger with real Graph resource
+ids, both recorded in `audit_events`. Two real bugs surfaced by that live
+run and fixed in the same session (follow-up commit): the idempotency-ledger
+duplicate-row-on-retry bug, and `POST /onlineMeetings` needing an AAD GUID
+organizer (not a UPN) plus a `CancelOnlineMeeting` operation (`DELETE
+/onlineMeetings/{id}`) added because the planned `CancelCalendarEvent`
+targets a resource type (`/events`) that scheduling through `/onlineMeetings`
+never creates -- see HANDOFF.md §2 M10 for the full account. Subscription
+management and SharePoint upload remain `write_gated` -- no public HTTPS
+callback in this environment (spec 003 D2), no SharePoint decision (spec 004
+D1); `cancel_calendar_event` (as opposed to the live-certified
+`cancel_online_meeting`) also has no live pass. §1-§7 below are kept as
 written (the plan this was built from); treat past tense as "as planned,
-now done" where it describes the 8 components.
+now done" where it describes the 8 components, and note where §1's original
+`CancelCalendarEvent`-only design was corrected by the live run.
 
 **Owner of the decision to build:** human architect + governance review
 (spec 003 open decision **D4**; file 08 §8.6 "human path" — anything touching

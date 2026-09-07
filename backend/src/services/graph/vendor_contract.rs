@@ -85,6 +85,16 @@ pub const CONTRACTS: &[OperationContract] = &[
         tier: Tier::CompilerContracted,
     },
     OperationContract {
+        name: "cancel_online_meeting",
+        kind: "write",
+        sensitivity: "none",
+        // The path `cancel_via_graph` actually takes for a meeting
+        // scheduled through `schedule_teams_meeting` (which never sets
+        // `graph_event_id` -- see WriteOperation::ScheduleTeamsMeeting's
+        // doc comment).
+        tier: Tier::CompilerContracted,
+    },
+    OperationContract {
         name: "cancel_calendar_event",
         kind: "write",
         sensitivity: "none",
@@ -124,7 +134,11 @@ pub const CONTRACTS: &[OperationContract] = &[
 /// `writes::WriteOperation` arm actually reaching `execute`'s full pipeline
 /// would be the exact overclaim `assert_honest` exists to catch elsewhere,
 /// so keep this list in lockstep with `writes.rs`.
-const G1_GATED_WRITES: &[&str] = &["schedule_teams_meeting", "cancel_calendar_event"];
+const G1_GATED_WRITES: &[&str] = &[
+    "schedule_teams_meeting",
+    "cancel_online_meeting",
+    "cancel_calendar_event",
+];
 
 /// Invariant the tests/docs-check assert: nothing claims `live_certified`,
 /// and every `write` operation is `write_gated` UNLESS it's in

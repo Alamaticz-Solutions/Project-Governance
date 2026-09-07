@@ -80,12 +80,28 @@ framework was temporarily restored for that work and the exact commits
   (subscriptions, SharePoint) stay `write_gated` -- no public HTTPS callback
   for subscriptions in this environment (spec 003 D2), no SharePoint decision
   (spec 004 D1). 322 backend tests pass (0 failed, 1 ignored -- the live
-  Graph connection check). **Not yet done:** a retained live WRITE run (only
-  a live read/token-acquisition check has been made) and the Azure AD write
-  application permissions (`OnlineMeetings.ReadWrite.All`,
-  `Calendars.ReadWrite`) + admin consent + application access policy scoping
-  the app to the organizer mailbox. See
-  `docs/architecture/m10-g1-governed-write-plan.md`.
+  Graph connection check). See `docs/architecture/m10-g1-governed-write-plan.md`.
+  **Live write certification (2026-09-07, Azure AD write permissions
+  confirmed granted by the user):** `scheduleViaGraph` created a real Teams
+  meeting on the `lventur.com` tenant (`POST /users/{organizer}/onlineMeetings`)
+  and `cancelViaGraph` deleted it seconds later -- retained evidence in
+  `graph_write_attempts` (both rows `succeeded`, with the real
+  `graph_resource_id`) and `audit_events` (`GRAPH_WRITE_SCHEDULE_TEAMS_MEETING_SUCCEEDED`,
+  `GRAPH_WRITE_CANCEL_ONLINE_MEETING_SUCCEEDED`). Two real bugs surfaced and
+  were fixed by this live run, neither catchable by the unit tests: (1) an
+  idempotency-ledger retry inserted a duplicate row instead of reusing the
+  pending/failed one; (2) `POST /onlineMeetings` requires `organizer` as an
+  AAD **GUID** (`400 InvalidArgument: "The userId in request URL is not a
+  valid GUID."` when a UPN/email was sent), and creating a Teams meeting this
+  way produces an **online-meeting resource, not a calendar event** -- the
+  originally-planned `CancelCalendarEvent` (`DELETE /events/{id}`) is the
+  wrong endpoint for it; added `WriteOperation::CancelOnlineMeeting`
+  (`DELETE /onlineMeetings/{id}`) and `cancel_via_graph` now prefers it.
+  `schedule_teams_meeting` is `compiler_contracted`; `cancel_online_meeting`
+  and `cancel_calendar_event` both are too (`cancel_calendar_event` itself
+  still has no live pass -- nothing scheduled through this stack ever sets
+  `graph_event_id`, so exercising it needs the not-yet-built `POST /events`
+  scheduling path). Subscriptions and SharePoint remain untouched.
 - **M11** — frontend.
   - **11a** (`6915d5f`): generic contract-driven renderer wired to the generated
     `EntityWorkspace`.
@@ -292,12 +308,14 @@ five are unresolved and each can change generated output or service behaviour:
 
 ## 9. Deferred / not done
 
-- **M10 live write certification** — the G1 stack itself is built (see §2 M10
-  above); what's still outstanding is the Azure AD write application
-  permissions + admin consent, and a retained live WRITE run (only a live
-  read/token-acquisition check has been made so far,
-  `services::graph::client::live`). Subscription management and SharePoint
-  upload remain fully `write_gated` (no public callback / spec 004 D1 open).
+- **M10 subscriptions / SharePoint** — the two Meeting-scheduling writes are
+  built AND live-certified (see §2 M10 above, 2026-09-07). Subscription
+  management (`create/renew/delete_subscription`) and SharePoint upload
+  remain fully `write_gated` -- no public HTTPS callback in this environment
+  for subscriptions (spec 003 D2), no SharePoint decision (spec 004 D1).
+  `cancel_calendar_event` (the `DELETE /events/{id}` path, as opposed to the
+  live-certified `cancel_online_meeting`) also has no live pass -- nothing
+  in this build ever sets `graph_event_id`.
 - **Spec 004 AI-egress boundary** — the pre-egress PHI classification gate + the
   single OpenAI egress point. `meeting_agent.process_transcript` stops at
   “transcript captured, ai_status: pending”.

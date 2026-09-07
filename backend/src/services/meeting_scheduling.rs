@@ -207,11 +207,18 @@ pub async fn schedule_via_graph(
     }))
 }
 
-/// `Meeting.cancel_via_graph(meeting_id, payload)`. Deletes the calendar
-/// event Graph created for this meeting (`WriteOperation::CancelCalendarEvent`)
-/// behind the full G1 stack, then marks the row `cancelled`. The organizer
-/// and event id come from the `Meeting` row itself, never the caller --
-/// a caller cannot direct a cancel at an arbitrary event.
+/// `Meeting.cancel_via_graph(meeting_id, payload)`. Cancels whatever Graph
+/// resource `schedule_via_graph` actually created for this meeting, behind
+/// the full G1 stack, then marks the row `cancelled`. Prefers
+/// `WriteOperation::CancelOnlineMeeting` (`graph_online_meeting_id`) over
+/// `CancelCalendarEvent` (`graph_event_id`) because `schedule_via_graph`
+/// only ever sets the former -- `POST /onlineMeetings` creates an
+/// online-meeting resource, not a calendar event (found live, 2026-09-07:
+/// `DELETE /events/{onlineMeetingId}` is a category error, the online
+/// meeting is a different resource type). `graph_event_id` stays supported
+/// for a future portal path that schedules via `POST /events` instead. The
+/// organizer and resource id come from the `Meeting` row itself, never the
+/// caller -- a caller cannot direct a cancel at an arbitrary resource.
 #[tracing::instrument(
     name = "meeting.cancel_via_graph",
     skip(data_access, user, payload),
@@ -237,22 +244,21 @@ pub async fn cancel_via_graph(
         .ok_or_else(|| anyhow::anyhow!("meeting `{meeting_id}` was not found"))?;
 
     let organizer = resolve_organizer(&payload, &meeting)?;
-    let event_id = meeting
-        .graph_event_id
-        .clone()
-        .or_else(|| meeting.graph_online_meeting_id.clone())
-        .ok_or_else(|| {
-            anyhow::anyhow!(
-                "meeting `{meeting_id}` has no graph_event_id/graph_online_meeting_id -- \
-                 nothing to cancel on Graph"
-            )
-        })?;
     let idempotency_key = payload.get("idempotency_key").and_then(|v| v.as_str());
 
     let ctx = WriteContext::from_user(&actor);
-    let op = WriteOperation::CancelCalendarEvent {
-        organizer,
-        event_id,
+    let op = if let Some(event_id) = meeting.graph_event_id.clone() {
+        WriteOperation::CancelCalendarEvent { organizer, event_id }
+    } else if let Some(online_meeting_id) = meeting.graph_online_meeting_id.clone() {
+        WriteOperation::CancelOnlineMeeting {
+            organizer,
+            online_meeting_id,
+        }
+    } else {
+        return Err(anyhow::anyhow!(
+            "meeting `{meeting_id}` has no graph_event_id/graph_online_meeting_id -- \
+             nothing to cancel on Graph"
+        ));
     };
 
     let outcome = writes::execute(data_access, &ctx, op, Some(&meeting_id), idempotency_key)
