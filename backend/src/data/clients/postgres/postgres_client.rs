@@ -51,6 +51,12 @@ use crate::platform::runtime::{
     extension::UserAuth, provider_keys::FrameworkProvider, RuntimeProviderIdentity,
     RuntimeProviderPlanInput,
 };
+// The framework's own `ProviderPoolStats`, needed only inside `impl
+// RuntimeProviderIdentity for PostgresClient` below: that trait's
+// `pool_stats` signature is defined in `appfw_runtime` itself and can't
+// pick up the self-owned version the bare name now resolves to via the
+// facade override (slice 5 -- docs/architecture/self-owned-backend-plan.md).
+use appfw_runtime::ProviderPoolStats as FrameworkProviderPoolStats;
 
 use super::cte::CTE;
 use crate::config::app_config::AppConfig;
@@ -789,10 +795,10 @@ impl RuntimeProviderIdentity for PostgresClient {
         FrameworkProvider::Postgres
     }
 
-    fn pool_stats(&self) -> ProviderPoolStats {
+    fn pool_stats(&self) -> FrameworkProviderPoolStats {
         let status = self.execution.pool().status();
         let provider = RuntimeProviderIdentity::provider_descriptor(self);
-        ProviderPoolStats::instrumented(
+        FrameworkProviderPoolStats::instrumented(
             provider.provider_key(),
             provider.data_source_name(),
             status.max_size as u64,

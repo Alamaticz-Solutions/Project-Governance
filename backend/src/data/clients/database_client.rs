@@ -17,6 +17,7 @@ use crate::platform::runtime::{
 // -- docs/architecture/self-owned-backend-plan.md). Everywhere else in
 // this file the bare names above are exactly what's wanted.
 use appfw_runtime::{
+    ProviderPoolStats as FrameworkProviderPoolStats,
     RuntimeJsonAggregateResult as FrameworkJsonAggregateResult,
     RuntimeJsonQueryResult as FrameworkJsonQueryResult,
     RuntimeProviderPlanInput as FrameworkProviderPlanInput,
@@ -170,7 +171,7 @@ impl RuntimeProviderIdentity for DatabaseClientRuntimeAdapter<'_> {
         RuntimeProviderIdentity::framework_provider(&*self.client)
     }
 
-    fn pool_stats(&self) -> ProviderPoolStats {
+    fn pool_stats(&self) -> FrameworkProviderPoolStats {
         RuntimeProviderIdentity::pool_stats(&*self.client)
     }
 }

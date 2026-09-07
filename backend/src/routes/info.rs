@@ -69,7 +69,10 @@ impl RuntimeReadinessProbe for ProviderReadinessCheck {
     }
 
     fn record_pool_stats(&self, metrics: &MetricsRegistry) {
-        metrics.record_provider_pool_stats(self.data_access.pool_stats());
+        // `record_provider_pool_stats` is still framework-owned
+        // (observability::metrics), so bridge this self-owned
+        // `ProviderPoolStats` into the framework's own type.
+        metrics.record_provider_pool_stats(self.data_access.pool_stats().into());
     }
 }
 

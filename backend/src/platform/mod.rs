@@ -34,6 +34,8 @@ pub(crate) mod provider_keys;
 
 pub(crate) mod provider_operation;
 
+pub(crate) mod provider_pool_stats;
+
 pub(crate) mod provider_request;
 
 pub(crate) mod provider_result;

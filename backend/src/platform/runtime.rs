@@ -139,6 +139,16 @@ pub use crate::platform::provider_result::{RuntimeJsonAggregateResult, RuntimeJs
 // the trait definition. Safe to override outright.
 pub use crate::platform::provider_operation::{RuntimeProviderOperation, RuntimeProviderOperationCounts};
 //
+// `ProviderPoolStats` IS entangled, the same way `FrameworkProvider` is:
+// `PostgresClient` implements the framework's fixed `RuntimeProviderIdentity`
+// directly (not just via `DatabaseClientRuntimeAdapter`), and that impl's
+// `pool_stats(&self) -> ProviderPoolStats` must return the framework's own
+// type. See `postgres_client.rs`'s two side-by-side impl blocks (one for
+// each trait, by design -- its own doc comment explains why) for how the
+// fixed-trait block gets the framework type under an alias while
+// everything else here follows this override.
+pub use crate::platform::provider_pool_stats::ProviderPoolStats;
+//
 // This makes `data/clients/database_client.rs`'s self-owned `DatabaseClient`
 // trait (whose default method signatures already read these three names off
 // this facade) pick up the self-owned versions automatically -- but

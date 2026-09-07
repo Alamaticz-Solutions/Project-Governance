@@ -123,7 +123,11 @@ impl DataAccess {
     }
 
     pub fn pool_stats(&self) -> crate::platform::runtime::ProviderPoolStats {
-        self.runtime_provider().pool_stats()
+        // `runtime_provider().pool_stats()` still returns the framework's
+        // own `ProviderPoolStats` (via `DatabaseClientRuntimeAdapter`'s
+        // fixed `RuntimeProviderIdentity` impl), so bridge into the
+        // self-owned type this method's own signature now names.
+        self.runtime_provider().pool_stats().into()
     }
 
     /// Read the governed Neo4j relationship graph for an account record locator.
