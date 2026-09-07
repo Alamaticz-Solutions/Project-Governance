@@ -116,3 +116,59 @@ impl GraphClient {
         Ok(redact(value))
     }
 }
+
+#[cfg(test)]
+mod live {
+    //! Opt-in check against a real Microsoft Graph tenant. `#[ignore]`d by
+    //! default -- it makes two outbound calls (a client-credentials token
+    //! request to `login.microsoftonline.com`, then one named directory
+    //! read against `graph.microsoft.com`). Run deliberately with the
+    //! `GRAPH_*` contract present in `backend/.env`:
+    //!
+    //! ```text
+    //! cargo test -p backend --lib services::graph::client::live -- --ignored --nocapture
+    //! ```
+    //!
+    //! It is a *connection/auth* check only (ADR 0018): a pass proves the
+    //! tenant/client/secret triple and one read path, never semantic parity
+    //! or `live_certified` status. No write, no subscription.
+    use super::*;
+
+    #[tokio::test]
+    #[ignore = "outbound: login.microsoftonline.com + graph.microsoft.com; needs GRAPH_* env"]
+    async fn token_acquisition_and_one_directory_read() {
+        let _ = dotenv::from_path(concat!(env!("CARGO_MANIFEST_DIR"), "/.env"));
+
+        let client = GraphClient::from_env(reqwest::Client::new()).expect(
+            "GRAPH_* not set: need GRAPH_TENANT_ID / GRAPH_CLIENT_ID / \
+             GRAPH_CLIENT_SECRET / GRAPH_DEFAULT_ORGANIZER_ID",
+        );
+
+        // Graph `$search` on /users needs a property-scoped phrase
+        // (`displayName:x`), not a bare token -- a bare token returns
+        // `400 Request_UnsupportedQuery`. The registry wraps this in quotes.
+        match client
+            .read(ReadOperation::SearchDirectoryUsers {
+                term: "displayName:a".into(),
+            })
+            .await
+        {
+            Ok(body) => {
+                let n = body
+                    .get("value")
+                    .and_then(|v| v.as_array())
+                    .map(|a| a.len())
+                    .unwrap_or(0);
+                eprintln!("search_directory_users OK -- {n} directory user(s) returned");
+                assert!(
+                    body.get("value").is_some(),
+                    "expected an OData collection body, got: {body}"
+                );
+            }
+            Err(e) => panic!(
+                "Graph read failed (token acquisition or the directory GET): {e:#}\n\
+                 AADSTS7000215 here means GRAPH_CLIENT_SECRET is the secret *ID*, not the value."
+            ),
+        }
+    }
+}
