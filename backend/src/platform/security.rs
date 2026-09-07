@@ -2,8 +2,9 @@
 //!
 //! Product-owned (backend framework replacement phase 4b-2). Designed
 //! independently against a behavior specification, not derived from
-//! framework source. `SecurityConfig` itself stays framework-owned -- see
-//! `platform::routing`'s doc comment for why.
+//! framework source. `SecurityConfig` itself now lives in
+//! `platform::security_config` (slice 3 -- not `http`-gated, since
+//! `main.rs` needs it before it knows whether it will serve HTTP).
 
 use std::{num::NonZeroU32, sync::Arc};
 
@@ -118,13 +119,11 @@ fn clamp_to_nonzero(value: u64) -> NonZeroU32 {
     NonZeroU32::new(value.clamp(1, u32::MAX as u64) as u32).expect("clamped to at least 1")
 }
 
-/// True only when this process is running on a local developer workstation
-/// (`ENV_NAME=local`). Gates developer-only conveniences that must never
-/// activate in a managed environment -- used by `platform::auth`'s
-/// local-dev bypass and CI-test-auth gate (phase 4b-4).
-pub(crate) fn is_dev_workstation_env() -> bool {
-    std::env::var("ENV_NAME").is_ok_and(|value| value == "local")
-}
+/// Re-exported so existing callers (`platform::auth`'s local-dev bypass and
+/// CI-test-auth gate, phase 4b-4) don't need to change their import path --
+/// the real definition moved to `platform::security_config` (slice 3),
+/// which needs it too and isn't `http`-gated.
+pub(crate) use crate::platform::security_config::is_dev_workstation_env;
 
 #[cfg(test)]
 mod tests {

@@ -49,3 +49,36 @@ pub use crate::platform::errors::{
 // Shadowing the name here would make every such impl a type mismatch
 // against a same-named-but-different type. Move these down once slice 5
 // replaces `RuntimeProviderIdentity`/`DatabaseClientRuntimeAdapter` itself.
+
+// Slice 3 (auth/security -- partial):
+//
+// Every real call site reaches this through the submodule path
+// (`crate::platform::runtime::security::SecurityConfig`, mirroring
+// `appfw_runtime::security::SecurityConfig`), not the crate-root path --
+// confirmed directly (`grep -rn "runtime::security::" backend/src`, 6
+// hits, all `SecurityConfig`, nothing else from that submodule). So the
+// override has to shadow the *module name* `security` itself, not a
+// top-level re-export of the type; a top-level `pub use ...SecurityConfig`
+// here would compile (Rust wouldn't complain) but silently do nothing,
+// since it doesn't affect what `runtime::security::` resolves to.
+pub mod security {
+    pub use crate::platform::security_config::SecurityConfig;
+}
+//
+// `AccessAction`/`PolicyAccess` (already self-owned at `platform::policy`)
+// and `UserAuth`/`RuntimePrincipalType` (already self-owned at
+// `platform::user_auth`) are NOT overridden here, and never will be by this
+// mechanism: `product_api.rs` already re-exports the self-owned versions as
+// its own canonical `AccessAction`/`PolicyAccess`/`UserAuth`/
+// `RuntimePrincipalType`, with explicit bidirectional `From` bridges to
+// this facade's (still framework-owned) `PolicyAccess`/`extension::UserAuth`
+// at the one real boundary -- where `RuntimeJwtExtractor`'s JWT extraction
+// and the framework's Rego-evaluation glue still produce/consume the
+// framework's own types. Overriding the names here would make those bridge
+// `impl From<...>`s self-referential (a type converting into itself),
+// which conflicts with std's blanket `impl<T> From<T> for T` -- a compile
+// error, not a no-op. They come out once `RuntimeJwtExtractor` itself is
+// replaced (the remainder of this slice).
+//
+// `RuntimeJwtExtractor`/`RuntimeAuthState` themselves are also not
+// overridden: real JWT/Okta verification, not yet ported.

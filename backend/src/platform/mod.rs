@@ -44,6 +44,8 @@ pub(crate) mod secrets;
 #[cfg(feature = "http")]
 pub(crate) mod security;
 
+pub(crate) mod security_config;
+
 pub(crate) mod tenant_isolation;
 
 pub(crate) mod user_auth;
