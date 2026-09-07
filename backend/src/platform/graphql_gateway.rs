@@ -12,14 +12,12 @@
 //! Kept framework-owned, imported as opaque types/functions:
 //!   - `SecurityConfig` -- RBAC-bypass entanglement in `config/app_config.rs`
 //!     (phase-5 territory); only read here, never redefined.
-//!   - `RequestContext`, `annotate_graphql_response`,
-//!     `graphql_error_with_context` -- operate on `RequestContext`'s
-//!     framework-owned storage, deferred since phase 4b-1 because
-//!     `admin_ui.rs`'s framework-trait signatures fix that type. Same
-//!     pattern `platform::routing` already uses for `metrics_hook`/
-//!     `trace_context_hook`.
 //!   - `graphiql::html` -- a static HTML page generator with no auth logic;
 //!     out of scope for an authentication-boundary port.
+//!
+//! `RequestContext`, `annotate_graphql_response`, `graphql_error_with_context`
+//! are now self-owned (phase 7 slice 6.2 -- `platform::request_context`),
+//! reached the same way as before through this facade re-export.
 //!
 //! GraphQL errors are always returned as HTTP 200 with an `errors` array
 //! (never a 401/403) -- this matches both async-graphql's own convention and

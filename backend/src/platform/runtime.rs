@@ -219,10 +219,62 @@ pub mod product_ui {
 //
 // `RuntimeHandlerContext` and friends were already overridden in slice 3's
 // remainder above (see the `graphql_context` section).
+
+// Slice 6.2 (observability + readiness/info routes -- landed as one atomic
+// unit, not split across commits): `RequestContext` is stored in a
+// `tokio::task_local!`, written only by `trace_context_hook`'s `.scope(...)`
+// call and read only by `current_request_context()` -- porting one without
+// the other compiles clean and silently makes the reader return `None`
+// forever. `MetricsRegistry` is pinned by `RuntimeReadinessProbe::
+// record_pool_stats(&self, metrics: &MetricsRegistry)`, a fixed method
+// `routes/info.rs`'s `ProviderReadinessCheck` implements, and by
+// `runtime_info_routes` building its `/metrics`/`/metrics.json` handlers
+// around it internally -- so `platform::readiness` had to move in the same
+// commit as `platform::metrics`, not later.
 //
-// Still framework-owned pending slice 6.2/6.3: `observability::
-// {RequestContext, MetricsRegistry, current_request_context}`, `admin`,
-// `RuntimeAuthState`, the `query_filter` filter-*capabilities* reporting
-// API, `provider_capabilities`/`provider_contract_types` (reached directly
-// via `appfw_runtime::` from `admin_ui.rs`, not through this facade at
-// all).
+// Reached via the submodule path everywhere (`runtime::observability::...`,
+// confirmed via `grep -rn "runtime::observability::" backend/src`), so this
+// needs a `pub mod` shadow, same lesson as `security`/`query_cost`/etc.
+pub mod observability {
+    pub use crate::platform::metrics::MetricsRegistry;
+    pub use crate::platform::request_context::{
+        current_request_context, redact_diagnostic_text, redact_diagnostic_value, RequestContext,
+    };
+    #[cfg(feature = "http")]
+    pub use crate::platform::metrics::metrics_hook;
+    #[cfg(feature = "http")]
+    pub use crate::platform::request_context::{
+        annotate_graphql_response, graphql_error_with_context, http_make_span,
+        trace_context_hook, REQUEST_ID_HEADER_NAME,
+    };
+}
+//
+// `runtime_info_routes`/`RuntimeHealthCheck`/`RuntimeReadinessProbe`/
+// `RuntimeReadinessState` are reached at the crate-root path
+// (`routes/info.rs`'s `crate::platform::runtime::{runtime_info_routes,
+// RuntimeHealthCheck, RuntimeReadinessProbe, RuntimeReadinessState}`), not a
+// submodule, so a top-level `pub use` is correct here (unlike
+// `observability` above).
+#[cfg(feature = "http")]
+pub use crate::platform::readiness::{
+    runtime_info_routes, RuntimeHealthCheck, RuntimeReadinessProbe, RuntimeReadinessState,
+};
+//
+// `admin_ui.rs`'s three `Admin*Provider` trait methods still take
+// `&appfw_runtime::observability::RequestContext` by that exact framework
+// path -- the functions those parameters are only ever forwarded to
+// (`AdminServiceError::bad_request`/`admin_missing_data_access_error`/etc)
+// are still framework-owned (`admin` module, slice 6.3, not yet ported).
+// `RequestContext` needs no bridge either way (same `{request_id,
+// correlation_id}` shape on both sides), so `admin_ui.rs` just imports the
+// framework's own path explicitly at those three signatures instead of
+// reading it off this (now self-owned) facade -- see that file's own
+// comment.
+//
+// Still framework-owned pending slice 6.3: `admin`, `RuntimeAuthState`
+// (only used to satisfy `AdminRuntimeState::auth_state`'s fixed return
+// type -- `JwtAuthConfig`, `platform::auth`, is this product's real JWT
+// config and already carries the same three values), the `query_filter`
+// filter-*capabilities* reporting API (admin-only), and
+// `provider_capabilities`/`provider_contract_types` (reached directly via
+// `appfw_runtime::` from `admin_ui.rs`, never through this facade).

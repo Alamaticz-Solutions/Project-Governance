@@ -10,13 +10,12 @@
 //!     logic (`bypass_policies_in_local`, `allow_missing_policies_in_local`,
 //!     phase-5 territory); this module and `platform::graphql_gateway` both
 //!     take it by reference/value without needing to own it.
-//!   - `MetricsRegistry`, `RequestContext`, `current_request_context` --
-//!     deferred in phase 4b-1 (see `platform::observability`'s doc comment)
-//!     because `admin_ui.rs`'s framework-trait implementations and
-//!     `routes/info.rs`'s `runtime_info_routes(...)` both fix these types.
-//!   - `trace_context_hook`, `http_make_span`, `metrics_hook`,
-//!     `REQUEST_ID_HEADER_NAME` -- all operate on `RequestContext`'s
-//!     framework-owned storage, so they move together with it later.
+//!
+//! `MetricsRegistry`, `RequestContext`, `current_request_context`,
+//! `trace_context_hook`, `http_make_span`, `metrics_hook`, and
+//! `REQUEST_ID_HEADER_NAME` are now self-owned (phase 7 slice 6.2 --
+//! `platform::metrics`/`platform::request_context`), reached the same way
+//! as before through this facade re-export, so nothing below changed.
 //!
 //! `RuntimeJwtExtractor`, `RuntimeAuthState`, `UserAuth`, and
 //! `runtime_graphql_schema_routes` itself (the GraphQL route + JWT

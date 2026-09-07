@@ -6,9 +6,9 @@
 //!
 //! `log_provider_error`'s use of `current_request_context`/
 //! `redact_diagnostic_text` still goes through `crate::platform::runtime`
-//! (the facade) -- those belong to `platform::observability`, deferred to a
-//! later slice (see that module's own doc comment). This module's own
-//! classification logic has no other framework dependency.
+//! (the facade) -- those are self-owned as of phase 7 slice 6.2
+//! (`platform::request_context`), reached the same way as before. This
+//! module's own classification logic has no other framework dependency.
 
 use tracing::error;
 

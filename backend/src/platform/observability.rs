@@ -3,25 +3,18 @@
 //! Product-owned (backend framework replacement phase 4b-1 -- previously
 //! `crate::platform::runtime::observability::{init_tracing, ObservabilityGuard}`).
 //!
-//! `RequestContext`, `current_request_context`, and `MetricsRegistry` are
-//! deliberately NOT ported here despite living in the same framework module.
-//! They cross the framework/product boundary at call sites this slice can't
-//! safely move alone:
-//!   - `admin_ui.rs` implements framework-defined traits from
-//!     `crate::platform::runtime::admin` (`AdminPolicyExplainProvider`,
-//!     `AdminAuditTimelineProvider`, `AdminQueryDiagnoseProvider`) whose
-//!     method signatures take `&crate::platform::runtime::observability::RequestContext`
-//!     -- that type is fixed by the framework's trait, not by us.
-//!   - `routes/info.rs` passes `MetricsRegistry` by value into the
-//!     framework's own `runtime_info_routes(...)`, which builds the
-//!     `/metrics`/`/metrics.json` handlers around it internally.
-//! Both must be ported together with `crate::platform::runtime::admin` (admin.rs,
-//! ~2,463 lines -- not accounted for in the original phase 4 scoping table)
-//! and the `host.rs`/`readiness.rs` info-route surface, or `DataAccess`'s
-//! `metrics: MetricsRegistry` field and `admin_ui.rs`'s `&RequestContext`
-//! parameters won't type-check against the framework's own router/trait
-//! plumbing. Left as `crate::platform::runtime::observability::{RequestContext,
-//! MetricsRegistry, current_request_context}` until that sub-phase.
+//! `RequestContext`, `current_request_context`, and `MetricsRegistry` were
+//! deliberately NOT ported here despite living in the same framework module
+//! -- they're now self-owned too, as of phase 7 slice 6.2, but split into
+//! their own files (`platform::request_context`, `platform::metrics`,
+//! `platform::readiness`) rather than folded into this one: this module
+//! stays scoped to tracing/OTel process init, matching the framework's own
+//! `observability::telemetry` vs `observability::metrics` split. See
+//! `platform::request_context`'s doc comment for why those three had to
+//! land together, and `admin_ui.rs`'s own comment for the one place
+//! `RequestContext` still needs the framework's exact type (its three
+//! `Admin*Provider` trait methods, fixed by the still-framework-owned
+//! `admin` module, slice 6.3).
 
 use std::{env, error::Error, time::Duration};
 

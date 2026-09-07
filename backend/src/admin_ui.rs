@@ -10,10 +10,17 @@ use crate::platform::runtime::{
     },
     data_access::RuntimeQueryPlanDiagnostic,
     extension::UserAuth,
-    observability::RequestContext,
     security::SecurityConfig,
     RuntimeAuthState, RuntimeFilterCapabilities,
 };
+// `RequestContext` is fixed by the three `Admin*Provider` trait methods
+// below (`admin` is still framework-owned, slice 6.3) -- named explicitly
+// via its real framework path rather than the facade, which resolves this
+// name to the self-owned type as of slice 6.2. No bridge needed either way:
+// both types are the same plain `{request_id, correlation_id}` shape, and
+// every use here only forwards the value into other still-framework `admin`
+// functions.
+use appfw_runtime::observability::RequestContext;
 use async_trait::async_trait;
 use axum::Router;
 use serde_json::Value;

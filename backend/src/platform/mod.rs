@@ -9,7 +9,6 @@
 #[cfg(feature = "http")]
 pub(crate) mod auth;
 
-#[cfg(feature = "http")]
 pub(crate) mod connection_security;
 
 pub(crate) mod cors;
@@ -32,6 +31,8 @@ pub(crate) mod host;
 pub(crate) mod identifier;
 
 pub(crate) mod json_utils;
+
+pub(crate) mod metrics;
 
 pub(crate) mod observability;
 
@@ -60,7 +61,12 @@ pub(crate) mod query_filter;
 
 pub(crate) mod query_pagination;
 
+#[cfg(feature = "http")]
+pub(crate) mod readiness;
+
 pub(crate) mod record_locator;
+
+pub(crate) mod request_context;
 
 #[cfg(feature = "http")]
 pub(crate) mod routing;
