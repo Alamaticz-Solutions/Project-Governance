@@ -10,7 +10,7 @@ use postgres_types::{Json, ToSql};
 use serde_json::Value;
 use uuid::Uuid;
 
-use appfw_runtime::{model_metadata::RuntimeDataType, RuntimeError};
+use crate::platform::runtime::{model_metadata::RuntimeDataType, RuntimeError};
 
 pub type SqlParam = Box<dyn ToSql + Sync + Send>;
 

@@ -25,22 +25,22 @@ pub enum MutationTraceKind {
 }
 
 impl MutationTraceKind {
-    pub fn provider_operation(self) -> appfw_runtime::RuntimeProviderOperation {
+    pub fn provider_operation(self) -> crate::platform::runtime::RuntimeProviderOperation {
         match self {
-            Self::Create => appfw_runtime::RuntimeProviderOperation::CreateItem,
-            Self::Update => appfw_runtime::RuntimeProviderOperation::UpdateItem,
-            Self::Delete => appfw_runtime::RuntimeProviderOperation::DeleteItem,
+            Self::Create => crate::platform::runtime::RuntimeProviderOperation::CreateItem,
+            Self::Update => crate::platform::runtime::RuntimeProviderOperation::UpdateItem,
+            Self::Delete => crate::platform::runtime::RuntimeProviderOperation::DeleteItem,
         }
     }
 
     pub fn provider_operation_counts(
         self,
         affected_rows: i64,
-    ) -> appfw_runtime::RuntimeProviderOperationCounts {
+    ) -> crate::platform::runtime::RuntimeProviderOperationCounts {
         match self {
-            Self::Create | Self::Update => appfw_runtime::RuntimeProviderOperationCounts::new(1, 1),
+            Self::Create | Self::Update => crate::platform::runtime::RuntimeProviderOperationCounts::new(1, 1),
             Self::Delete => {
-                appfw_runtime::RuntimeProviderOperationCounts::from_affected_rows(affected_rows)
+                crate::platform::runtime::RuntimeProviderOperationCounts::from_affected_rows(affected_rows)
             }
         }
     }
@@ -71,7 +71,7 @@ pub fn delete_audit_outcome(audit_enabled: bool, deleted_count: i64) -> Option<D
 /// cross-module.
 fn ensure_provider_operation(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
-    operation: appfw_runtime::RuntimeProviderOperation,
+    operation: crate::platform::runtime::RuntimeProviderOperation,
 ) -> Result<(), crate::routes::app_error::AppError> {
     use crate::data::provider_identity::ProviderIdentity;
     if ProviderIdentity::provider_declares_operation(provider, operation) {
@@ -88,42 +88,42 @@ fn ensure_provider_operation(
 
 pub async fn provider_create_item_plan_json(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
-    input: appfw_runtime::RuntimeProviderPlanInput<
+    input: crate::platform::runtime::RuntimeProviderPlanInput<
         '_,
         crate::data::clients::database_client::ProviderMutationPlan,
     >,
 ) -> Result<crate::data::provider_plan::JsonObj, crate::routes::app_error::AppError> {
     ensure_provider_operation(
         provider,
-        appfw_runtime::RuntimeProviderOperation::CreateItem,
+        crate::platform::runtime::RuntimeProviderOperation::CreateItem,
     )?;
     provider.create_item_plan_json(input).await
 }
 
 pub async fn provider_update_item_plan_json(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
-    input: appfw_runtime::RuntimeProviderPlanInput<
+    input: crate::platform::runtime::RuntimeProviderPlanInput<
         '_,
         crate::data::clients::database_client::ProviderMutationPlan,
     >,
 ) -> Result<crate::data::provider_plan::JsonObj, crate::routes::app_error::AppError> {
     ensure_provider_operation(
         provider,
-        appfw_runtime::RuntimeProviderOperation::UpdateItem,
+        crate::platform::runtime::RuntimeProviderOperation::UpdateItem,
     )?;
     provider.update_item_plan_json(input).await
 }
 
 pub async fn provider_delete_item_plan_json(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
-    input: appfw_runtime::RuntimeProviderPlanInput<
+    input: crate::platform::runtime::RuntimeProviderPlanInput<
         '_,
         crate::data::clients::database_client::ProviderMutationPlan,
     >,
 ) -> Result<i64, crate::routes::app_error::AppError> {
     ensure_provider_operation(
         provider,
-        appfw_runtime::RuntimeProviderOperation::DeleteItem,
+        crate::platform::runtime::RuntimeProviderOperation::DeleteItem,
     )?;
     provider.delete_item_plan_json(input).await
 }
@@ -135,9 +135,9 @@ pub async fn execute_mutation<R, E, Fut>(
     provider_call: impl FnOnce() -> Fut,
     affected_rows: impl FnOnce(&R) -> i64,
     trace: impl FnOnce(
-        appfw_runtime::RuntimeProviderOperation,
+        crate::platform::runtime::RuntimeProviderOperation,
         std::time::Instant,
-        appfw_runtime::RuntimeProviderOperationCounts,
+        crate::platform::runtime::RuntimeProviderOperationCounts,
     ),
 ) -> Result<R, E>
 where
@@ -156,12 +156,12 @@ where
 pub async fn execute_create_item_plan_mutation(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
     plan: crate::data::clients::database_client::ProviderMutationPlan,
-    user: &appfw_runtime::extension::UserAuth,
-    access: &appfw_runtime::PolicyAccess,
+    user: &crate::platform::runtime::extension::UserAuth,
+    access: &crate::platform::runtime::PolicyAccess,
     trace: impl FnOnce(
-        appfw_runtime::RuntimeProviderOperation,
+        crate::platform::runtime::RuntimeProviderOperation,
         std::time::Instant,
-        appfw_runtime::RuntimeProviderOperationCounts,
+        crate::platform::runtime::RuntimeProviderOperationCounts,
     ),
 ) -> Result<crate::data::provider_plan::JsonObj, crate::routes::app_error::AppError> {
     execute_mutation(
@@ -169,7 +169,7 @@ pub async fn execute_create_item_plan_mutation(
         || {
             provider_create_item_plan_json(
                 provider,
-                appfw_runtime::RuntimeProviderPlanInput::new(plan, user, access),
+                crate::platform::runtime::RuntimeProviderPlanInput::new(plan, user, access),
             )
         },
         |_result| 1,
@@ -181,12 +181,12 @@ pub async fn execute_create_item_plan_mutation(
 pub async fn execute_update_item_plan_mutation(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
     plan: crate::data::clients::database_client::ProviderMutationPlan,
-    user: &appfw_runtime::extension::UserAuth,
-    access: &appfw_runtime::PolicyAccess,
+    user: &crate::platform::runtime::extension::UserAuth,
+    access: &crate::platform::runtime::PolicyAccess,
     trace: impl FnOnce(
-        appfw_runtime::RuntimeProviderOperation,
+        crate::platform::runtime::RuntimeProviderOperation,
         std::time::Instant,
-        appfw_runtime::RuntimeProviderOperationCounts,
+        crate::platform::runtime::RuntimeProviderOperationCounts,
     ),
 ) -> Result<crate::data::provider_plan::JsonObj, crate::routes::app_error::AppError> {
     execute_mutation(
@@ -194,7 +194,7 @@ pub async fn execute_update_item_plan_mutation(
         || {
             provider_update_item_plan_json(
                 provider,
-                appfw_runtime::RuntimeProviderPlanInput::new(plan, user, access),
+                crate::platform::runtime::RuntimeProviderPlanInput::new(plan, user, access),
             )
         },
         |_result| 1,
@@ -206,12 +206,12 @@ pub async fn execute_update_item_plan_mutation(
 pub async fn execute_delete_item_plan_mutation(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
     plan: crate::data::clients::database_client::ProviderMutationPlan,
-    user: &appfw_runtime::extension::UserAuth,
-    access: &appfw_runtime::PolicyAccess,
+    user: &crate::platform::runtime::extension::UserAuth,
+    access: &crate::platform::runtime::PolicyAccess,
     trace: impl FnOnce(
-        appfw_runtime::RuntimeProviderOperation,
+        crate::platform::runtime::RuntimeProviderOperation,
         std::time::Instant,
-        appfw_runtime::RuntimeProviderOperationCounts,
+        crate::platform::runtime::RuntimeProviderOperationCounts,
     ),
 ) -> Result<i64, crate::routes::app_error::AppError> {
     execute_mutation(
@@ -219,7 +219,7 @@ pub async fn execute_delete_item_plan_mutation(
         || {
             provider_delete_item_plan_json(
                 provider,
-                appfw_runtime::RuntimeProviderPlanInput::new(plan, user, access),
+                crate::platform::runtime::RuntimeProviderPlanInput::new(plan, user, access),
             )
         },
         |deleted_count| *deleted_count,
@@ -233,7 +233,7 @@ pub async fn validate_primary_key_available(
     entity_type: std::sync::Arc<crate::schemas::system::EntityType>,
     selections: serde_json::Value,
     record_id: Option<String>,
-    user: &appfw_runtime::extension::UserAuth,
+    user: &crate::platform::runtime::extension::UserAuth,
     access: &crate::platform::policy::PolicyAccess,
 ) -> Result<(), crate::routes::app_error::AppError> {
     let Some(record_id) = record_id else {
@@ -250,7 +250,7 @@ pub async fn validate_primary_key_available(
     .await?;
     if existing.is_some() {
         return Err(crate::routes::app_error::AppError::DataStore(
-            appfw_runtime::DataStoreError::DuplicateKey,
+            crate::platform::runtime::DataStoreError::DuplicateKey,
         ));
     }
     Ok(())
@@ -261,7 +261,7 @@ pub async fn validate_foreign_key_exists(
     entity_type: std::sync::Arc<crate::schemas::system::EntityType>,
     selections: serde_json::Value,
     record_id: Option<String>,
-    user: &appfw_runtime::extension::UserAuth,
+    user: &crate::platform::runtime::extension::UserAuth,
     access: &crate::platform::policy::PolicyAccess,
 ) -> Result<(), crate::routes::app_error::AppError> {
     let Some(record_id) = record_id else {
@@ -278,7 +278,7 @@ pub async fn validate_foreign_key_exists(
     .await?;
     if existing.is_none() {
         return Err(crate::routes::app_error::AppError::DataStore(
-            appfw_runtime::DataStoreError::ForeignKeyViolation,
+            crate::platform::runtime::DataStoreError::ForeignKeyViolation,
         ));
     }
     Ok(())
@@ -288,8 +288,8 @@ pub async fn validate_foreign_key_exists(
 pub async fn validate_unique_record(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
     plan: crate::data::clients::database_client::ProviderQueryPlan,
-    user: &appfw_runtime::extension::UserAuth,
-    access: &appfw_runtime::PolicyAccess,
+    user: &crate::platform::runtime::extension::UserAuth,
+    access: &crate::platform::runtime::PolicyAccess,
     primary_key_name: &str,
     record: &serde_json::Map<String, serde_json::Value>,
     entity_name: &str,
@@ -298,7 +298,7 @@ pub async fn validate_unique_record(
 ) -> Result<(), crate::routes::app_error::AppError> {
     let candidates = crate::data::read_orchestration::provider_query_items_plan_json(
         provider,
-        appfw_runtime::RuntimeProviderPlanInput::new(plan, user, access),
+        crate::platform::runtime::RuntimeProviderPlanInput::new(plan, user, access),
     )
     .await?;
     if crate::data::rules::validation::uniqueness_conflict(
@@ -591,7 +591,7 @@ pub async fn provider_append_audit_event(
 ) -> Result<(), crate::routes::app_error::AppError> {
     ensure_provider_operation(
         provider,
-        appfw_runtime::RuntimeProviderOperation::AppendAuditEvent,
+        crate::platform::runtime::RuntimeProviderOperation::AppendAuditEvent,
     )?;
     provider.append_audit_event(event).await
 }

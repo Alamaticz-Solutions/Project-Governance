@@ -3,11 +3,11 @@
 //! Product-owned (backend framework replacement phase 3a --
 //! docs/architecture/self-owned-backend-plan.md). Previously
 //! `appfw_provider_postgres::error::postgres_runtime_error`. Still delegates
-//! to `appfw_runtime::provider_error` for the stable error-kind mapping --
+//! to `crate::platform::runtime::provider_error` for the stable error-kind mapping --
 //! that module belongs to the runtime crate, not the postgres provider, and
 //! is in scope for a later phase (see the design doc).
 
-use appfw_runtime::{
+use crate::platform::runtime::{
     provider_error, provider_keys::FrameworkProvider, DataStoreError, RuntimeError,
 };
 

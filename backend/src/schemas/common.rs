@@ -2,8 +2,8 @@ use async_graphql::{InputObject, SimpleObject};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-pub type JsonQueryResult = appfw_runtime::RuntimeJsonQueryResult;
-pub type JsonAggregateResult = appfw_runtime::RuntimeJsonAggregateResult;
+pub type JsonQueryResult = crate::platform::runtime::RuntimeJsonQueryResult;
+pub type JsonAggregateResult = crate::platform::runtime::RuntimeJsonAggregateResult;
 
 #[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
 #[graphql(rename_fields = "snake_case")]

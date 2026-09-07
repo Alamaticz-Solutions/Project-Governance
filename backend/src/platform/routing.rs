@@ -36,7 +36,7 @@
 
 use std::{env, time::Duration};
 
-use appfw_runtime::{
+use crate::platform::runtime::{
     observability::{
         http_make_span, metrics_hook, trace_context_hook, MetricsRegistry, REQUEST_ID_HEADER_NAME,
     },

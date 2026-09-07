@@ -1,8 +1,8 @@
 //! Product-owned timezone adjustment for `DateTime` properties, ported off
 //! `appfw_runtime` (backend framework replacement phase 5).
 
-use appfw_runtime::model_metadata::{RuntimeDataType, RuntimePropertyMetadata};
-use appfw_runtime::RuntimeError;
+use crate::platform::runtime::model_metadata::{RuntimeDataType, RuntimePropertyMetadata};
+use crate::platform::runtime::RuntimeError;
 use chrono::{DateTime, FixedOffset, Utc};
 use serde_json::{Map, Value};
 

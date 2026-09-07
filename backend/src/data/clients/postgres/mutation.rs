@@ -4,7 +4,7 @@
 //! docs/architecture/self-owned-backend-plan.md). Previously
 //! `appfw_provider_postgres::mutation`.
 
-use appfw_runtime::{model_metadata::RuntimeDataType, RuntimeError};
+use crate::platform::runtime::{model_metadata::RuntimeDataType, RuntimeError};
 use serde_json::Value;
 
 use super::param::{prop_param_ref, type_param, SqlParam};
@@ -243,7 +243,7 @@ fn junction_table_ref(junction: &PostgresJunctionTable) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use appfw_runtime::model_metadata::RuntimeDataType;
+    use crate::platform::runtime::model_metadata::RuntimeDataType;
     use serde_json::json;
 
     fn entity() -> PostgresMutationEntity {

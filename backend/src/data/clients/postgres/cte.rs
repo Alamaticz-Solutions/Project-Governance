@@ -16,7 +16,7 @@ use super::cte_sql::{
 use super::many_to_many_config::ManyToManyConfig;
 use super::param::SqlParam;
 use super::sort::{order_by as provider_order_by, PostgresSortField};
-use appfw_runtime::extension::UserAuth;
+use crate::platform::runtime::extension::UserAuth;
 use serde_json::Value;
 use tracing::{debug, error, info, warn};
 

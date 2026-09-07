@@ -12,9 +12,9 @@
 //! own `UserAuth::human(..)` constructor.
 //!
 //! Kept framework-owned, deliberately NOT redefined here:
-//!   - `appfw_runtime::RuntimeJwtExtractor` -- a plain
-//!     `{ user: Option<Arc<appfw_runtime::extension::UserAuth>> }` holder
-//!     that `appfw_runtime::user_from_graphql_context` (used throughout
+//!   - `crate::platform::runtime::RuntimeJwtExtractor` -- a plain
+//!     `{ user: Option<Arc<crate::platform::runtime::extension::UserAuth>> }` holder
+//!     that `crate::platform::runtime::user_from_graphql_context` (used throughout
 //!     `backend/src/product_api.rs` and every generated resolver via
 //!     `product_api::user_from_context`) looks up by concrete type from the
 //!     async-graphql request context. Redefining this type would silently
@@ -34,7 +34,7 @@
 
 use std::{collections::HashSet, sync::Arc};
 
-use appfw_runtime::{ConfigError, RuntimeError};
+use crate::platform::runtime::{ConfigError, RuntimeError};
 use axum::http::HeaderMap;
 use okta_jwt_verifier::Verifier;
 use serde_json::Value;
@@ -315,7 +315,7 @@ fn claim_space_delimited(claims: &serde_json::Map<String, Value>, key: &str) -> 
 /// allow-list may introspect, and only when introspection is enabled at
 /// all.
 pub(crate) fn authorize_introspection(
-    security: &appfw_runtime::security::SecurityConfig,
+    security: &crate::platform::runtime::security::SecurityConfig,
     user: Option<&UserAuth>,
 ) -> Result<(), RuntimeError> {
     if !security.graphql_introspection_enabled {

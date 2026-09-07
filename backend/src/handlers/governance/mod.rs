@@ -8264,7 +8264,7 @@ fn from_context(
     schema_name: &'static str,
     type_name: &'static str,
 ) -> std::result::Result<HandlerContext, AppError> {
-    let user = user_from_context(ctx).map(appfw_runtime::extension::UserAuth::from);
+    let user = user_from_context(ctx).map(crate::platform::runtime::extension::UserAuth::from);
     let data_access = data_access_from_context(ctx);
     let entity_type = entity_type_for_handler(&data_access, schema_name, type_name)?;
     let selections = get_query_selections(
@@ -8286,7 +8286,7 @@ fn from_context_without_selections(
     schema_name: &'static str,
     type_name: &'static str,
 ) -> std::result::Result<HandlerContext, AppError> {
-    let user = user_from_context(ctx).map(appfw_runtime::extension::UserAuth::from);
+    let user = user_from_context(ctx).map(crate::platform::runtime::extension::UserAuth::from);
     let data_access = data_access_from_context(ctx);
     let entity_type = entity_type_for_handler(&data_access, schema_name, type_name)?;
     Ok(HandlerContext::new(

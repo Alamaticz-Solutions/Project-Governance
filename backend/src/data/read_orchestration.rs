@@ -20,8 +20,8 @@ pub struct QueryPlanDiagnostic {
     pub data_source: String,
     pub pagination: PaginationDiagnostic,
     pub access_filter_applied: bool,
-    pub cost: appfw_runtime::QueryCost,
-    pub budget: appfw_runtime::QueryCostBudget,
+    pub cost: crate::platform::runtime::QueryCost,
+    pub budget: crate::platform::runtime::QueryCostBudget,
     pub provider_diagnostic: serde_json::Value,
 }
 
@@ -90,7 +90,7 @@ pub fn primary_key_in_filter(
     let primary_key_name = primary_key_name.trim();
     if primary_key_name.is_empty() {
         return Err(crate::routes::app_error::AppError::Metadata(
-            appfw_runtime::MetadataError::MissingPrimaryKey {
+            crate::platform::runtime::MetadataError::MissingPrimaryKey {
                 entity_type: "batch read".to_string(),
             },
         ));
@@ -192,12 +192,12 @@ where
 /// Execute a single-record ("optional") read: call the provider, trace the
 /// operation, then run the per-record evaluation callback.
 pub async fn execute_optional_read<E, Fut>(
-    operation: appfw_runtime::RuntimeProviderOperation,
+    operation: crate::platform::runtime::RuntimeProviderOperation,
     provider_call: impl FnOnce() -> Fut,
     trace: impl FnOnce(
-        appfw_runtime::RuntimeProviderOperation,
+        crate::platform::runtime::RuntimeProviderOperation,
         std::time::Instant,
-        appfw_runtime::RuntimeProviderOperationCounts,
+        crate::platform::runtime::RuntimeProviderOperationCounts,
     ),
     evaluate: impl FnMut(
         serde_json::Map<String, serde_json::Value>,
@@ -213,7 +213,7 @@ where
     trace(
         operation,
         started_at,
-        appfw_runtime::RuntimeProviderOperationCounts::from_counts(result_count, result_count),
+        crate::platform::runtime::RuntimeProviderOperationCounts::from_counts(result_count, result_count),
     );
     evaluate_optional_read_record(record, evaluate)
 }
@@ -221,12 +221,12 @@ where
 /// Execute a list-shaped read: call the provider, trace the operation, then
 /// run the per-record evaluation callback over every item.
 pub async fn execute_list_read<E, Fut>(
-    operation: appfw_runtime::RuntimeProviderOperation,
+    operation: crate::platform::runtime::RuntimeProviderOperation,
     provider_call: impl FnOnce() -> Fut,
     trace: impl FnOnce(
-        appfw_runtime::RuntimeProviderOperation,
+        crate::platform::runtime::RuntimeProviderOperation,
         std::time::Instant,
-        appfw_runtime::RuntimeProviderOperationCounts,
+        crate::platform::runtime::RuntimeProviderOperationCounts,
     ),
     evaluate: impl FnMut(
         serde_json::Map<String, serde_json::Value>,
@@ -237,7 +237,7 @@ where
 {
     let started_at = std::time::Instant::now();
     let items = provider_call().await?;
-    let counts = appfw_runtime::RuntimeProviderOperationCounts::from_result_count(items.len());
+    let counts = crate::platform::runtime::RuntimeProviderOperationCounts::from_result_count(items.len());
     trace(operation, started_at, counts);
     evaluate_read_records(items, evaluate)
 }
@@ -253,9 +253,9 @@ pub async fn execute_query_page_read<R, E, Fut>(
     take_items: impl FnOnce(&mut R) -> Vec<serde_json::Map<String, serde_json::Value>>,
     apply_finalization: impl FnOnce(&mut R, QueryItemsFinalization),
     trace: impl FnOnce(
-        appfw_runtime::RuntimeProviderOperation,
+        crate::platform::runtime::RuntimeProviderOperation,
         std::time::Instant,
-        appfw_runtime::RuntimeProviderOperationCounts,
+        crate::platform::runtime::RuntimeProviderOperationCounts,
     ),
     evaluate: impl FnMut(
         serde_json::Map<String, serde_json::Value>,
@@ -270,9 +270,9 @@ where
     let query_count = query_count(&result);
     let items = take_items(&mut result);
     trace(
-        appfw_runtime::RuntimeProviderOperation::QueryItems,
+        crate::platform::runtime::RuntimeProviderOperation::QueryItems,
         started_at,
-        appfw_runtime::RuntimeProviderOperationCounts::from_counts(query_count, items.len() as i64),
+        crate::platform::runtime::RuntimeProviderOperationCounts::from_counts(query_count, items.len() as i64),
     );
     let finalized = finalize_query_items_page(pagination, sort, items, evaluate)?;
     apply_finalization(&mut result, finalized);
@@ -286,9 +286,9 @@ pub async fn execute_aggregate_read<R, E, Fut>(
     query_count: impl FnOnce(&R) -> i64,
     result_count: impl FnOnce(&R) -> i64,
     trace: impl FnOnce(
-        appfw_runtime::RuntimeProviderOperation,
+        crate::platform::runtime::RuntimeProviderOperation,
         std::time::Instant,
-        appfw_runtime::RuntimeProviderOperationCounts,
+        crate::platform::runtime::RuntimeProviderOperationCounts,
     ),
 ) -> Result<R, E>
 where
@@ -297,9 +297,9 @@ where
     let started_at = std::time::Instant::now();
     let result = provider_call().await?;
     trace(
-        appfw_runtime::RuntimeProviderOperation::AggregateItems,
+        crate::platform::runtime::RuntimeProviderOperation::AggregateItems,
         started_at,
-        appfw_runtime::RuntimeProviderOperationCounts::from_counts(
+        crate::platform::runtime::RuntimeProviderOperationCounts::from_counts(
             query_count(&result),
             result_count(&result),
         ),
@@ -310,7 +310,7 @@ where
 /// Fail closed unless the provider declares support for `operation`.
 fn ensure_provider_operation(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
-    operation: appfw_runtime::RuntimeProviderOperation,
+    operation: crate::platform::runtime::RuntimeProviderOperation,
 ) -> Result<(), crate::routes::app_error::AppError> {
     use crate::data::provider_identity::ProviderIdentity;
     if ProviderIdentity::provider_declares_operation(provider, operation) {
@@ -330,7 +330,7 @@ pub async fn provider_health_check(
 ) -> Result<(), crate::routes::app_error::AppError> {
     ensure_provider_operation(
         provider,
-        appfw_runtime::RuntimeProviderOperation::HealthCheck,
+        crate::platform::runtime::RuntimeProviderOperation::HealthCheck,
     )?;
     provider.health_check().await
 }
@@ -340,10 +340,10 @@ pub async fn provider_find_item_json(
     entity_type: std::sync::Arc<crate::schemas::system::EntityType>,
     selections: serde_json::Value,
     id: String,
-    user: &appfw_runtime::extension::UserAuth,
+    user: &crate::platform::runtime::extension::UserAuth,
     access: &crate::platform::policy::PolicyAccess,
 ) -> Result<Option<crate::data::provider_plan::JsonObj>, crate::routes::app_error::AppError> {
-    ensure_provider_operation(provider, appfw_runtime::RuntimeProviderOperation::FindItem)?;
+    ensure_provider_operation(provider, crate::platform::runtime::RuntimeProviderOperation::FindItem)?;
     provider
         .find_item_json(entity_type, selections, id, user, access)
         .await
@@ -351,18 +351,18 @@ pub async fn provider_find_item_json(
 
 pub async fn provider_get_items_plan_json(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
-    input: appfw_runtime::RuntimeProviderPlanInput<
+    input: crate::platform::runtime::RuntimeProviderPlanInput<
         '_,
         crate::data::clients::database_client::ProviderQueryPlan,
     >,
 ) -> Result<Vec<crate::data::provider_plan::JsonObj>, crate::routes::app_error::AppError> {
-    ensure_provider_operation(provider, appfw_runtime::RuntimeProviderOperation::GetItems)?;
+    ensure_provider_operation(provider, crate::platform::runtime::RuntimeProviderOperation::GetItems)?;
     provider.get_items_plan_json(input).await
 }
 
 pub async fn provider_query_items_plan_json(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
-    input: appfw_runtime::RuntimeProviderPlanInput<
+    input: crate::platform::runtime::RuntimeProviderPlanInput<
         '_,
         crate::data::clients::database_client::ProviderQueryPlan,
     >,
@@ -372,28 +372,28 @@ pub async fn provider_query_items_plan_json(
 > {
     ensure_provider_operation(
         provider,
-        appfw_runtime::RuntimeProviderOperation::QueryItems,
+        crate::platform::runtime::RuntimeProviderOperation::QueryItems,
     )?;
     provider.query_items_plan_json(input).await
 }
 
 pub async fn provider_batch_get_items_plan_json(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
-    input: appfw_runtime::RuntimeProviderPlanInput<
+    input: crate::platform::runtime::RuntimeProviderPlanInput<
         '_,
         crate::data::clients::database_client::ProviderQueryPlan,
     >,
 ) -> Result<Vec<crate::data::provider_plan::JsonObj>, crate::routes::app_error::AppError> {
     ensure_provider_operation(
         provider,
-        appfw_runtime::RuntimeProviderOperation::BatchFindItemsByIds,
+        crate::platform::runtime::RuntimeProviderOperation::BatchFindItemsByIds,
     )?;
     provider.batch_get_items_plan_json(input).await
 }
 
 pub async fn provider_aggregate_items_plan_json(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
-    input: appfw_runtime::RuntimeProviderPlanInput<
+    input: crate::platform::runtime::RuntimeProviderPlanInput<
         '_,
         crate::data::clients::database_client::ProviderAggregatePlan,
     >,
@@ -403,21 +403,21 @@ pub async fn provider_aggregate_items_plan_json(
 > {
     ensure_provider_operation(
         provider,
-        appfw_runtime::RuntimeProviderOperation::AggregateItems,
+        crate::platform::runtime::RuntimeProviderOperation::AggregateItems,
     )?;
     provider.aggregate_items_plan_json(input).await
 }
 
 pub async fn provider_explain_query_plan(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
-    input: appfw_runtime::RuntimeProviderPlanInput<
+    input: crate::platform::runtime::RuntimeProviderPlanInput<
         '_,
         &crate::data::clients::database_client::ProviderQueryPlan,
     >,
 ) -> Result<serde_json::Value, crate::routes::app_error::AppError> {
     ensure_provider_operation(
         provider,
-        appfw_runtime::RuntimeProviderOperation::ExplainQueryPlan,
+        crate::platform::runtime::RuntimeProviderOperation::ExplainQueryPlan,
     )?;
     provider.explain_query_plan(input).await
 }
@@ -427,12 +427,12 @@ pub async fn execute_find_item_read(
     entity_type: std::sync::Arc<crate::schemas::system::EntityType>,
     selections: serde_json::Value,
     id: String,
-    user: &appfw_runtime::extension::UserAuth,
+    user: &crate::platform::runtime::extension::UserAuth,
     access: &crate::platform::policy::PolicyAccess,
     trace: impl FnOnce(
-        appfw_runtime::RuntimeProviderOperation,
+        crate::platform::runtime::RuntimeProviderOperation,
         std::time::Instant,
-        appfw_runtime::RuntimeProviderOperationCounts,
+        crate::platform::runtime::RuntimeProviderOperationCounts,
     ),
     evaluate: impl FnMut(
         crate::data::provider_plan::JsonObj,
@@ -442,7 +442,7 @@ pub async fn execute_find_item_read(
     >,
 ) -> Result<Option<crate::data::provider_plan::JsonObj>, crate::routes::app_error::AppError> {
     execute_optional_read(
-        appfw_runtime::RuntimeProviderOperation::FindItem,
+        crate::platform::runtime::RuntimeProviderOperation::FindItem,
         || provider_find_item_json(provider, entity_type, selections, id, user, access),
         trace,
         evaluate,
@@ -453,12 +453,12 @@ pub async fn execute_find_item_read(
 pub async fn execute_get_items_plan_read(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
     plan: crate::data::clients::database_client::ProviderQueryPlan,
-    user: &appfw_runtime::extension::UserAuth,
-    access: &appfw_runtime::PolicyAccess,
+    user: &crate::platform::runtime::extension::UserAuth,
+    access: &crate::platform::runtime::PolicyAccess,
     trace: impl FnOnce(
-        appfw_runtime::RuntimeProviderOperation,
+        crate::platform::runtime::RuntimeProviderOperation,
         std::time::Instant,
-        appfw_runtime::RuntimeProviderOperationCounts,
+        crate::platform::runtime::RuntimeProviderOperationCounts,
     ),
     evaluate: impl FnMut(
         crate::data::provider_plan::JsonObj,
@@ -468,11 +468,11 @@ pub async fn execute_get_items_plan_read(
     >,
 ) -> Result<Vec<crate::data::provider_plan::JsonObj>, crate::routes::app_error::AppError> {
     execute_list_read(
-        appfw_runtime::RuntimeProviderOperation::GetItems,
+        crate::platform::runtime::RuntimeProviderOperation::GetItems,
         || {
             provider_get_items_plan_json(
                 provider,
-                appfw_runtime::RuntimeProviderPlanInput::new(plan, user, access),
+                crate::platform::runtime::RuntimeProviderPlanInput::new(plan, user, access),
             )
         },
         trace,
@@ -484,12 +484,12 @@ pub async fn execute_get_items_plan_read(
 pub async fn execute_batch_get_items_plan_read(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
     plan: crate::data::clients::database_client::ProviderQueryPlan,
-    user: &appfw_runtime::extension::UserAuth,
-    access: &appfw_runtime::PolicyAccess,
+    user: &crate::platform::runtime::extension::UserAuth,
+    access: &crate::platform::runtime::PolicyAccess,
     trace: impl FnOnce(
-        appfw_runtime::RuntimeProviderOperation,
+        crate::platform::runtime::RuntimeProviderOperation,
         std::time::Instant,
-        appfw_runtime::RuntimeProviderOperationCounts,
+        crate::platform::runtime::RuntimeProviderOperationCounts,
     ),
     evaluate: impl FnMut(
         crate::data::provider_plan::JsonObj,
@@ -499,11 +499,11 @@ pub async fn execute_batch_get_items_plan_read(
     >,
 ) -> Result<Vec<crate::data::provider_plan::JsonObj>, crate::routes::app_error::AppError> {
     execute_list_read(
-        appfw_runtime::RuntimeProviderOperation::BatchFindItemsByIds,
+        crate::platform::runtime::RuntimeProviderOperation::BatchFindItemsByIds,
         || {
             provider_batch_get_items_plan_json(
                 provider,
-                appfw_runtime::RuntimeProviderPlanInput::new(plan, user, access),
+                crate::platform::runtime::RuntimeProviderPlanInput::new(plan, user, access),
             )
         },
         trace,
@@ -517,12 +517,12 @@ pub async fn execute_query_items_plan_read(
     plan: crate::data::clients::database_client::ProviderQueryPlan,
     pagination: &crate::data::provider_plan::Pagination,
     sort: Option<&ReadSort>,
-    user: &appfw_runtime::extension::UserAuth,
-    access: &appfw_runtime::PolicyAccess,
+    user: &crate::platform::runtime::extension::UserAuth,
+    access: &crate::platform::runtime::PolicyAccess,
     trace: impl FnOnce(
-        appfw_runtime::RuntimeProviderOperation,
+        crate::platform::runtime::RuntimeProviderOperation,
         std::time::Instant,
-        appfw_runtime::RuntimeProviderOperationCounts,
+        crate::platform::runtime::RuntimeProviderOperationCounts,
     ),
     evaluate: impl FnMut(
         crate::data::provider_plan::JsonObj,
@@ -540,7 +540,7 @@ pub async fn execute_query_items_plan_read(
         || {
             provider_query_items_plan_json(
                 provider,
-                appfw_runtime::RuntimeProviderPlanInput::new(plan, user, access),
+                crate::platform::runtime::RuntimeProviderPlanInput::new(plan, user, access),
             )
         },
         |result| result.query_count,
@@ -559,12 +559,12 @@ pub async fn execute_query_items_plan_read(
 pub async fn execute_aggregate_items_plan_read(
     provider: &dyn crate::data::clients::database_client::DatabaseClient,
     plan: crate::data::clients::database_client::ProviderAggregatePlan,
-    user: &appfw_runtime::extension::UserAuth,
-    access: &appfw_runtime::PolicyAccess,
+    user: &crate::platform::runtime::extension::UserAuth,
+    access: &crate::platform::runtime::PolicyAccess,
     trace: impl FnOnce(
-        appfw_runtime::RuntimeProviderOperation,
+        crate::platform::runtime::RuntimeProviderOperation,
         std::time::Instant,
-        appfw_runtime::RuntimeProviderOperationCounts,
+        crate::platform::runtime::RuntimeProviderOperationCounts,
     ),
 ) -> Result<
     crate::data::clients::database_client::JsonAggregateResult,
@@ -574,7 +574,7 @@ pub async fn execute_aggregate_items_plan_read(
         || {
             provider_aggregate_items_plan_json(
                 provider,
-                appfw_runtime::RuntimeProviderPlanInput::new(plan, user, access),
+                crate::platform::runtime::RuntimeProviderPlanInput::new(plan, user, access),
             )
         },
         |result| result.query_count,

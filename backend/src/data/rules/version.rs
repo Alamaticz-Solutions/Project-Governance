@@ -1,10 +1,10 @@
 //! Product-owned optimistic-concurrency versioning, ported off
 //! `appfw_runtime` (backend framework replacement phase 5).
 
-use appfw_runtime::model_metadata::{
+use crate::platform::runtime::model_metadata::{
     RuntimeDataType, RuntimeEntityMetadata, RuntimePropertyMetadata,
 };
-use appfw_runtime::RuntimeError;
+use crate::platform::runtime::RuntimeError;
 use serde_json::{Map, Value};
 
 /// JavaScript's `Number.MAX_SAFE_INTEGER`. Browser admin clients round-trip

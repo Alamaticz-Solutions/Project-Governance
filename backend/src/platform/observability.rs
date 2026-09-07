@@ -1,26 +1,26 @@
 //! Tracing/OpenTelemetry setup.
 //!
 //! Product-owned (backend framework replacement phase 4b-1 -- previously
-//! `appfw_runtime::observability::{init_tracing, ObservabilityGuard}`).
+//! `crate::platform::runtime::observability::{init_tracing, ObservabilityGuard}`).
 //!
 //! `RequestContext`, `current_request_context`, and `MetricsRegistry` are
 //! deliberately NOT ported here despite living in the same framework module.
 //! They cross the framework/product boundary at call sites this slice can't
 //! safely move alone:
 //!   - `admin_ui.rs` implements framework-defined traits from
-//!     `appfw_runtime::admin` (`AdminPolicyExplainProvider`,
+//!     `crate::platform::runtime::admin` (`AdminPolicyExplainProvider`,
 //!     `AdminAuditTimelineProvider`, `AdminQueryDiagnoseProvider`) whose
-//!     method signatures take `&appfw_runtime::observability::RequestContext`
+//!     method signatures take `&crate::platform::runtime::observability::RequestContext`
 //!     -- that type is fixed by the framework's trait, not by us.
 //!   - `routes/info.rs` passes `MetricsRegistry` by value into the
 //!     framework's own `runtime_info_routes(...)`, which builds the
 //!     `/metrics`/`/metrics.json` handlers around it internally.
-//! Both must be ported together with `appfw_runtime::admin` (admin.rs,
+//! Both must be ported together with `crate::platform::runtime::admin` (admin.rs,
 //! ~2,463 lines -- not accounted for in the original phase 4 scoping table)
 //! and the `host.rs`/`readiness.rs` info-route surface, or `DataAccess`'s
 //! `metrics: MetricsRegistry` field and `admin_ui.rs`'s `&RequestContext`
 //! parameters won't type-check against the framework's own router/trait
-//! plumbing. Left as `appfw_runtime::observability::{RequestContext,
+//! plumbing. Left as `crate::platform::runtime::observability::{RequestContext,
 //! MetricsRegistry, current_request_context}` until that sub-phase.
 
 use std::{env, error::Error, time::Duration};

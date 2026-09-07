@@ -766,7 +766,7 @@ mod oracle_test {
 
     /// Verifies this module's `AuditEvent::entity_mutation` produces the exact
     /// same JSON shape (field names, types, presence) as the real framework
-    /// `appfw_runtime::RuntimeAuditEvent::entity_mutation`, and that both
+    /// `crate::platform::runtime::RuntimeAuditEvent::entity_mutation`, and that both
     /// produce the same `event_hash` given the same (patched-for-determinism)
     /// input. This is a persisted-data contract: existing audit rows' hashes
     /// were computed by the framework's serialization, so any drift here
@@ -779,7 +779,7 @@ mod oracle_test {
         let after = Some(json!({ "id": "account-1", "api_token": "new" }));
 
         // --- Framework side (real appfw_runtime types) ---
-        let framework_user = appfw_runtime::extension::UserAuth::human(
+        let framework_user = crate::platform::runtime::extension::UserAuth::human(
             "tenant-1",
             "alex",
             "UTC",
@@ -787,10 +787,10 @@ mod oracle_test {
             Vec::new(),
             "do-not-store",
         );
-        let framework_access = appfw_runtime::PolicyAccess::allow_all();
-        let framework_event = appfw_runtime::RuntimeAuditEvent::entity_mutation(
+        let framework_access = crate::platform::runtime::PolicyAccess::allow_all();
+        let framework_event = crate::platform::runtime::RuntimeAuditEvent::entity_mutation(
             &entity,
-            appfw_runtime::AccessAction::Update,
+            crate::platform::runtime::AccessAction::Update,
             &framework_user,
             record_id.clone(),
             before.clone(),

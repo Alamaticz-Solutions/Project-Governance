@@ -31,6 +31,8 @@ pub(crate) mod record_locator;
 #[cfg(feature = "http")]
 pub(crate) mod routing;
 
+pub(crate) mod runtime;
+
 pub(crate) mod secrets;
 
 #[cfg(feature = "http")]

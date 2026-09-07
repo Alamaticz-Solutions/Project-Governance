@@ -1,7 +1,7 @@
 //! Product-owned tenant scoping for policy decisions, ported off
 //! `appfw_runtime` (backend framework replacement phase 5).
 
-use appfw_runtime::model_metadata::{RuntimeDataType, RuntimeEntityMetadata};
+use crate::platform::runtime::model_metadata::{RuntimeDataType, RuntimeEntityMetadata};
 
 use crate::platform::policy::PolicyAccess;
 use crate::platform::user_auth::UserAuth;
@@ -51,7 +51,7 @@ mod tests {
     use serde_json::json;
 
     use crate::platform::policy::PolicyAccess;
-    use appfw_runtime::model_metadata::{RuntimeDataType, RuntimePropertyMetadata};
+    use crate::platform::runtime::model_metadata::{RuntimeDataType, RuntimePropertyMetadata};
 
     use super::*;
 

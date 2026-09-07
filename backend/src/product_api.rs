@@ -18,9 +18,9 @@ pub use crate::{
 };
 #[cfg(feature = "http")]
 #[allow(unused_imports)]
-pub use appfw_runtime::RuntimeJwtExtractor;
+pub use crate::platform::runtime::RuntimeJwtExtractor;
 #[allow(unused_imports)]
-pub use appfw_runtime::{
+pub use crate::platform::runtime::{
     model_metadata::{
         RuntimeCustomMethodMetadata, RuntimeDataSourceEnvironment, RuntimeDataSourceMetadata,
         RuntimeDataType, RuntimeEntityMetadata, RuntimeEntityRef, RuntimeManyToMany,
@@ -41,48 +41,48 @@ pub use appfw_runtime::{
 // trait boundaries) still take the framework's own types. These conversions
 // are the only bridge between the two -- lossless and exhaustive, since both
 // types are plain data (a 4-variant enum, an `{allow, filter}` struct).
-impl From<AccessAction> for appfw_runtime::AccessAction {
+impl From<AccessAction> for crate::platform::runtime::AccessAction {
     fn from(action: AccessAction) -> Self {
         match action {
-            AccessAction::Create => appfw_runtime::AccessAction::Create,
-            AccessAction::Read => appfw_runtime::AccessAction::Read,
-            AccessAction::Update => appfw_runtime::AccessAction::Update,
-            AccessAction::Delete => appfw_runtime::AccessAction::Delete,
+            AccessAction::Create => crate::platform::runtime::AccessAction::Create,
+            AccessAction::Read => crate::platform::runtime::AccessAction::Read,
+            AccessAction::Update => crate::platform::runtime::AccessAction::Update,
+            AccessAction::Delete => crate::platform::runtime::AccessAction::Delete,
         }
     }
 }
 
-impl From<appfw_runtime::AccessAction> for AccessAction {
-    fn from(action: appfw_runtime::AccessAction) -> Self {
+impl From<crate::platform::runtime::AccessAction> for AccessAction {
+    fn from(action: crate::platform::runtime::AccessAction) -> Self {
         match action {
-            appfw_runtime::AccessAction::Create => AccessAction::Create,
-            appfw_runtime::AccessAction::Read => AccessAction::Read,
-            appfw_runtime::AccessAction::Update => AccessAction::Update,
-            appfw_runtime::AccessAction::Delete => AccessAction::Delete,
+            crate::platform::runtime::AccessAction::Create => AccessAction::Create,
+            crate::platform::runtime::AccessAction::Read => AccessAction::Read,
+            crate::platform::runtime::AccessAction::Update => AccessAction::Update,
+            crate::platform::runtime::AccessAction::Delete => AccessAction::Delete,
         }
     }
 }
 
-impl From<&PolicyAccess> for appfw_runtime::PolicyAccess {
+impl From<&PolicyAccess> for crate::platform::runtime::PolicyAccess {
     fn from(access: &PolicyAccess) -> Self {
-        appfw_runtime::PolicyAccess {
+        crate::platform::runtime::PolicyAccess {
             allow: access.allow,
             filter: access.filter.clone(),
         }
     }
 }
 
-impl From<PolicyAccess> for appfw_runtime::PolicyAccess {
+impl From<PolicyAccess> for crate::platform::runtime::PolicyAccess {
     fn from(access: PolicyAccess) -> Self {
-        appfw_runtime::PolicyAccess {
+        crate::platform::runtime::PolicyAccess {
             allow: access.allow,
             filter: access.filter,
         }
     }
 }
 
-impl From<appfw_runtime::PolicyAccess> for PolicyAccess {
-    fn from(access: appfw_runtime::PolicyAccess) -> Self {
+impl From<crate::platform::runtime::PolicyAccess> for PolicyAccess {
+    fn from(access: crate::platform::runtime::PolicyAccess) -> Self {
         PolicyAccess {
             allow: access.allow,
             filter: access.filter,
@@ -90,8 +90,8 @@ impl From<appfw_runtime::PolicyAccess> for PolicyAccess {
     }
 }
 
-impl From<&appfw_runtime::PolicyAccess> for PolicyAccess {
-    fn from(access: &appfw_runtime::PolicyAccess) -> Self {
+impl From<&crate::platform::runtime::PolicyAccess> for PolicyAccess {
+    fn from(access: &crate::platform::runtime::PolicyAccess) -> Self {
         PolicyAccess {
             allow: access.allow,
             filter: access.filter.clone(),
@@ -101,39 +101,39 @@ impl From<&appfw_runtime::PolicyAccess> for PolicyAccess {
 
 // `UserAuth` is now product-owned (`platform::user_auth`), but its serialized
 // shape is fed to Rego as `input.user` by `appfw_runtime`-owned code, and a
-// long tail of not-yet-ported `appfw_runtime::data_access`/`record_audit`
+// long tail of not-yet-ported `crate::platform::runtime::data_access`/`record_audit`
 // functions and the `admin`/`mcp` trait boundaries still take the
 // framework's own `UserAuth` by value/reference. These conversions are the
 // only bridge -- lossless and exhaustive, since both are the same 9 plain
 // fields (the `token` field is copied too, not dropped: it's still needed by
 // whichever side receives it, even though neither type ever serializes it).
-impl From<RuntimePrincipalType> for appfw_runtime::extension::RuntimePrincipalType {
+impl From<RuntimePrincipalType> for crate::platform::runtime::extension::RuntimePrincipalType {
     fn from(kind: RuntimePrincipalType) -> Self {
         match kind {
-            RuntimePrincipalType::User => appfw_runtime::extension::RuntimePrincipalType::User,
+            RuntimePrincipalType::User => crate::platform::runtime::extension::RuntimePrincipalType::User,
             RuntimePrincipalType::Service => {
-                appfw_runtime::extension::RuntimePrincipalType::Service
+                crate::platform::runtime::extension::RuntimePrincipalType::Service
             }
-            RuntimePrincipalType::Agent => appfw_runtime::extension::RuntimePrincipalType::Agent,
+            RuntimePrincipalType::Agent => crate::platform::runtime::extension::RuntimePrincipalType::Agent,
         }
     }
 }
 
-impl From<appfw_runtime::extension::RuntimePrincipalType> for RuntimePrincipalType {
-    fn from(kind: appfw_runtime::extension::RuntimePrincipalType) -> Self {
+impl From<crate::platform::runtime::extension::RuntimePrincipalType> for RuntimePrincipalType {
+    fn from(kind: crate::platform::runtime::extension::RuntimePrincipalType) -> Self {
         match kind {
-            appfw_runtime::extension::RuntimePrincipalType::User => RuntimePrincipalType::User,
-            appfw_runtime::extension::RuntimePrincipalType::Service => {
+            crate::platform::runtime::extension::RuntimePrincipalType::User => RuntimePrincipalType::User,
+            crate::platform::runtime::extension::RuntimePrincipalType::Service => {
                 RuntimePrincipalType::Service
             }
-            appfw_runtime::extension::RuntimePrincipalType::Agent => RuntimePrincipalType::Agent,
+            crate::platform::runtime::extension::RuntimePrincipalType::Agent => RuntimePrincipalType::Agent,
         }
     }
 }
 
-impl From<&UserAuth> for appfw_runtime::extension::UserAuth {
+impl From<&UserAuth> for crate::platform::runtime::extension::UserAuth {
     fn from(user: &UserAuth) -> Self {
-        appfw_runtime::extension::UserAuth {
+        crate::platform::runtime::extension::UserAuth {
             tenant_id: user.tenant_id.clone(),
             user_name: user.user_name.clone(),
             timezone: user.timezone.clone(),
@@ -147,9 +147,9 @@ impl From<&UserAuth> for appfw_runtime::extension::UserAuth {
     }
 }
 
-impl From<UserAuth> for appfw_runtime::extension::UserAuth {
+impl From<UserAuth> for crate::platform::runtime::extension::UserAuth {
     fn from(user: UserAuth) -> Self {
-        appfw_runtime::extension::UserAuth {
+        crate::platform::runtime::extension::UserAuth {
             tenant_id: user.tenant_id,
             user_name: user.user_name,
             timezone: user.timezone,
@@ -163,8 +163,8 @@ impl From<UserAuth> for appfw_runtime::extension::UserAuth {
     }
 }
 
-impl From<&appfw_runtime::extension::UserAuth> for UserAuth {
-    fn from(user: &appfw_runtime::extension::UserAuth) -> Self {
+impl From<&crate::platform::runtime::extension::UserAuth> for UserAuth {
+    fn from(user: &crate::platform::runtime::extension::UserAuth) -> Self {
         UserAuth {
             tenant_id: user.tenant_id.clone(),
             user_name: user.user_name.clone(),
@@ -179,8 +179,8 @@ impl From<&appfw_runtime::extension::UserAuth> for UserAuth {
     }
 }
 
-impl From<appfw_runtime::extension::UserAuth> for UserAuth {
-    fn from(user: appfw_runtime::extension::UserAuth) -> Self {
+impl From<crate::platform::runtime::extension::UserAuth> for UserAuth {
+    fn from(user: crate::platform::runtime::extension::UserAuth) -> Self {
         UserAuth {
             tenant_id: user.tenant_id,
             user_name: user.user_name,
@@ -197,12 +197,12 @@ impl From<appfw_runtime::extension::UserAuth> for UserAuth {
 
 #[cfg(feature = "http")]
 pub(crate) fn user_from_context(ctx: &async_graphql::Context<'_>) -> Option<UserAuth> {
-    appfw_runtime::user_from_graphql_context(ctx).map(UserAuth::from)
+    crate::platform::runtime::user_from_graphql_context(ctx).map(UserAuth::from)
 }
 
 #[cfg(feature = "http")]
 pub(crate) fn data_access_from_context(ctx: &async_graphql::Context<'_>) -> Arc<DataAccess> {
-    appfw_runtime::data_from_graphql_context(ctx)
+    crate::platform::runtime::data_from_graphql_context(ctx)
 }
 
 pub(crate) fn entity_type_for_handler(
@@ -481,7 +481,7 @@ mod tests {
 
     // These four cases assert that the product-owned `UserAuth`
     // (`platform::user_auth`) serializes byte-for-byte identically to the
-    // framework's own `appfw_runtime::extension::UserAuth`, across every
+    // framework's own `crate::platform::runtime::extension::UserAuth`, across every
     // present/absent state of its optional fields. This matters because
     // `config/app_config.rs::evaluate_user_access` feeds
     // `serde_json::to_value(user)` straight into Rego as `input.user` for
@@ -503,7 +503,7 @@ mod tests {
             vec!["appfw:mcp.read".to_string()],
             "secret-jwt",
         );
-        let framework = appfw_runtime::extension::UserAuth::human(
+        let framework = crate::platform::runtime::extension::UserAuth::human(
             "tenant-1",
             "casey",
             "America/New_York",
@@ -525,7 +525,7 @@ mod tests {
             vec!["integration_writer".to_string()],
             vec!["crm.account.write".to_string()],
         );
-        let framework = appfw_runtime::extension::UserAuth::service(
+        let framework = crate::platform::runtime::extension::UserAuth::service(
             "tenant-1",
             "crm-event-consumer",
             vec!["integration_writer".to_string()],
@@ -545,7 +545,7 @@ mod tests {
             vec!["agent".to_string()],
             vec!["crm.account.read".to_string()],
         );
-        let framework = appfw_runtime::extension::UserAuth::agent(
+        let framework = crate::platform::runtime::extension::UserAuth::agent(
             "tenant-1",
             "reconciliation-agent",
             vec!["agent".to_string()],
@@ -567,7 +567,7 @@ mod tests {
         )
         .with_ingress("kafka")
         .with_on_behalf_of("casey");
-        let framework = appfw_runtime::extension::UserAuth::service(
+        let framework = crate::platform::runtime::extension::UserAuth::service(
             "tenant-1",
             "crm-event-consumer",
             vec!["integration_writer".to_string()],
@@ -598,7 +598,7 @@ mod tests {
         )
         .with_on_behalf_of("delegate");
 
-        let via_framework: appfw_runtime::extension::UserAuth = (&original).into();
+        let via_framework: crate::platform::runtime::extension::UserAuth = (&original).into();
         let round_tripped: UserAuth = (&via_framework).into();
 
         assert_eq!(original, round_tripped);
@@ -682,4 +682,4 @@ pub(crate) fn product_data_type(data_type: RuntimeDataType) -> DataType {
     }
 }
 
-pub(crate) type HandlerContext = appfw_runtime::RuntimeHandlerContext<DataAccess, EntityType>;
+pub(crate) type HandlerContext = crate::platform::runtime::RuntimeHandlerContext<DataAccess, EntityType>;

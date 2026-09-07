@@ -8,7 +8,7 @@
 
 use uuid::Uuid;
 
-use appfw_runtime::RuntimeError;
+use crate::platform::runtime::RuntimeError;
 
 pub const RECORD_LOCATOR_FIELD: &str = "record_locator";
 pub const RECORD_LOCATOR_PREFIX: &str = "rl_";

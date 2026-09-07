@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-pub use appfw_runtime::{
+pub use crate::platform::runtime::{
     ConfigError, DataStoreError, MetadataError, QueryBuildError, RuntimeError,
 };
-pub type AppError = appfw_runtime::RuntimeAppError;
+pub type AppError = crate::platform::runtime::RuntimeAppError;

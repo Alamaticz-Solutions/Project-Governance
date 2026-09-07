@@ -9,7 +9,7 @@
 //! `create_filter`/`get_nav_criterion`) was already product code before this
 //! phase -- these are the leaf functions it calls to render one criterion.
 
-use appfw_runtime::{
+use crate::platform::runtime::{
     model_metadata::RuntimeDataType, provider_time_period, query_filter::filter_token, RuntimeError,
 };
 use serde_json::Value;
@@ -516,7 +516,7 @@ fn number_array_criterion(
 
 #[cfg(test)]
 mod tests {
-    use appfw_runtime::model_metadata::RuntimeDataType;
+    use crate::platform::runtime::model_metadata::RuntimeDataType;
     use serde_json::json;
 
     use super::*;

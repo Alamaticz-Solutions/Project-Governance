@@ -14,7 +14,7 @@ pub(crate) mod governance;
 pub(crate) mod system;
 
 #[cfg(feature = "http")]
-use appfw_runtime::{
+use crate::platform::runtime::{
     observability::MetricsRegistry, provider_keys::FrameworkProvider, security::SecurityConfig,
     RuntimeAuthState, RuntimeProviderRegistry,
 };
@@ -102,7 +102,7 @@ pub async fn get_routes(
         .with_schema(governance_router);
 
     if security.product_ui_enabled {
-        if let Some(product_ui_router) = appfw_runtime::product_ui::product_ui_routes_if_present(
+        if let Some(product_ui_router) = crate::platform::runtime::product_ui::product_ui_routes_if_present(
             env!("CARGO_MANIFEST_DIR"),
             ["/governance", "/system"],
         ) {

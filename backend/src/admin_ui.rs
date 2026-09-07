@@ -1,4 +1,4 @@
-use appfw_runtime::{
+use crate::platform::runtime::{
     admin::{
         admin_audit_timeline_for_subject, admin_filter_capabilities_for_provider,
         admin_migration_dialect, admin_missing_data_access_error, admin_policy_explain_result,
@@ -137,7 +137,7 @@ impl AdminPolicyExplainProvider for ProductAdminPolicyExplainProvider<'_> {
         &self,
         schema_name: &str,
         type_name: &str,
-        action: appfw_runtime::AccessAction,
+        action: crate::platform::runtime::AccessAction,
         user: &UserAuth,
         request_context: &RequestContext,
     ) -> Result<AdminPolicyExplainResult, AdminServiceError> {
@@ -158,7 +158,7 @@ impl AdminPolicyExplainProvider for ProductAdminPolicyExplainProvider<'_> {
             format!("{}.{}", entity_type.schema_name, entity_type.snake_1),
             entity_type.schema_name.clone(),
             entity_type.pascal_1.clone(),
-            appfw_runtime::PolicyAccess::from(access).into(),
+            crate::platform::runtime::PolicyAccess::from(access).into(),
         ))
     }
 }
@@ -191,7 +191,7 @@ impl AdminAuditTimelineProvider for ProductAdminAuditTimelineProvider<'_> {
             .evaluate_user_access(entity_type.clone(), AccessAction::Read, &user.into())
             .map_err(|err| AdminServiceError::internal(err.to_string(), request_context))?;
         let current_policy: PolicyDecision =
-            appfw_runtime::PolicyAccess::from(current_access.clone()).into();
+            crate::platform::runtime::PolicyAccess::from(current_access.clone()).into();
 
         let subject = AdminAuditTimelineSubject {
             schema_name: entity_type.schema_name.clone(),

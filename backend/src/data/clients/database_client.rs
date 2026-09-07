@@ -3,8 +3,8 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-pub use appfw_runtime::ProviderPoolStats;
-use appfw_runtime::{
+pub use crate::platform::runtime::ProviderPoolStats;
+use crate::platform::runtime::{
     extension::UserAuth, model_metadata::RuntimeDataType, RuntimeAuditEvent, RuntimeAuditQuery,
     RuntimeJsonAggregateResult, RuntimeJsonObj, RuntimeJsonQueryResult, RuntimeProviderClient,
     RuntimeProviderDataClient, RuntimeProviderIdentity, RuntimeProviderPlanInput,
@@ -154,7 +154,7 @@ impl RuntimeProviderIdentity for DatabaseClientRuntimeAdapter<'_> {
         RuntimeProviderIdentity::data_source_name(&*self.client)
     }
 
-    fn framework_provider(&self) -> appfw_runtime::provider_keys::FrameworkProvider {
+    fn framework_provider(&self) -> crate::platform::runtime::provider_keys::FrameworkProvider {
         RuntimeProviderIdentity::framework_provider(&*self.client)
     }
 
@@ -252,7 +252,7 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
         selections: Value,
         input: RuntimeJsonObj,
         user: &UserAuth,
-        access: &appfw_runtime::PolicyAccess,
+        access: &crate::platform::runtime::PolicyAccess,
     ) -> Result<RuntimeJsonObj, Self::Error> {
         self.client
             .create_item_json(entity_type, selections, input, user, &access.into())
@@ -265,7 +265,7 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
         selections: Value,
         input: RuntimeJsonObj,
         user: &UserAuth,
-        access: &appfw_runtime::PolicyAccess,
+        access: &crate::platform::runtime::PolicyAccess,
         read_version: Option<Value>,
     ) -> Result<RuntimeJsonObj, Self::Error> {
         self.client
@@ -285,7 +285,7 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
         entity_type: Self::Entity,
         input: RuntimeJsonObj,
         user: &UserAuth,
-        access: &appfw_runtime::PolicyAccess,
+        access: &crate::platform::runtime::PolicyAccess,
         read_version: Option<Value>,
     ) -> Result<i64, Self::Error> {
         self.client
@@ -299,7 +299,7 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
         selections: Value,
         id: String,
         user: &UserAuth,
-        access: &appfw_runtime::PolicyAccess,
+        access: &crate::platform::runtime::PolicyAccess,
     ) -> Result<Option<RuntimeJsonObj>, Self::Error> {
         self.client
             .find_item_json(entity_type, selections, id, user, &access.into())
@@ -312,7 +312,7 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
         selections: Value,
         filter: Option<Value>,
         user: &UserAuth,
-        access: &appfw_runtime::PolicyAccess,
+        access: &crate::platform::runtime::PolicyAccess,
     ) -> Result<Vec<RuntimeJsonObj>, Self::Error> {
         self.client
             .get_items_json(entity_type, selections, filter, user, &access.into())
@@ -328,7 +328,7 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
         skip: i32,
         limit: i32,
         user: &UserAuth,
-        access: &appfw_runtime::PolicyAccess,
+        access: &crate::platform::runtime::PolicyAccess,
     ) -> Result<JsonQueryResult, Self::Error> {
         self.client
             .query_items_json(

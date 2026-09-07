@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use appfw_runtime::{MetadataError, RuntimeError};
+use crate::platform::runtime::{MetadataError, RuntimeError};
 use inflector::cases::camelcase::{is_camel_case, to_camel_case};
 use inflector::cases::pascalcase::{is_pascal_case, to_pascal_case};
 use inflector::cases::tablecase::{is_table_case, to_table_case};

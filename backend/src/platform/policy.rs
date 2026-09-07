@@ -76,16 +76,16 @@ impl PolicyAccess {
     pub fn from_policy_result(
         policy_key: &str,
         result: serde_json::Value,
-    ) -> Result<Self, appfw_runtime::ConfigError> {
+    ) -> Result<Self, crate::platform::runtime::ConfigError> {
         let Some(object) = result.as_object() else {
-            return Err(appfw_runtime::ConfigError::InvalidPolicyResult {
+            return Err(crate::platform::runtime::ConfigError::InvalidPolicyResult {
                 policy_key: policy_key.to_string(),
                 message: "expected policy result object".to_string(),
             });
         };
 
         let Some(allow) = object.get("allow").and_then(serde_json::Value::as_bool) else {
-            return Err(appfw_runtime::ConfigError::InvalidPolicyResult {
+            return Err(crate::platform::runtime::ConfigError::InvalidPolicyResult {
                 policy_key: policy_key.to_string(),
                 message: "expected boolean `allow` field".to_string(),
             });
@@ -96,7 +96,7 @@ impl PolicyAccess {
             Some(serde_json::Value::Null) => None,
             Some(serde_json::Value::Object(_)) => object.get("filter").cloned(),
             Some(_) => {
-                return Err(appfw_runtime::ConfigError::InvalidPolicyResult {
+                return Err(crate::platform::runtime::ConfigError::InvalidPolicyResult {
                     policy_key: policy_key.to_string(),
                     message: "expected object `filter` field when present".to_string(),
                 });
@@ -183,7 +183,7 @@ mod tests {
 
         assert!(matches!(
             err,
-            appfw_runtime::ConfigError::InvalidPolicyResult { policy_key, message }
+            crate::platform::runtime::ConfigError::InvalidPolicyResult { policy_key, message }
                 if policy_key == "crm.account" && message == "expected policy result object"
         ));
     }
@@ -198,7 +198,7 @@ mod tests {
 
         assert!(matches!(
             err,
-            appfw_runtime::ConfigError::InvalidPolicyResult { policy_key, message }
+            crate::platform::runtime::ConfigError::InvalidPolicyResult { policy_key, message }
                 if policy_key == "crm.account" && message == "expected boolean `allow` field"
         ));
     }
@@ -211,7 +211,7 @@ mod tests {
 
         assert!(matches!(
             err,
-            appfw_runtime::ConfigError::InvalidPolicyResult { policy_key, message }
+            crate::platform::runtime::ConfigError::InvalidPolicyResult { policy_key, message }
                 if policy_key == "crm.account"
                     && message == "expected object `filter` field when present"
         ));

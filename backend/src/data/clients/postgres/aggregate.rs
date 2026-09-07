@@ -4,7 +4,7 @@
 //! docs/architecture/self-owned-backend-plan.md). Previously
 //! `appfw_provider_postgres::aggregate`.
 
-use appfw_runtime::{model_metadata::RuntimeDataType, query_filter::RuntimeFilterOp, RuntimeError};
+use crate::platform::runtime::{model_metadata::RuntimeDataType, query_filter::RuntimeFilterOp, RuntimeError};
 use serde_json::Value;
 
 use super::param::{type_param, SqlParam};
@@ -287,7 +287,7 @@ fn quote_ident(name: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use appfw_runtime::{model_metadata::RuntimeDataType, query_filter::RuntimeFilterOp};
+    use crate::platform::runtime::{model_metadata::RuntimeDataType, query_filter::RuntimeFilterOp};
     use serde_json::json;
 
     use super::*;

@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Instant};
 
-use appfw_runtime::{
+use crate::platform::runtime::{
     observability::MetricsRegistry, runtime_info_routes, RuntimeHealthCheck, RuntimeReadinessProbe,
     RuntimeReadinessState,
 };

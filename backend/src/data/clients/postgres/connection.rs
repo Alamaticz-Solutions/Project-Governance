@@ -11,7 +11,7 @@
 
 use std::sync::Arc;
 
-use appfw_runtime::{
+use crate::platform::runtime::{
     connection_security::{self, ConnectionSecurity, Provider, TlsMode},
     ConfigError, RuntimeError,
 };

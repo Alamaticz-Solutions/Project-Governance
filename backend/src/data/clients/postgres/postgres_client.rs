@@ -47,7 +47,7 @@ use super::param::{type_param as provider_type_param, SqlParam};
 use super::pg_error::postgres_runtime_error;
 use super::routine_sql::{PostgresFunctionCall, PostgresStoredProcedureCall};
 use super::sort::{aggregate_order_by as provider_aggregate_order_by, PostgresSortField};
-use appfw_runtime::{
+use crate::platform::runtime::{
     extension::UserAuth, provider_keys::FrameworkProvider, RuntimeProviderIdentity,
     RuntimeProviderPlanInput,
 };
@@ -818,7 +818,7 @@ impl crate::data::provider_identity::ProviderIdentity for PostgresClient {
         FrameworkProvider::Postgres
     }
 
-    fn pool_stats(&self) -> appfw_runtime::ProviderPoolStats {
+    fn pool_stats(&self) -> crate::platform::runtime::ProviderPoolStats {
         let status = self.execution.pool().status();
         let provider = crate::data::provider_identity::ProviderIdentity::provider_descriptor(self);
         ProviderPoolStats::instrumented(

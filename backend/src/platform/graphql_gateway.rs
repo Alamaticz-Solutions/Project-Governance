@@ -5,7 +5,7 @@
 //! Product-owned (backend framework replacement phase 4b-4). Designed
 //! independently against a behavior specification -- not derived from
 //! framework source. Replaces
-//! `appfw_runtime::routing::runtime_graphql_schema_routes`, the last piece
+//! `crate::platform::runtime::routing::runtime_graphql_schema_routes`, the last piece
 //! of the GraphQL request path that stayed framework-owned after phase 4b-2
 //! (see `platform::routing`'s doc comment, now out of date on this point).
 //!
@@ -19,8 +19,8 @@
 //!     pattern `platform::routing` already uses for `metrics_hook`/
 //!     `trace_context_hook`.
 //!   - `RuntimeJwtExtractor` -- a plain
-//!     `{ user: Option<Arc<appfw_runtime::extension::UserAuth>> }` holder;
-//!     `appfw_runtime::user_from_graphql_context` (used by every generated
+//!     `{ user: Option<Arc<crate::platform::runtime::extension::UserAuth>> }` holder;
+//!     `crate::platform::runtime::user_from_graphql_context` (used by every generated
 //!     resolver via `product_api::user_from_context`) looks it up by
 //!     concrete type from the request's data. `platform::auth::resolve_user`
 //!     now returns the product-owned `UserAuth`
@@ -35,7 +35,7 @@
 //! (never a 401/403) -- this matches both async-graphql's own convention and
 //! the pre-port baseline captured in `phase4b-baseline/baseline.md`.
 
-use appfw_runtime::{
+use crate::platform::runtime::{
     graphiql,
     observability::{annotate_graphql_response, graphql_error_with_context, RequestContext},
     security::SecurityConfig,
@@ -125,14 +125,14 @@ where
     // `resolve_user`'s `Arc<UserAuth>` can flow straight through with no
     // conversion at all. Not worth optimizing before then.
     let user =
-        user.map(|user| std::sync::Arc::new(appfw_runtime::extension::UserAuth::from(&*user)));
+        user.map(|user| std::sync::Arc::new(crate::platform::runtime::extension::UserAuth::from(&*user)));
     let request = request.data(RuntimeJwtExtractor { user });
     let response = schema_for_request.execute(request).await;
     annotate_graphql_response(response, &request_context).into()
 }
 
 fn rejected(
-    error: appfw_runtime::RuntimeError,
+    error: crate::platform::runtime::RuntimeError,
     request_context: &RequestContext,
 ) -> GraphQLResponse {
     GraphQLResponse::from(async_graphql::Response::from_errors(vec![

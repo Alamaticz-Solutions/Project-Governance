@@ -5,7 +5,7 @@
 //! docs/architecture/self-owned-backend-plan.md). Previously
 //! `appfw_provider_postgres::audit`.
 
-use appfw_runtime::RuntimeError;
+use crate::platform::runtime::RuntimeError;
 
 use crate::data::audit_event::{AuditEvent, AuditQuery};
 

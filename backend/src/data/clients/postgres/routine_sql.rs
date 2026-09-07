@@ -7,7 +7,7 @@
 //! docs/architecture/self-owned-backend-plan.md). Previously
 //! `appfw_provider_postgres::routine`.
 
-use appfw_runtime::RuntimeError;
+use crate::platform::runtime::RuntimeError;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PostgresStoredProcedureCall {

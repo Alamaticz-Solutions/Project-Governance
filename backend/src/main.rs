@@ -1,6 +1,6 @@
-use appfw_runtime::security::SecurityConfig;
+use crate::platform::runtime::security::SecurityConfig;
 #[cfg(feature = "http")]
-use appfw_runtime::RuntimeAuthState;
+use crate::platform::runtime::RuntimeAuthState;
 // Product-owned (backend framework replacement phase 4 -- previously
 // `appfw_runtime::cors`/`observability`/`auth`/`host`).
 use dotenv::dotenv;

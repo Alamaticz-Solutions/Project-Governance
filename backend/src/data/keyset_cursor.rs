@@ -10,7 +10,7 @@
 use crate::data::query_ir::SortDirection;
 use crate::data::query_ir_validation::value_kind;
 use crate::routes::app_error::AppError;
-use appfw_runtime::query_filter::{conjunction_token, filter_token};
+use crate::platform::runtime::query_filter::{conjunction_token, filter_token};
 use serde_json::{json, Value};
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]

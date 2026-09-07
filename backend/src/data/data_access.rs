@@ -1,10 +1,10 @@
 use std::{env, sync::Arc, time::Instant};
 
 use anyhow::Result;
-use appfw_runtime::data_access as runtime_data_access;
-use appfw_runtime::json as json_utils;
-use appfw_runtime::observability::{current_request_context, MetricsRegistry};
-use appfw_runtime::{
+use crate::platform::runtime::data_access as runtime_data_access;
+use crate::platform::runtime::json as json_utils;
+use crate::platform::runtime::observability::{current_request_context, MetricsRegistry};
+use crate::platform::runtime::{
     RuntimeProviderDescriptor, RuntimeProviderIdentity, RuntimeProviderOperation,
     RuntimeProviderOperationCounts, RuntimeProviderPlanInput,
 };
@@ -33,16 +33,16 @@ use super::clients::database_client::{
 
 fn to_runtime_pagination(
     pagination: &crate::data::provider_plan::Pagination,
-) -> appfw_runtime::query_ir::RuntimePagination {
-    appfw_runtime::query_ir::RuntimePagination {
+) -> crate::platform::runtime::query_ir::RuntimePagination {
+    crate::platform::runtime::query_ir::RuntimePagination {
         skip: pagination.skip,
         limit: pagination.limit,
         strategy: match &pagination.strategy {
             crate::data::provider_plan::PaginationStrategy::Offset => {
-                appfw_runtime::query_ir::RuntimePaginationStrategy::Offset
+                crate::platform::runtime::query_ir::RuntimePaginationStrategy::Offset
             }
             crate::data::provider_plan::PaginationStrategy::Keyset { after } => {
-                appfw_runtime::query_ir::RuntimePaginationStrategy::Keyset {
+                crate::platform::runtime::query_ir::RuntimePaginationStrategy::Keyset {
                     after: after.clone(),
                 }
             }
@@ -92,7 +92,7 @@ impl DataAccess {
             record_id,
             limit,
         );
-        let query = appfw_runtime::RuntimeAuditQuery::new(
+        let query = crate::platform::runtime::RuntimeAuditQuery::new(
             query.schema_name,
             query.entity_name,
             query.audit_table_name,
@@ -106,8 +106,8 @@ impl DataAccess {
             entity_type,
             selections,
             record_id.to_string(),
-            &appfw_runtime::extension::UserAuth::from(user),
-            &appfw_runtime::PolicyAccess::from(access),
+            &crate::platform::runtime::extension::UserAuth::from(user),
+            &crate::platform::runtime::PolicyAccess::from(access),
             query,
         )
         .await
@@ -122,7 +122,7 @@ impl DataAccess {
         runtime_data_access::provider_health_check(&provider).await
     }
 
-    pub fn pool_stats(&self) -> appfw_runtime::ProviderPoolStats {
+    pub fn pool_stats(&self) -> crate::platform::runtime::ProviderPoolStats {
         self.runtime_provider().pool_stats()
     }
 
@@ -266,7 +266,7 @@ impl DataAccess {
             .call_provider_routine_json(
                 &routine,
                 &arguments,
-                &appfw_runtime::extension::UserAuth::from(&user),
+                &crate::platform::runtime::extension::UserAuth::from(&user),
                 &access,
             )
             .await?;
@@ -330,7 +330,7 @@ impl DataAccess {
                 &access,
             )?
         };
-        let budget = appfw_runtime::QueryCostBudget::from_env();
+        let budget = crate::platform::runtime::QueryCostBudget::from_env();
         let cost = cost_for_query(&plan);
         let pagination =
             runtime_data_access::pagination_diagnostic(&to_runtime_pagination(&plan.pagination));
@@ -341,8 +341,8 @@ impl DataAccess {
             &provider,
             RuntimeProviderPlanInput::new(
                 &provider_plan,
-                &appfw_runtime::extension::UserAuth::from(&user),
-                &appfw_runtime::PolicyAccess::from(&access),
+                &crate::platform::runtime::extension::UserAuth::from(&user),
+                &crate::platform::runtime::PolicyAccess::from(&access),
             ),
         )
         .await?;
@@ -427,8 +427,8 @@ impl DataAccess {
         let client_res = match mutation_orchestration::execute_create_item_plan_mutation(
             self.client.as_ref(),
             plan,
-            &appfw_runtime::extension::UserAuth::from(&user),
-            &appfw_runtime::PolicyAccess::from(&access),
+            &crate::platform::runtime::extension::UserAuth::from(&user),
+            &crate::platform::runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
             },
@@ -576,8 +576,8 @@ impl DataAccess {
         let client_res = match mutation_orchestration::execute_update_item_plan_mutation(
             self.client.as_ref(),
             plan,
-            &appfw_runtime::extension::UserAuth::from(&user),
-            &appfw_runtime::PolicyAccess::from(&access),
+            &crate::platform::runtime::extension::UserAuth::from(&user),
+            &crate::platform::runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
             },
@@ -700,8 +700,8 @@ impl DataAccess {
         let client_res = match mutation_orchestration::execute_delete_item_plan_mutation(
             self.client.as_ref(),
             plan,
-            &appfw_runtime::extension::UserAuth::from(&user),
-            &appfw_runtime::PolicyAccess::from(&access),
+            &crate::platform::runtime::extension::UserAuth::from(&user),
+            &crate::platform::runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
             },
@@ -801,7 +801,7 @@ impl DataAccess {
             entity_type.clone(),
             selections,
             id,
-            &appfw_runtime::extension::UserAuth::from(&user),
+            &crate::platform::runtime::extension::UserAuth::from(&user),
             &access,
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
@@ -895,8 +895,8 @@ impl DataAccess {
         let res_vec = read_orchestration::execute_get_items_plan_read(
             self.client.as_ref(),
             plan,
-            &appfw_runtime::extension::UserAuth::from(&user),
-            &appfw_runtime::PolicyAccess::from(&access),
+            &crate::platform::runtime::extension::UserAuth::from(&user),
+            &crate::platform::runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
             },
@@ -994,8 +994,8 @@ impl DataAccess {
             plan,
             &pagination,
             read_sort.as_ref(),
-            &appfw_runtime::extension::UserAuth::from(&user),
-            &appfw_runtime::PolicyAccess::from(&access),
+            &crate::platform::runtime::extension::UserAuth::from(&user),
+            &crate::platform::runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
             },
@@ -1113,8 +1113,8 @@ impl DataAccess {
         let res_vec = read_orchestration::execute_batch_get_items_plan_read(
             self.client.as_ref(),
             plan,
-            &appfw_runtime::extension::UserAuth::from(&user),
-            &appfw_runtime::PolicyAccess::from(&access),
+            &crate::platform::runtime::extension::UserAuth::from(&user),
+            &crate::platform::runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
             },
@@ -1168,8 +1168,8 @@ impl DataAccess {
         let res = read_orchestration::execute_aggregate_items_plan_read(
             self.client.as_ref(),
             plan,
-            &appfw_runtime::extension::UserAuth::from(&user),
-            &appfw_runtime::PolicyAccess::from(&access),
+            &crate::platform::runtime::extension::UserAuth::from(&user),
+            &crate::platform::runtime::PolicyAccess::from(&access),
             |operation, started_at, counts| {
                 self.trace_provider_operation(entity_type.as_ref(), operation, started_at, counts)
             },
@@ -1522,7 +1522,7 @@ impl DataAccess {
             entity_type.clone(),
             runtime_audit::audit_selection(&runtime_entity_metadata(&entity_type)),
             id,
-            &appfw_runtime::extension::UserAuth::from(user),
+            &crate::platform::runtime::extension::UserAuth::from(user),
             access,
         )
         .await
@@ -1571,8 +1571,8 @@ impl DataAccess {
                 mutation_orchestration::validate_unique_record(
                     self.client.as_ref(),
                     plan,
-                    &appfw_runtime::extension::UserAuth::from(user),
-                    &appfw_runtime::PolicyAccess::from(access),
+                    &crate::platform::runtime::extension::UserAuth::from(user),
+                    &crate::platform::runtime::PolicyAccess::from(access),
                     &pk_name,
                     record,
                     &entity_type.pascal_1,
@@ -1605,7 +1605,7 @@ impl DataAccess {
             entity_type.clone(),
             runtime_audit::audit_selection(&runtime_entity_metadata(&entity_type)),
             Some(id),
-            &appfw_runtime::extension::UserAuth::from(user),
+            &crate::platform::runtime::extension::UserAuth::from(user),
             access,
         )
         .await
@@ -1643,7 +1643,7 @@ impl DataAccess {
                 target.clone(),
                 runtime_audit::audit_selection(&runtime_entity_metadata(&target)),
                 Some(id),
-                &appfw_runtime::extension::UserAuth::from(user),
+                &crate::platform::runtime::extension::UserAuth::from(user),
                 &target_access,
             )
             .await?;

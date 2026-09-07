@@ -105,7 +105,7 @@ pub(crate) struct SortSpecInput {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ScalarFilterPredicate {
-    pub op: appfw_runtime::RuntimeFilterOp,
+    pub op: crate::platform::runtime::RuntimeFilterOp,
     pub value: serde_json::Value,
 }
 
@@ -300,7 +300,7 @@ pub(crate) fn scalar_filter_predicates(
         serde_json::Value::Object(obj) => {
             if obj.len() == 1 && obj.contains_key("$oid") {
                 return Ok(vec![ScalarFilterPredicate {
-                    op: appfw_runtime::RuntimeFilterOp::Eq,
+                    op: crate::platform::runtime::RuntimeFilterOp::Eq,
                     value: serde_json::Value::Object(obj),
                 }]);
             }
@@ -311,13 +311,13 @@ pub(crate) fn scalar_filter_predicates(
             }
             obj.into_iter()
                 .map(|(key, val)| {
-                    let op = appfw_runtime::RuntimeFilterOp::from_token(&key)?;
+                    let op = crate::platform::runtime::RuntimeFilterOp::from_token(&key)?;
                     Ok(ScalarFilterPredicate { op, value: val })
                 })
                 .collect()
         }
         other => Ok(vec![ScalarFilterPredicate {
-            op: appfw_runtime::RuntimeFilterOp::Eq,
+            op: crate::platform::runtime::RuntimeFilterOp::Eq,
             value: other,
         }]),
     }
@@ -482,9 +482,9 @@ pub(crate) fn default_aggregate_metric_alias(
 /// Only these operators are valid in an aggregate HAVING clause: Eq, Ne, Lt,
 /// Lte, Gt, Gte, In, NotIn.
 pub(crate) fn ensure_aggregate_having_op(
-    op: appfw_runtime::RuntimeFilterOp,
+    op: crate::platform::runtime::RuntimeFilterOp,
 ) -> Result<(), AppError> {
-    use appfw_runtime::RuntimeFilterOp;
+    use crate::platform::runtime::RuntimeFilterOp;
     match op {
         RuntimeFilterOp::Eq
         | RuntimeFilterOp::Ne
@@ -550,8 +550,8 @@ mod tests {
 
     #[test]
     fn aggregate_having_operator_policy() {
-        ensure_aggregate_having_op(appfw_runtime::RuntimeFilterOp::Gte).expect("gte supported");
-        assert!(ensure_aggregate_having_op(appfw_runtime::RuntimeFilterOp::Contains).is_err());
+        ensure_aggregate_having_op(crate::platform::runtime::RuntimeFilterOp::Gte).expect("gte supported");
+        assert!(ensure_aggregate_having_op(crate::platform::runtime::RuntimeFilterOp::Contains).is_err());
     }
 
     #[test]
@@ -627,19 +627,19 @@ mod tests {
         assert_eq!(predicates.len(), 2);
         assert!(predicates
             .iter()
-            .any(|p| p.op == appfw_runtime::RuntimeFilterOp::Gt));
+            .any(|p| p.op == crate::platform::runtime::RuntimeFilterOp::Gt));
         assert!(predicates
             .iter()
-            .any(|p| p.op == appfw_runtime::RuntimeFilterOp::Lt));
+            .any(|p| p.op == crate::platform::runtime::RuntimeFilterOp::Lt));
 
         let default_eq =
             scalar_filter_predicates("name", serde_json::json!("Acme")).expect("default eq");
-        assert_eq!(default_eq[0].op, appfw_runtime::RuntimeFilterOp::Eq);
+        assert_eq!(default_eq[0].op, crate::platform::runtime::RuntimeFilterOp::Eq);
         assert_eq!(default_eq[0].value, serde_json::json!("Acme"));
 
         let object_id =
             scalar_filter_predicates("id", serde_json::json!({ "$oid": "abc" })).expect("oid");
-        assert_eq!(object_id[0].op, appfw_runtime::RuntimeFilterOp::Eq);
+        assert_eq!(object_id[0].op, crate::platform::runtime::RuntimeFilterOp::Eq);
         assert!(scalar_filter_predicates("age", serde_json::json!({})).is_err());
         assert!(scalar_filter_predicates("age", serde_json::json!({ "_bogus": 1 })).is_err());
     }

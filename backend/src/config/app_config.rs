@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use appfw_runtime::security::SecurityConfig;
+use crate::platform::runtime::security::SecurityConfig;
 use serde_json::json;
 use std::{collections::HashMap, sync::Arc};
 use tracing::{debug, warn};

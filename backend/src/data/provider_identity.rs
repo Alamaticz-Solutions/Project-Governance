@@ -42,14 +42,14 @@ impl ProviderOperationSurface {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ProviderOperationContract {
-    pub operation: appfw_runtime::RuntimeProviderOperation,
+    pub operation: crate::platform::runtime::RuntimeProviderOperation,
     pub requirement: ProviderOperationRequirement,
     pub surface: ProviderOperationSurface,
 }
 
 impl ProviderOperationContract {
     pub const fn required(
-        operation: appfw_runtime::RuntimeProviderOperation,
+        operation: crate::platform::runtime::RuntimeProviderOperation,
         surface: ProviderOperationSurface,
     ) -> Self {
         Self {
@@ -60,7 +60,7 @@ impl ProviderOperationContract {
     }
 
     pub const fn optional(
-        operation: appfw_runtime::RuntimeProviderOperation,
+        operation: crate::platform::runtime::RuntimeProviderOperation,
         surface: ProviderOperationSurface,
     ) -> Self {
         Self {
@@ -71,7 +71,7 @@ impl ProviderOperationContract {
     }
 
     pub const fn legacy(
-        operation: appfw_runtime::RuntimeProviderOperation,
+        operation: crate::platform::runtime::RuntimeProviderOperation,
         surface: ProviderOperationSurface,
     ) -> Self {
         Self {
@@ -93,51 +93,51 @@ impl ProviderOperationContract {
 impl ProviderOperationContract {
     pub const DATABASE_CLIENT: &'static [ProviderOperationContract] = &[
         Self::required(
-            appfw_runtime::RuntimeProviderOperation::HealthCheck,
+            crate::platform::runtime::RuntimeProviderOperation::HealthCheck,
             ProviderOperationSurface::RuntimeNative,
         ),
         Self::optional(
-            appfw_runtime::RuntimeProviderOperation::ExplainQueryPlan,
+            crate::platform::runtime::RuntimeProviderOperation::ExplainQueryPlan,
             ProviderOperationSurface::ProductPlanAdapter,
         ),
         Self::required(
-            appfw_runtime::RuntimeProviderOperation::CreateItem,
+            crate::platform::runtime::RuntimeProviderOperation::CreateItem,
             ProviderOperationSurface::ProductPlanAdapter,
         ),
         Self::required(
-            appfw_runtime::RuntimeProviderOperation::UpdateItem,
+            crate::platform::runtime::RuntimeProviderOperation::UpdateItem,
             ProviderOperationSurface::ProductPlanAdapter,
         ),
         Self::required(
-            appfw_runtime::RuntimeProviderOperation::DeleteItem,
+            crate::platform::runtime::RuntimeProviderOperation::DeleteItem,
             ProviderOperationSurface::ProductPlanAdapter,
         ),
         Self::required(
-            appfw_runtime::RuntimeProviderOperation::FindItem,
+            crate::platform::runtime::RuntimeProviderOperation::FindItem,
             ProviderOperationSurface::ProductLegacyAdapter,
         ),
         Self::required(
-            appfw_runtime::RuntimeProviderOperation::GetItems,
+            crate::platform::runtime::RuntimeProviderOperation::GetItems,
             ProviderOperationSurface::ProductPlanAdapter,
         ),
         Self::required(
-            appfw_runtime::RuntimeProviderOperation::QueryItems,
+            crate::platform::runtime::RuntimeProviderOperation::QueryItems,
             ProviderOperationSurface::ProductPlanAdapter,
         ),
         Self::optional(
-            appfw_runtime::RuntimeProviderOperation::BatchFindItemsByIds,
+            crate::platform::runtime::RuntimeProviderOperation::BatchFindItemsByIds,
             ProviderOperationSurface::ProductPlanAdapter,
         ),
         Self::optional(
-            appfw_runtime::RuntimeProviderOperation::AggregateItems,
+            crate::platform::runtime::RuntimeProviderOperation::AggregateItems,
             ProviderOperationSurface::ProductPlanAdapter,
         ),
         Self::optional(
-            appfw_runtime::RuntimeProviderOperation::AppendAuditEvent,
+            crate::platform::runtime::RuntimeProviderOperation::AppendAuditEvent,
             ProviderOperationSurface::RuntimeNative,
         ),
         Self::optional(
-            appfw_runtime::RuntimeProviderOperation::QueryAuditEvents,
+            crate::platform::runtime::RuntimeProviderOperation::QueryAuditEvents,
             ProviderOperationSurface::RuntimeNative,
         ),
     ];
@@ -145,13 +145,13 @@ impl ProviderOperationContract {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProviderDescriptor {
-    pub provider: appfw_runtime::provider_keys::FrameworkProvider,
+    pub provider: crate::platform::runtime::provider_keys::FrameworkProvider,
     pub data_source_name: String,
 }
 
 impl ProviderDescriptor {
     pub fn new(
-        provider: appfw_runtime::provider_keys::FrameworkProvider,
+        provider: crate::platform::runtime::provider_keys::FrameworkProvider,
         data_source_name: impl Into<String>,
     ) -> Self {
         Self {
@@ -168,8 +168,8 @@ impl ProviderDescriptor {
         &self.data_source_name
     }
 
-    pub fn opaque_pool_stats(&self) -> appfw_runtime::ProviderPoolStats {
-        appfw_runtime::ProviderPoolStats::opaque(self.provider_key(), self.data_source_name())
+    pub fn opaque_pool_stats(&self) -> crate::platform::runtime::ProviderPoolStats {
+        crate::platform::runtime::ProviderPoolStats::opaque(self.provider_key(), self.data_source_name())
     }
 
     pub fn unsupported_explain_diagnostic(&self) -> serde_json::Value {
@@ -185,7 +185,7 @@ impl ProviderDescriptor {
 pub trait ProviderIdentity {
     fn data_source_name(&self) -> &str;
 
-    fn framework_provider(&self) -> appfw_runtime::provider_keys::FrameworkProvider;
+    fn framework_provider(&self) -> crate::platform::runtime::provider_keys::FrameworkProvider;
 
     fn provider_operation_contracts(&self) -> &'static [ProviderOperationContract] {
         ProviderOperationContract::DATABASE_CLIENT
@@ -193,7 +193,7 @@ pub trait ProviderIdentity {
 
     fn provider_declares_operation(
         &self,
-        operation: appfw_runtime::RuntimeProviderOperation,
+        operation: crate::platform::runtime::RuntimeProviderOperation,
     ) -> bool {
         self.provider_operation_contracts()
             .iter()
@@ -204,7 +204,7 @@ pub trait ProviderIdentity {
         ProviderDescriptor::new(self.framework_provider(), self.data_source_name())
     }
 
-    fn pool_stats(&self) -> appfw_runtime::ProviderPoolStats {
+    fn pool_stats(&self) -> crate::platform::runtime::ProviderPoolStats {
         self.provider_descriptor().opaque_pool_stats()
     }
 }
@@ -216,8 +216,8 @@ impl<T> ProviderClient for T where T: Send + Sync + ProviderIdentity {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use appfw_runtime::provider_keys::FrameworkProvider;
-    use appfw_runtime::RuntimeProviderOperation;
+    use crate::platform::runtime::provider_keys::FrameworkProvider;
+    use crate::platform::runtime::RuntimeProviderOperation;
     use serde_json::json;
 
     #[test]

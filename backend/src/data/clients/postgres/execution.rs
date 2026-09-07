@@ -5,7 +5,7 @@
 //! docs/architecture/self-owned-backend-plan.md). Previously
 //! `appfw_provider_postgres::execution`.
 
-use appfw_runtime::RuntimeError;
+use crate::platform::runtime::RuntimeError;
 use deadpool_postgres::{Client, Pool};
 use postgres_types::ToSql;
 use serde_json::Value;

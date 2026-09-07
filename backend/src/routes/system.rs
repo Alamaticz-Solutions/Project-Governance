@@ -5,7 +5,7 @@
 //
 #![allow(dead_code)]
 
-use appfw_runtime::security::SecurityConfig;
+use crate::platform::runtime::security::SecurityConfig;
 use axum::Router;
 use std::sync::Arc;
 

@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use appfw_runtime::connection_security::{self, Provider};
+use crate::platform::runtime::connection_security::{self, Provider};
 
 use crate::{
     platform::secrets::{EnvSecretProvider, SecretError, SecretProvider},

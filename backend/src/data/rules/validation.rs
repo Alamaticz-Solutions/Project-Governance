@@ -3,10 +3,10 @@
 
 use std::cmp::Ordering;
 
-use appfw_runtime::model_metadata::{
+use crate::platform::runtime::model_metadata::{
     RuntimeDataType, RuntimeEntityMetadata, RuntimePropertyMetadata,
 };
-use appfw_runtime::RuntimeError;
+use crate::platform::runtime::RuntimeError;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use regex::{Regex, RegexBuilder};
 use serde_json::{Map, Value};
