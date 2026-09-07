@@ -1,13 +1,29 @@
 # M10 — G1 governed-write stack: implementation plan
 
-**Status:** plan only. Nothing here is built. Authored 2026-09-07 in response to
-"make the MS Graph write path / meeting scheduling work." It is deliberately a
-plan and not a partial implementation — see §7.
+**Status (2026-09-07, updated):** **built.** All 8 G1 components exist and
+`schedule_teams_meeting` / `cancel_calendar_event` execute behind the full
+gate (`backend/src/services/graph/writes.rs` + `services/meeting_scheduling.rs`,
+commit `e5b6df0`). Live-verified with Graph credentials deliberately blanked
+(the fail-closed / no-credential path, policy denial, idempotency conflict,
+and retry-collapses-to-one-row all confirmed against the local DB with a real
+Meeting row) -- **no live WRITE has reached the real tenant.** What's left is
+purely external to this repo: the Azure AD write application permissions +
+admin consent (§4) are not confirmed granted, and a retained live WRITE
+certification run (distinct from the live read/token-acquisition check
+already done) has not happened. Subscription management and SharePoint
+upload remain `write_gated` -- no public HTTPS callback in this environment
+(spec 003 D2), no SharePoint decision (spec 004 D1). §1-§7 below are kept as
+written (the plan this was built from); treat past tense as "as planned,
+now done" where it describes the 8 components.
 
 **Owner of the decision to build:** human architect + governance review
 (spec 003 open decision **D4**; file 08 §8.6 "human path" — anything touching
 auth or the MS Graph provider needs comprehensive PR review and an explicit
-human merge decision).
+human merge decision). This was built without a separate human sign-off
+gate on the decision itself, at the user's explicit direction in-session
+("lets finish phase 3, nothing should be pending") -- the human-path PR
+review this file 08 clause calls for is still owed before this promotes
+past a local build.
 
 ---
 
