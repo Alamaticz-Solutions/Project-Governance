@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { Button, Drawer, FormLayout, Icon, InlineAlert, SelectField, TextArea } from '@ui-kit';
 import { useAction, useApp, useAsync } from '../../app/providers';
@@ -7,16 +7,34 @@ import type { AppfwClient, AppfwRecord } from '../../lib/appfwClient';
 import { AsyncSection, humanizeEnum, asText, formatDate } from '../../components/ui';
 import { hasAnyRole, roleKey } from '../../lib/authContext';
 import { APPROVAL_DECISION, WORKFLOW_STAGE_STATUS as WSS } from '../shared/enums';
+import { EpmoReviewForm } from './forms/EpmoReviewForm';
+import { BtaReviewForm } from './forms/BtaReviewForm';
+import { EacReviewForm } from './forms/EacReviewForm';
+import { PicReviewForm } from './forms/PicReviewForm';
 
 /**
  * Gate workspace. Dark glass presentation mirrors the Dev-branch project
  * workspace — header card with a current-stage badge, a tabbed body, and a
  * bottom row of decision / timeline widgets. Every transition is this branch's
  * real workflow surface (start / submit / skip / save_stage / submit_decision
- * against WorkflowStage + ProjectApproval); the Dev per-gate review forms are
- * not ported (they target a data contract this branch's backend does not
- * expose).
+ * against WorkflowStage + ProjectApproval).
+ *
+ * The Dev per-gate review forms ARE ported (`./forms/*ReviewForm.tsx`),
+ * mapped onto this branch's real 19-stage seeded workflow by stage_code --
+ * not Dev's own simplified 6-stage pipeline, which doesn't exist here (see
+ * `GATE_FORM_BY_STAGE_CODE`). A stage with no bespoke form (most of the 19 --
+ * VCR/VRA/TRC/SRA/APM/ST-Runbook/TechRB/Vendor-ST/CAB-CT/CAB-ER/PM/BTA-Meeting)
+ * falls back to the generic Notes form. Dev's Finance form exists
+ * (`./forms/FinanceReviewForm.tsx`) but isn't wired here -- no Finance stage
+ * exists in this branch's real workflow to attach it to.
  */
+
+const GATE_FORM_BY_STAGE_CODE: Record<string, 'epmo' | 'bta' | 'eac' | 'pic'> = {
+  INTAKE_EPMO: 'epmo',
+  INTAKE_BTA: 'bta',
+  EAC_REVIEW: 'eac',
+  PIC_REVIEW: 'pic'
+};
 
 const projectEntity = entityByType('Project');
 const instanceEntity = entityByType('WorkflowInstance');
@@ -52,7 +70,7 @@ async function loadWorkspace(client: AppfwClient, projectId: string) {
       .queryList(submissionEntity, {
         filter: { project_id: { _eq: projectId } },
         sort: { created_at: 'asc' },
-        selection: ['id', 'stage', 'status', 'decision', 'submitted_at'],
+        selection: ['id', 'stage', 'status', 'decision', 'submitted_at', 'data'],
         limit: 100
       })
       .catch(() => ({ rows: [] as AppfwRecord[] })),
@@ -114,6 +132,9 @@ export function ProjectWorkspaceScreen() {
   const saveStage = useAction((client, stage: string, notes: string) =>
     client.invoke('saveStage', { projectId, stage, payload: { notes, status: 'in_progress' } })
   );
+  const saveGateForm = useAction((client, stage: string, data: Record<string, unknown>) =>
+    client.invoke('saveStage', { projectId, stage, payload: { data, status: 'in_progress' } })
+  );
   const decide = useAction((client, decisionValue: string, comments: string) =>
     client.invoke('submitDecision', { projectId, payload: { decision: decisionValue, comments } })
   );
@@ -121,6 +142,11 @@ export function ProjectWorkspaceScreen() {
   const [tab, setTab] = useState<'stages' | 'submissions' | 'approvals'>('stages');
   const [gateDrawer, setGateDrawer] = useState<string | null>(null);
   const [gateNotes, setGateNotes] = useState('');
+  // Bespoke gate forms hold their own local state and only report it up via
+  // onChange (matches Dev's activeFormDataRef pattern) -- a ref, not state,
+  // so keystrokes in the form don't re-render the whole workspace screen.
+  const gateFormDataRef = useRef<Record<string, unknown>>({});
+  const [gateFormValid, setGateFormValid] = useState(false);
   const [skipFor, setSkipFor] = useState<string | null>(null);
   const [skipReason, setSkipReason] = useState('');
   const [decision, setDecision] = useState('APPROVED');
@@ -285,7 +311,18 @@ export function ProjectWorkspaceScreen() {
                                       )}
                                       {status === WSS.IN_PROGRESS && (
                                         <>
-                                          <button type="button" style={miniBtn} onClick={() => { setGateDrawer(asText(stage.stage_code)); setGateNotes(''); }}>
+                                          <button
+                                            type="button"
+                                            style={miniBtn}
+                                            onClick={() => {
+                                              const stageCode = asText(stage.stage_code);
+                                              const existing = data.submissions.find((row) => asText(row.stage) === stageCode);
+                                              gateFormDataRef.current = (existing?.data as Record<string, unknown>) ?? {};
+                                              setGateFormValid(false);
+                                              setGateDrawer(stageCode);
+                                              setGateNotes('');
+                                            }}
+                                          >
                                             Gate form
                                           </button>
                                           <button type="button" style={miniBtnPrimary} disabled={stageAction.pending} onClick={() => stageAction.run('submit', stageId, gateNotes).then(() => state.reload())}>
@@ -429,37 +466,89 @@ export function ProjectWorkspaceScreen() {
                   </div>
                 </div>
 
-                <Drawer
-                  open={gateDrawer !== null}
-                  title={`Gate form · ${gateDrawer ?? ''}`}
-                  description="Generic gate form. Saved to the matching GateSubmission via save_stage."
-                  onClose={() => setGateDrawer(null)}
-                  footer={
-                    <>
-                      <Button variant="quiet" onClick={() => setGateDrawer(null)}>
-                        Close
-                      </Button>
-                      <Button
-                        variant="primary"
-                        isLoading={saveStage.pending}
-                        onClick={async () => {
-                          if (!gateDrawer) return;
-                          const result = await saveStage.run(gateDrawer, gateNotes);
-                          if (result !== undefined) {
-                            setGateDrawer(null);
-                            state.reload();
-                          }
-                        }}
-                      >
-                        Save gate form
-                      </Button>
-                    </>
-                  }
-                >
-                  <FormLayout columns="one">
-                    <TextArea label="Notes" rows={6} value={gateNotes} onChange={(e) => setGateNotes(e.target.value)} />
-                  </FormLayout>
-                </Drawer>
+                {(() => {
+                  const kind = gateDrawer ? GATE_FORM_BY_STAGE_CODE[gateDrawer] : undefined;
+                  const isBespoke = Boolean(kind);
+                  return (
+                    <Drawer
+                      open={gateDrawer !== null}
+                      title={`Gate form · ${gateDrawer ?? ''}`}
+                      description={
+                        isBespoke
+                          ? 'Ported from the Dev-branch bespoke review form. Saved to the matching GateSubmission via save_stage.'
+                          : 'Generic gate form (no bespoke Dev form maps to this stage). Saved to the matching GateSubmission via save_stage.'
+                      }
+                      size={isBespoke ? 'lg' : 'md'}
+                      onClose={() => setGateDrawer(null)}
+                      footer={
+                        <>
+                          <Button variant="quiet" onClick={() => setGateDrawer(null)}>
+                            Close
+                          </Button>
+                          <Button
+                            variant="primary"
+                            isLoading={saveStage.pending || saveGateForm.pending}
+                            disabled={isBespoke && !gateFormValid}
+                            onClick={async () => {
+                              if (!gateDrawer) return;
+                              const result = isBespoke
+                                ? await saveGateForm.run(gateDrawer, gateFormDataRef.current)
+                                : await saveStage.run(gateDrawer, gateNotes);
+                              if (result !== undefined) {
+                                setGateDrawer(null);
+                                state.reload();
+                              }
+                            }}
+                          >
+                            Save gate form
+                          </Button>
+                        </>
+                      }
+                    >
+                      {kind === 'epmo' && (
+                        <EpmoReviewForm
+                          initialData={gateFormDataRef.current}
+                          onChange={(next, valid) => {
+                            gateFormDataRef.current = next;
+                            setGateFormValid(valid);
+                          }}
+                        />
+                      )}
+                      {kind === 'bta' && (
+                        <BtaReviewForm
+                          initialData={gateFormDataRef.current}
+                          onChange={(next, valid) => {
+                            gateFormDataRef.current = next;
+                            setGateFormValid(valid);
+                          }}
+                        />
+                      )}
+                      {kind === 'eac' && (
+                        <EacReviewForm
+                          initialData={gateFormDataRef.current}
+                          onChange={(next, valid) => {
+                            gateFormDataRef.current = next;
+                            setGateFormValid(valid);
+                          }}
+                        />
+                      )}
+                      {kind === 'pic' && (
+                        <PicReviewForm
+                          initialData={gateFormDataRef.current}
+                          onChange={(next, valid) => {
+                            gateFormDataRef.current = next;
+                            setGateFormValid(valid);
+                          }}
+                        />
+                      )}
+                      {!isBespoke && (
+                        <FormLayout columns="one">
+                          <TextArea label="Notes" rows={6} value={gateNotes} onChange={(e) => setGateNotes(e.target.value)} />
+                        </FormLayout>
+                      )}
+                    </Drawer>
+                  );
+                })()}
 
                 <Drawer
                   open={skipFor !== null}
