@@ -1,6 +1,6 @@
 # Replacing the App Framework backend: scoping plan
 
-**Status:** draft, no code written against this plan yet.
+**Status:** COMPLETE (2026-09-07). All phases 1-7 shipped; `appfw_runtime` is no longer a dependency of `backend` at all -- removed from `backend/Cargo.toml`, `.cargo/config.toml`'s private-registry stanza deleted, and the local framework reference copy deleted from disk. `cargo check --workspace --all-targets` and the full 311-test backend suite both pass with the framework genuinely absent, not just unreferenced. See Phase 7's own progress notes below for the slice-by-slice history.
 **Companion to:** the frontend replacement already shipped (`frontend/src/ui/kit.tsx` — see commit `f4d741d`, "Replace vendored @appfw/pds-health-components with a self-owned UI kit").
 
 ## Why this exists

@@ -24,10 +24,11 @@ sort.rs
 ```
 
 Provider behavior should be verified through focused unit tests where possible,
-then through the root framework checks:
+then through the full backend suite (no framework dependency as of backend
+framework replacement phase 7):
 
 ```bash
-scripts/appfw test
+cargo test -p backend --bin backend
 ```
 
 Historical scratch notes for this provider are archived in

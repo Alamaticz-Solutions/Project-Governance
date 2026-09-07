@@ -165,49 +165,72 @@ docker run --rm -v "$PWD/frontend":/fe -w /fe node:20 bash -c \
   'npm ci && npm run typecheck && npm run build && npm run appfw:check'
 ```
 
-### Backend (REQUIRES the framework — see §6)
+### Backend (framework dependency removed — see §6, updated 2026-09-07)
 
-With the framework tree restored at `../app-framework` and `../appfw-env.sh`
-sourced, in a Linux container with `/app` (this repo) and `/app-framework`
-mounted, `rustfmt` + `rsync` installed, and `/app/.cargo/config.toml` present:
+**This section is historical.** As of backend framework replacement phase 7
+(`docs/architecture/self-owned-backend-plan.md`), the framework is gone
+entirely -- not just deleted from disk, but removed as a dependency
+(`backend/Cargo.toml`, `.cargo/config.toml`'s private-registry stanza). There
+is nothing left to restore, and `scripts/appfw` no longer exists as something
+this repo depends on. The self-owned replacements run directly with `cargo`,
+no Docker/Linux workaround needed, no framework checkout required:
 
 ```bash
-scripts/appfw product validate --json
-scripts/appfw product generate
-scripts/appfw product generate --check --json
-scripts/appfw product boundary-check --json
-scripts/appfw product test --fast
-scripts/appfw product api-test        # not yet exercised in this rebuild
-scripts/appfw product policy-test     # not yet exercised in this rebuild
-scripts/appfw product handoff --json
-scripts/appfw product review-brief --auto-depth --json
+cd product_gen
+cargo run --bin product_cli -- generate --check --json   # was: scripts/appfw product generate --check
+cargo run --bin product_cli -- boundary-check --json      # was: scripts/appfw product boundary-check
+cargo run --bin product_cli -- validate --json            # was: scripts/appfw product validate
+cargo run --bin product_cli -- generate                   # was: scripts/appfw product generate
+cargo test --manifest-path ../rego_test/Cargo.toml         # was: scripts/appfw product policy-test
+cd ..
+cargo check --workspace --all-targets                      # was: cargo build, needing the framework path dep
+cargo test -p backend --bin backend                         # full backend suite, no framework needed
 ```
 
-Windows notes that blocked earlier attempts and forced Docker Linux:
-`app_gen` rejects `\\?\`-canonicalized paths and reparse-point ancestors
-(OneDrive); `appfw-cli` can’t exec the bash dispatcher (os error 193);
-`python3` is missing. Run everything in a `rust:1` Linux container.
+The old Windows/Docker workaround notes (`app_gen` rejecting `\\?\`-canonicalized
+paths, `appfw-cli` exec failures, missing `python3`) no longer apply --
+`product_cli` is a normal Rust binary in this repo, builds and runs natively
+on Windows.
 
 ---
 
-## 6. The framework is not in the tree
+## 6. The framework is not in the tree (and, as of phase 7, not needed at all)
 
-`../app-framework/` (the client’s App Framework source, ~2.9 GB) was **deleted**
-at the owner’s instruction — it is client IP and must not be retained by the AI
-harness. Consequences:
+`../app-framework/` (the client's App Framework source, ~2.9 GB) was originally
+**deleted** at the owner's instruction — it is client IP and must not be
+retained by the AI harness. This section used to describe that as a *temporary*
+blocker requiring the zip to be re-extracted to resume backend work. That is no
+longer true: backend framework replacement phase 7
+(`docs/architecture/self-owned-backend-plan.md`) removed `appfw_runtime` as a
+dependency entirely, slice by slice, ending with a final cutover that deleted
+the `backend/Cargo.toml` path dependency, the `.cargo/config.toml` private-
+registry stanza, and (2026-09-07) the local reference copy of the framework
+itself. `cargo check --workspace --all-targets` and the full backend test
+suite (311 tests) both pass with the framework genuinely absent from disk —
+not just unreferenced in a lockfile.
 
-- **Anything that shells through `scripts/appfw` cannot run** until the framework
-  zip is re-supplied and extracted at `../app-framework/`. That is every backend
-  gate in §5, plus `product handoff` and `product review-brief`.
-- `backend/Cargo.toml`, `.cargo/config.toml`, `api_tests/Cargo.toml`,
-  `rego_test/Cargo.toml` carry `path = "../../app-framework/..."` deps — a
-  `cargo build` of the backend also needs it.
-- `frontend/vite.config.ts` references `../app-framework/` only in
-  `server.fs.allow` (dev convenience); the frontend build does **not** need it.
-- `../appfw-env.sh` still exports a now-dead `APPFW_FRAMEWORK_ROOT`.
+Current state, for anyone picking this up:
+- `backend/Cargo.toml`, `api_tests/Cargo.toml`, `rego_test/Cargo.toml`,
+  `product_gen/Cargo.toml` — **none** of them reference `app-framework`/`appfw`
+  any more. `cargo build`/`cargo check`/`cargo test` on this workspace need
+  nothing beyond crates.io.
+- `scripts/appfw` (the framework's own CLI dispatcher) is gone along with the
+  framework checkout; `product_cli` (`product_gen/src/bin/product_cli.rs`) is
+  its self-owned, in-repo replacement (`generate`/`generate --check`/
+  `boundary-check`/`validate`/`feature-check`) — see §5's updated commands
+  above.
+- `frontend/vite.config.ts`'s `../app-framework/` mention in `server.fs.allow`
+  is dead config (a dev-convenience path that was never load-bearing) — safe
+  to remove whenever someone next touches that file, not urgent.
+- `../appfw-env.sh` (sibling to this repo, not tracked here) is now fully
+  dead — every env var it exports (`APPFW_FRAMEWORK_ROOT`, the private
+  registry index) has no consumer left in this repo.
 
-To resume backend work: restore the framework at `../app-framework/`, then run
-the §5 backend gates in Docker to reconfirm green at HEAD before making changes.
+There is nothing to restore. A future session that wants to reference the
+original framework source for historical comparison will need to re-obtain it
+from wherever it was originally sourced — the local copy and the zip it was
+extracted from (see `Governance-Restructure/M2-CHECKPOINT.md`) are both gone
+from this machine as of 2026-09-07.
 
 ---
 

@@ -1,23 +1,20 @@
 //! Slice 7b: `feature-check`. Confirmed via `HANDOFF.md` (not assumed from
 //! the name) that "product feature-check" means this product's own Cargo
-//! feature-flag compile matrix for `backend/Cargo.toml`
-//! (`http`/`mcp`/`kafka`/`sync`/`provider-postgres`) -- distinct from the
+//! feature-flag compile matrix for `backend/Cargo.toml` -- distinct from the
 //! framework's own `feature-check` for its own crates, which §6 lists as an
 //! explicit non-goal.
 //!
-//! **This will report every combination as failing today, and that is the
-//! correct, honest result -- not a bug in this module.** `backend/Cargo.toml`
-//! still declares `appfw_runtime = { path = "../../app-framework/appfw_runtime" }`,
-//! and that checkout was deleted (HANDOFF.md §6: "Anything that shells
-//! through `scripts/appfw` cannot run until the framework [is restored]...
-//! a `cargo build` of the backend also needs it"). Every feature
-//! combination -- including the default build -- fails at Cargo manifest
-//! resolution before a single line of `backend` compiles, for one shared
-//! reason that has nothing to do with feature-flag semantics. Fixing that
-//! is the remaining `appfw_runtime` removal work tracked elsewhere in
-//! `self-owned-backend-plan.md`, not something `feature-check` itself
-//! should paper over by skipping the framework-dependent check or reporting
-//! a false pass.
+//! **Update (backend framework replacement phase 7, complete 2026-09-07):**
+//! the note below about every combination failing describes a state that no
+//! longer exists. `appfw_runtime` is no longer a dependency of `backend` at
+//! all (`backend/Cargo.toml`'s path dependency and `.cargo/config.toml`'s
+//! private-registry stanza were both removed in phase 7's final cutover),
+//! and `mcp`/`kafka`/`sync` were deleted outright in the same phase -- the
+//! `[features]` table this module enumerates today only has `http` and
+//! `provider-postgres` (`default` aliases both). Feature combinations
+//! should now actually compile; if a run reports failures, investigate
+//! them as real -- don't assume they're the old framework-manifest
+//! failure this comment used to explain away.
 //!
 //! Feature combinations are enumerated from `backend/Cargo.toml`'s
 //! `[features]` table (simple line-based parsing, same technique

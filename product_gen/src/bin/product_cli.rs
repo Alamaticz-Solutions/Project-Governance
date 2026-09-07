@@ -10,10 +10,12 @@
 //! suite, not a report this binary builds -- see `product_gen::policy` and
 //! `rego_test/tests/policy_contract.rs`).
 //!
-//! `feature-check` will report every combination as failing right now --
-//! see `product_gen::feature_check`'s doc comment. That's `backend`'s own
-//! still-live `appfw_runtime` path dependency on the deleted framework
-//! checkout (HANDOFF.md §6), not a bug in this command.
+//! `feature-check` used to report every combination as failing, because
+//! `backend` still had a live `appfw_runtime` path dependency on the
+//! deleted framework checkout (HANDOFF.md §6) -- that dependency is gone
+//! as of backend framework replacement phase 7's final cutover (2026-09-07,
+//! `docs/architecture/self-owned-backend-plan.md`); see
+//! `product_gen::feature_check`'s doc comment for current state.
 
 use std::env;
 use std::path::PathBuf;

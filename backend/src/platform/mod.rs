@@ -18,6 +18,15 @@ pub(crate) mod auth;
 
 pub(crate) mod connection_security;
 
+// `cors.rs` uses `axum`/`tower_http` unconditionally, both optional
+// dependencies pulled in only by the `http` feature -- must be gated the
+// same way as its sibling axum-dependent modules (`auth`, `graphql_gateway`,
+// `routing`, `security`, `admin_runtime`, `product_ui`, `readiness`).
+// Confirmed missing (`cargo check -p backend --no-default-features
+// --features provider-postgres` failed with E0433 on both `axum` and
+// `tower_http` before this fix) -- a real, pre-existing gap, not something
+// backend framework replacement phase 7 introduced.
+#[cfg(feature = "http")]
 pub(crate) mod cors;
 
 pub(crate) mod errors;
