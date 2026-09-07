@@ -8,8 +8,8 @@ resolver = "2"
 # rego_test moved out (see rego_test/Cargo.toml): it now path-depends on
 # product_gen, which declares its own [workspace] -- a member manifest
 # cannot both join this workspace and be its own workspace root. api_tests
-# still path-depends on the (deleted) framework checkout, so this root
-# workspace cannot resolve today regardless; rego_test's exclusion doesn't
-# change that. Re-add it here once api_tests' framework dependency is gone
-# and rego_test folds back in as an ordinary member (dropping its own
-# [workspace] marker at the same time).
+# no longer path-depends on the framework (backend framework replacement
+# phase 7, slice 7 -- docs/architecture/self-owned-backend-plan.md) and
+# stays an ordinary member here. Re-add rego_test once it folds back into
+# an ordinary member (dropping its own [workspace] marker) -- or once
+# product_gen itself is no longer a separate workspace root.
