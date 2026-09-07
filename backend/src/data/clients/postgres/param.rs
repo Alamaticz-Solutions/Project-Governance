@@ -191,7 +191,15 @@ pub fn type_param(
             Box::new(value_vec_to_json_vec(v))
         }
         (RuntimeDataType::ObjectArray | RuntimeDataType::JsonArray, Value::Null) => {
-            Box::new(try_null::<Vec<String>>(is_nullable, prop_name)?)
+            // Placeholder is `$N::jsonb[]` (`prop_param_ref`), and the
+            // non-null arm above binds `Vec<Json<Value>>`. A null must bind
+            // the same element type or `ToSql::accepts()` rejects the
+            // `jsonb[]`-cast placeholder -- the array counterpart of the
+            // scalar-jsonb bug in the `Object | Json, Value::Null` arm
+            // (HANDOFF.md finding N). Hit live by `createMeeting` leaving
+            // `decisions`/`action_items`/`agenda_items`/`attendees` unset
+            // ("error serializing parameter N").
+            Box::new(try_null::<Vec<Json<Value>>>(is_nullable, prop_name)?)
         }
 
         (RuntimeDataType::NavToOne | RuntimeDataType::NavToMany, _) => {
