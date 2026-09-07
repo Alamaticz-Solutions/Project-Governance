@@ -6,15 +6,17 @@
 //! confirmed divergence from the raw template**: every method body in this
 //! product's checked-in `mod.rs` inserts
 //! `let user = user.map(crate::product_api::UserAuth::from);` immediately
-//! after `handler_context.into_handler_parts()`, and the `from_context`/
-//! `from_context_without_selections` helpers convert the other direction
-//! (`user_from_context(ctx).map(appfw_runtime::extension::UserAuth::from)`).
-//! This means `HandlerContext` still carries the framework's `UserAuth`
-//! internally (a known, deliberately-deferred framework touchpoint per the
-//! main plan doc), and every resolver method converts it back to the
-//! product's `UserAuth` before calling into the (already product-typed)
-//! `_impl` functions. Reproduced exactly rather than "cleaned up", since
-//! fixing that boundary is out of this slice's scope.
+//! after `handler_context.into_handler_parts()`. Historically (before
+//! backend framework replacement phase 7's slice 3 remainder) this was a
+//! real framework -> product conversion, since `HandlerContext` carried the
+//! framework's own `UserAuth`; `platform::graphql_context` now holds the
+//! product's `UserAuth` directly end to end (see that module's doc
+//! comment), so this line and `from_context`'s `let user =
+//! user_from_context(ctx);` are both plain passthroughs today -- kept as
+//! written (the `.map(UserAuth::from)` line resolves to std's reflexive
+//! `impl<T> From<T> for T`, a harmless no-op) rather than trimmed, since
+//! this module's job is reproducing the checked-in generated output
+//! byte-for-byte, not opportunistically simplifying it.
 //!
 //! Module and `use` item ordering doesn't need to match the template's
 //! iteration order by hand: this product's checked-in output is rustfmt's
@@ -100,8 +102,8 @@ pub fn render(schema_name: &str, entities: &[EntityType]) -> String {
     }
     out.push_str("}\n\n");
 
-    out.push_str("#[cfg(feature = \"http\")]\nfn from_context(\n    ctx: &Context<'_>,\n    schema_name: &'static str,\n    type_name: &'static str,\n) -> std::result::Result<HandlerContext, AppError> {\n    let user = user_from_context(ctx).map(appfw_runtime::extension::UserAuth::from);\n    let data_access = data_access_from_context(ctx);\n    let entity_type = entity_type_for_handler(&data_access, schema_name, type_name)?;\n    let selections = get_query_selections(data_access.app_config.clone(), entity_type.clone(), ctx.field())?;\n    Ok(HandlerContext::new(user, data_access, entity_type, selections))\n}\n\n");
-    out.push_str("#[cfg(feature = \"http\")]\nfn from_context_without_selections(\n    ctx: &Context<'_>,\n    schema_name: &'static str,\n    type_name: &'static str,\n) -> std::result::Result<HandlerContext, AppError> {\n    let user = user_from_context(ctx).map(appfw_runtime::extension::UserAuth::from);\n    let data_access = data_access_from_context(ctx);\n    let entity_type = entity_type_for_handler(&data_access, schema_name, type_name)?;\n    Ok(HandlerContext::new(user, data_access, entity_type, JsonValue::Null))\n}\n\n");
+    out.push_str("#[cfg(feature = \"http\")]\nfn from_context(\n    ctx: &Context<'_>,\n    schema_name: &'static str,\n    type_name: &'static str,\n) -> std::result::Result<HandlerContext, AppError> {\n    let user = user_from_context(ctx);\n    let data_access = data_access_from_context(ctx);\n    let entity_type = entity_type_for_handler(&data_access, schema_name, type_name)?;\n    let selections = get_query_selections(data_access.app_config.clone(), entity_type.clone(), ctx.field())?;\n    Ok(HandlerContext::new(user, data_access, entity_type, selections))\n}\n\n");
+    out.push_str("#[cfg(feature = \"http\")]\nfn from_context_without_selections(\n    ctx: &Context<'_>,\n    schema_name: &'static str,\n    type_name: &'static str,\n) -> std::result::Result<HandlerContext, AppError> {\n    let user = user_from_context(ctx);\n    let data_access = data_access_from_context(ctx);\n    let entity_type = entity_type_for_handler(&data_access, schema_name, type_name)?;\n    Ok(HandlerContext::new(user, data_access, entity_type, JsonValue::Null))\n}\n\n");
     out.push_str("#[cfg(feature = \"http\")]\nfn pagination_args(skip: Option<i32>, limit: Option<i32>) -> std::result::Result<(i32, i32), AppError> {\n    Ok(PaginationPolicy::from_env().normalize(skip, limit)?)\n}\n");
 
     out

@@ -14,6 +14,11 @@ pub(crate) mod cors;
 
 pub(crate) mod errors;
 
+// Not `http`-gated: `product_api::HandlerContext` (a `RuntimeHandlerContext`
+// alias) is used by generated handler code unconditionally, same reasoning
+// as `host`/`security_config` below.
+pub(crate) mod graphql_context;
+
 #[cfg(feature = "http")]
 pub(crate) mod graphql_gateway;
 

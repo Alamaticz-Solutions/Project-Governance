@@ -196,7 +196,10 @@ impl From<crate::platform::runtime::extension::UserAuth> for UserAuth {
 
 #[cfg(feature = "http")]
 pub(crate) fn user_from_context(ctx: &async_graphql::Context<'_>) -> Option<UserAuth> {
-    crate::platform::runtime::user_from_graphql_context(ctx).map(UserAuth::from)
+    // `user_from_graphql_context` is self-owned as of phase 7's slice 3
+    // remainder and already returns this crate's own `UserAuth` directly
+    // -- no bridge conversion needed here any more.
+    crate::platform::runtime::user_from_graphql_context(ctx)
 }
 
 #[cfg(feature = "http")]

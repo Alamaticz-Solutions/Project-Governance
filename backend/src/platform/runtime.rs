@@ -76,8 +76,24 @@ pub mod security {
 // error, not a no-op. They come out once `RuntimeJwtExtractor` itself is
 // replaced (the remainder of this slice).
 //
-// `RuntimeJwtExtractor`/`RuntimeAuthState` themselves are also not
-// overridden: real JWT/Okta verification, not yet ported.
+// `RuntimeJwtExtractor`/`RuntimeHandlerContext`/`user_from_graphql_context`/
+// `data_from_graphql_context` ARE overridden below: unlike `PolicyAccess`/
+// `UserAuth` themselves, these are plain generic context-extension
+// plumbing with no framework machinery and no fixed trait signature
+// pinning them -- porting them (holding the self-owned `UserAuth`
+// directly instead of the framework's) eliminates the `UserAuth::from`
+// bridge at the JWT boundary entirely, not just relocates it. See
+// `platform::graphql_context`'s own doc comment for the full reasoning.
+// This does NOT touch real JWT/Okta verification, already self-owned in
+// `platform::auth` since phase 4b-4.
+pub use crate::platform::graphql_context::{
+    data_from_graphql_context, user_from_graphql_context, RuntimeHandlerContext,
+    RuntimeJwtExtractor,
+};
+//
+// `RuntimeAuthState` alone is NOT overridden: `admin_ui.rs`'s
+// `AdminRuntimeState` trait (framework-fixed, part of slice 6's admin.rs
+// entanglement) requires it by that exact type.
 
 // Slice 4 (query IR: filters, pagination, cost):
 //
