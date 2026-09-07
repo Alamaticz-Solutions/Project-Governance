@@ -82,3 +82,43 @@ pub mod security {
 //
 // `RuntimeJwtExtractor`/`RuntimeAuthState` themselves are also not
 // overridden: real JWT/Okta verification, not yet ported.
+
+// Slice 4 (query IR: filters, pagination, cost):
+//
+// `QueryCost`/`QueryCostBudget` are reached at the crate-root path
+// (confirmed: `grep -n "runtime::QueryCost" backend/src`), but
+// `data/query_ir.rs` (already self-owned, phase 5) reaches the other cost
+// types through the `query_cost::` submodule path -- both need shadowing,
+// same lesson as `security` above: check the exact path depth real
+// callers use, don't assume a top-level override is enough.
+pub use crate::platform::query_cost::{QueryCost, QueryCostBudget};
+pub mod query_cost {
+    pub use crate::platform::query_cost::{
+        RuntimeAggregateCostInput, RuntimeFilterCostNode, RuntimeQueryCostInput,
+        RuntimeRelationKind, RuntimeSelectionCostNode, RuntimeSelectionCostTree,
+    };
+}
+pub use crate::platform::query_filter::RuntimeFilterOp;
+pub mod query_filter {
+    pub use crate::platform::query_filter::{
+        conjunction_token, filter_token, normalize_filter_input, value_kind, RuntimeFilterObject,
+        RuntimeFilterOp,
+    };
+}
+//
+// `query_ir` is shadowed only for the two pagination types real call sites
+// use from that path (`RuntimePagination`/`RuntimePaginationStrategy`,
+// confirmed via `grep -rn "runtime::query_ir::" backend/src` -- nothing
+// else from that submodule is referenced). The framework's actual
+// `query_ir` module (cursor signing, filter-AST-to-SQL-plan translation)
+// is NOT ported -- `data/keyset_cursor.rs` and `data/query_ir.rs` already
+// have their own self-owned equivalents from phase 5.
+pub mod query_ir {
+    pub use crate::platform::query_pagination::{RuntimePagination, RuntimePaginationStrategy};
+}
+pub(crate) use crate::platform::provider_time_period;
+//
+// The framework's filter-*capabilities* reporting API
+// (`RuntimeFilterCapabilities` and friends, still reached via the glob
+// above) is deliberately left framework-owned: its only consumer,
+// `admin_ui.rs`, is itself still framework-owned pending slice 6.

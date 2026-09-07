@@ -32,6 +32,14 @@ pub(crate) mod provider_error;
 
 pub(crate) mod provider_keys;
 
+pub(crate) mod provider_time_period;
+
+pub(crate) mod query_cost;
+
+pub(crate) mod query_filter;
+
+pub(crate) mod query_pagination;
+
 pub(crate) mod record_locator;
 
 #[cfg(feature = "http")]

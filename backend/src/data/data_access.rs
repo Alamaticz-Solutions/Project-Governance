@@ -332,8 +332,14 @@ impl DataAccess {
         };
         let budget = crate::platform::runtime::QueryCostBudget::from_env();
         let cost = cost_for_query(&plan);
-        let pagination =
-            runtime_data_access::pagination_diagnostic(&to_runtime_pagination(&plan.pagination));
+        // `pagination_diagnostic`/`RuntimeQueryPlanDiagnostic` below are
+        // still framework-owned (admin diagnose_query path, deferred to
+        // slice 5), so this self-owned `RuntimePagination` (see
+        // `to_runtime_pagination` above) bridges into the framework's own
+        // type via `.into()` -- identical shape, genuinely distinct types.
+        let pagination = runtime_data_access::pagination_diagnostic(
+            &to_runtime_pagination(&plan.pagination).into(),
+        );
         let provider_descriptor = self.provider_descriptor();
         let provider_plan = plan.clone().into_runtime_provider_plan();
         let provider = self.runtime_provider();
@@ -354,8 +360,8 @@ impl DataAccess {
             data_source: provider_descriptor.data_source_name().to_string(),
             pagination,
             access_filter_applied: plan.access_filter.is_some(),
-            cost,
-            budget,
+            cost: cost.into(),
+            budget: budget.into(),
             provider_diagnostic,
         })
     }
