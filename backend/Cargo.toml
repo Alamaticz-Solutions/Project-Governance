@@ -10,7 +10,6 @@ description = "Project Governance product backend"
 # product-intake scaffold omitted it (finding K).
 default = ["http", "provider-postgres"]
 http = [
-    "appfw_runtime/http",
     "dep:async-graphql-axum",
     "dep:axum",
     "dep:hyper",
@@ -30,7 +29,6 @@ provider-postgres = []
 
 [dependencies]
 anyhow = "1.0"
-appfw_runtime = { package = "appfw-runtime", path = "../../app-framework/appfw_runtime", default-features = false }
 async-graphql = { version = "6", features = ["bson", "chrono", "dynamic-schema"] }
 async-graphql-value = "6"
 async-graphql-axum = { version = "6", optional = true }

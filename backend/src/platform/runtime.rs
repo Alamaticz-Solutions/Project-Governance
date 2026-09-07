@@ -1,38 +1,36 @@
-//! Single chokepoint for the framework runtime crate (backend framework
-//! replacement phase 7, slice 1 -- docs/architecture/self-owned-backend-plan.md).
+//! Single chokepoint for what used to be the framework runtime crate
+//! (backend framework replacement phase 7 --
+//! docs/architecture/self-owned-backend-plan.md). As of slice 8's final
+//! cutover, this module is fully self-owned: `appfw_runtime` is no longer
+//! a dependency of `backend` at all (removed from `backend/Cargo.toml` in
+//! the same commit as this file's own glob re-export), and every name
+//! below points at this crate's own code under `crate::platform::*`.
 //!
-//! Every other file in `backend/src` that still needs a type or function
-//! from `appfw_runtime` reaches it through this module (`crate::platform::
-//! runtime::...`) instead of naming the crate directly. This is a purely
-//! mechanical rewiring -- no behavior change, and `appfw_runtime` itself is
-//! still the real implementation underneath every re-exported name here.
-//! The point is git-diff visibility during the port: `grep -rl
-//! "appfw_runtime" backend/src --include='*.rs'` now returns exactly this
-//! file, so later slices can see their own progress by watching this
-//! module shrink (an item moves from `pub use appfw_runtime::Foo;` to a
-//! self-owned `pub use crate::platform::foo::Foo;` line) instead of
-//! grepping 45 files for a moving target.
-//!
-//! `backend/Cargo.toml` still declares the real `appfw_runtime` path
-//! dependency -- this module doesn't remove it, later slices do, ending
-//! with slice 8's final cutover once every re-export below has been
-//! replaced by self-owned code.
+//! Every other file in `backend/src` that needs one of these types or
+//! functions still reaches it through this module
+//! (`crate::platform::runtime::...`) rather than the self-owned module
+//! directly -- that indirection is kept deliberately even though the
+//! framework is gone, since dozens of call sites across the crate already
+//! depend on this exact path shape (including the submodule-vs-crate-root
+//! distinction documented slice-by-slice below) and repointing all of
+//! them to their new home directly would be a large, purely cosmetic
+//! diff with no behavior change. `grep -rl "appfw_runtime" backend/src
+//! --include='*.rs'` now returns nothing live (comment-only historical
+//! mentions aside) -- confirmed as this slice's own verification step.
 
 #![allow(unused_imports)]
-#![allow(ambiguous_glob_reexports)]
-
-pub use appfw_runtime::*;
 
 // --- self-owned overrides ---------------------------------------------
 //
-// Each of these shadows the framework re-export above with a self-owned
-// implementation (a Rust explicit `use` always wins over a glob import of
-// the same name, so these lines are the only edit needed per symbol -- no
-// call site elsewhere in `backend/src` changes). Move a name down here as
-// each slice of docs/architecture/self-owned-backend-plan.md's Phase 7
-// lands; when this list covers everything the glob above brings in, the
-// glob itself -- and the `appfw_runtime` Cargo dependency -- comes out in
-// slice 8.
+// Each of these used to shadow a framework re-export brought in by a
+// `pub use appfw_runtime::*;` glob at the top of this file (a Rust
+// explicit `use` always wins over a glob import of the same name); that
+// glob is gone as of slice 8, so every name below is now the only
+// definition of itself rather than a shadow. Left in place slice-by-slice
+// (rather than collapsed into one flat list) since each comment still
+// documents real, non-obvious facts -- which path real call sites use
+// (crate-root vs submodule), which types were entangled with a
+// framework-fixed trait signature, and so on.
 
 // Slice 2 (leaf error/id types):
 pub use crate::platform::errors::{
@@ -140,9 +138,15 @@ pub(crate) use crate::platform::provider_time_period;
 // Slice 5 (provider contract -- leaf data types):
 //
 // `RuntimeJsonObj` is a type alias for `serde_json::Map<String, Value>`,
-// not a distinct struct, so re-declaring it creates no new type and needs
-// no override at all -- appfw_runtime::RuntimeJsonObj and this crate's own
-// already name the same underlying type. Not listed below for that reason.
+// not a distinct struct -- while the framework glob was still present
+// (through slice 8's cutover), re-declaring it here would have created no
+// new type, since `appfw_runtime::RuntimeJsonObj` and this crate's own
+// already named the same underlying type, so it needed no override to
+// resolve correctly and was deliberately left off this list. Once the
+// glob came out in slice 8, callers reaching it at the crate-root path
+// (`data/clients/database_client.rs`) had nothing left to resolve to, so
+// it needs an explicit re-export like everything else here after all.
+pub use crate::platform::provider_result::RuntimeJsonObj;
 pub use crate::platform::provider_request::RuntimeProviderPlanInput;
 pub use crate::platform::provider_result::{RuntimeJsonAggregateResult, RuntimeJsonQueryResult};
 //
@@ -279,6 +283,86 @@ pub mod admin {
 // so a top-level override is correct here, unlike `admin` above.
 pub use crate::platform::query_filter::{RuntimeFilterCapabilities, RuntimeFilterDataTypeCapability};
 //
+// Slice 8 (final surface -- backend framework replacement phase 7):
+//
+// `model_metadata` is reached everywhere via its submodule path
+// (`runtime::model_metadata::{RuntimeDataType, RuntimeEntityMetadata,
+// ...}`, confirmed via `grep -rn "runtime::model_metadata::"
+// backend/src`), so this needs a `pub mod` shadow, same lesson as
+// `security`/`query_cost`/`observability`/`admin` above. Ported near-
+// verbatim from the framework's `model_metadata.rs` (634 lines) -- see
+// `platform::model_metadata`'s own doc comment for which methods have
+// live call sites in this repo versus which are kept only because
+// they're part of the type's public API surface.
+pub mod model_metadata {
+    pub use crate::platform::model_metadata::*;
+}
+//
+// `record_locator::RECORD_LOCATOR_FIELD` is reached via its submodule path
+// too (`product_api.rs`'s `record_locator::RECORD_LOCATOR_FIELD`).
+// `platform::record_locator` already existed as a fully self-owned module
+// since phase 4 (it already carries this exact constant, confirmed by
+// reading the file) but was never routed through this facade -- this is
+// purely a shadow pointing at existing code, no new code.
+pub mod record_locator {
+    pub use crate::platform::record_locator::*;
+}
+//
+// `graphiql::html` is likewise reached via its submodule path
+// (`platform::graphql_gateway`'s `use crate::platform::runtime::{graphiql,
+// ...}`). Ported verbatim as `platform::graphiql` -- a pure string
+// template, no auth logic.
+#[cfg(feature = "http")]
+pub mod graphiql {
+    pub use crate::platform::graphiql::*;
+}
+//
+// `RuntimeProviderDescriptor` is NOT overridden -- it was never actually
+// used as a type anywhere in `backend/src` (confirmed: `grep -rn
+// "RuntimeProviderDescriptor" backend/src` finds only its own two import
+// lines, in `product_api.rs` and `data/data_access.rs`; both files use
+// the already-self-owned `data::provider_identity::ProviderDescriptor`
+// for the real work). Both dead import lines are deleted instead of
+// ported.
+//
+// `RuntimeProviderRegistry` is self-owned now (`platform::provider_registry`,
+// ported verbatim from the framework's `provider_registry.rs`) -- reached
+// at the crate-root path (`routes/mod.rs`'s `use crate::platform::runtime::
+// {..., RuntimeProviderRegistry}`), so a top-level override is correct
+// here, unlike `model_metadata`/`record_locator`/`graphiql` above.
+// `routes/mod.rs`'s `.into()` bridge calls at its two call sites (into
+// `RuntimeProviderRegistry::create`/`::register`) are removed in the same
+// commit -- both were converting the self-owned `FrameworkProvider` into
+// the framework's own type for a framework-owned registry that no longer
+// exists.
+#[cfg(feature = "http")]
+pub use crate::platform::provider_registry::RuntimeProviderRegistry;
+//
+// `data_access` (imported by `data/data_access.rs` as `runtime_data_access`)
+// is NOT overridden -- the import was dead code (confirmed: `grep -n
+// "runtime_data_access::" backend/src/data/data_access.rs` returns
+// nothing; the alias import itself is the only reference). Deleted
+// outright rather than ported.
+//
+// `RuntimeAuditEvent`/`RuntimeAuditQuery` are NOT overridden -- confirmed
+// by grep that `product_api.rs`'s re-export of these two names has no
+// consumer anywhere in `backend/src` (`data/audit_event.rs`'s own
+// `AuditEvent`/`AuditQuery` are the self-owned types every production
+// call site actually uses, since phase 5). The only other reference is
+// `data/audit_event.rs`'s oracle test, which names `appfw_runtime::
+// RuntimeAuditEvent` directly (not through this facade) -- see that
+// test's own comment for how it was retired once the `appfw_runtime`
+// dependency came out entirely in this same slice. Both names are
+// deleted from `product_api.rs`'s import list rather than ported.
+//
+// `HandlerResult<T>`/`JsonValue` are trivial aliases
+// (`anyhow::Result<T>` / `serde_json::Value` respectively, confirmed
+// against the framework's `lib.rs`), reached at the crate-root path
+// (`product_api.rs`'s `use crate::platform::runtime::{HandlerResult,
+// JsonValue, ...}`), so top-level definitions are correct here.
+pub type HandlerResult<T> = anyhow::Result<T>;
+pub type JsonValue = serde_json::Value;
+
 // `RuntimeAuthState` is NOT overridden -- it is deleted outright. It only
 // ever existed to satisfy `AdminRuntimeState::auth_state`'s fixed return
 // type while `admin` was framework-owned; now that this crate owns that

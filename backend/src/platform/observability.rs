@@ -5,16 +5,15 @@
 //!
 //! `RequestContext`, `current_request_context`, and `MetricsRegistry` were
 //! deliberately NOT ported here despite living in the same framework module
-//! -- they're now self-owned too, as of phase 7 slice 6.2, but split into
+//! -- they're self-owned too, as of phase 7 slice 6.2, but split into
 //! their own files (`platform::request_context`, `platform::metrics`,
 //! `platform::readiness`) rather than folded into this one: this module
 //! stays scoped to tracing/OTel process init, matching the framework's own
-//! `observability::telemetry` vs `observability::metrics` split. See
-//! `platform::request_context`'s doc comment for why those three had to
-//! land together, and `admin_ui.rs`'s own comment for the one place
-//! `RequestContext` still needs the framework's exact type (its three
-//! `Admin*Provider` trait methods, fixed by the still-framework-owned
-//! `admin` module, slice 6.3).
+//! `observability::telemetry` vs `observability::metrics` split.
+//! `admin_ui.rs`'s three `Admin*Provider` trait methods take this crate's
+//! own self-owned `RequestContext` directly (`platform::admin_runtime`
+//! was ported to self-owned types in slice 6.3) -- no framework type
+//! involved any more.
 
 use std::{env, error::Error, time::Duration};
 
@@ -24,7 +23,7 @@ use opentelemetry_sdk::metrics::SdkMeterProvider;
 use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::SdkTracerProvider, Resource};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
-const DEFAULT_TRACING_FILTER: &str = "backend=info,appfw_runtime=info,tower_http=info";
+const DEFAULT_TRACING_FILTER: &str = "backend=info,tower_http=info";
 
 #[derive(Clone, Debug)]
 struct ObservabilityConfig {
@@ -58,7 +57,7 @@ impl ObservabilityConfig {
 
 fn default_filter_from_log_level() -> String {
     let level = env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
-    ["backend", "appfw_runtime", "tower_http"]
+    ["backend", "tower_http"]
         .into_iter()
         .map(|target| format!("{target}={level}"))
         .collect::<Vec<_>>()
@@ -236,7 +235,6 @@ mod tests {
         let filter = default_filter_from_log_level();
 
         assert!(filter.contains("backend=warn"));
-        assert!(filter.contains("appfw_runtime=warn"));
         assert!(filter.contains("tower_http=warn"));
 
         if let Some(value) = prior {

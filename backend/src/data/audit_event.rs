@@ -7,12 +7,21 @@
 //! Every audit event this system writes is chained to the previous one via a
 //! SHA-256 hash of its own canonicalized JSON representation (`event_hash`,
 //! chained forward via `prev_hash`), and that hash is already persisted for
-//! historical events. If this module's JSON serialization drifts from the
-//! framework's even slightly -- a field renamed, retyped, or made
-//! present/absent differently -- new hashes stop verifying against the
-//! existing chain, silently, with no test failure to catch it locally. See
-//! `oracle_test` below, which is the test that actually catches that class of
-//! drift; do not weaken or remove it.
+//! historical events.
+//!
+//! This module used to carry an `oracle_test` comparing its output
+//! byte-for-byte against the live `appfw_runtime::RuntimeAuditEvent` (JSON
+//! shape and `event_hash`, given identical input). That test named
+//! `appfw_runtime` directly, so it could not survive backend framework
+//! replacement phase 7 slice 8's final cutover (the dependency's removal
+//! from `backend/Cargo.toml`). Before removing it, the oracle test was run
+//! one last time against the framework (still linked at that point) to
+//! capture its actual golden JSON/hash output, and `golden_test` below
+//! freezes that captured output as a standalone regression test -- no
+//! framework dependency, but the same drift it used to catch (a field
+//! rename/retype/presence change silently breaking the persisted hash
+//! chain) is still caught. See `golden_test`'s own doc comment for exactly
+//! how the values were captured.
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AuditQuery {
@@ -697,14 +706,39 @@ mod tests {
     }
 }
 
+/// Frozen replacement for the `oracle_test` this module used to carry,
+/// which compared `AuditEvent::entity_mutation`'s output byte-for-byte
+/// against the live `appfw_runtime::RuntimeAuditEvent` (backend framework
+/// replacement phase 7 slice 8's final cutover -- `appfw_runtime` is gone
+/// from this workspace, so that comparison can no longer be made at all).
+///
+/// The golden JSON and `event_hash` below were captured by actually running
+/// the original oracle test one last time, at the exact commit before the
+/// framework dependency was removed (`cargo test -p backend --bin backend
+/// -- audit_event::oracle_test`, with the framework still linked) -- not
+/// invented or assumed. `audit_id`/`occurred_at` are excluded from the
+/// comparison because the original oracle test excluded them too (they're
+/// random/wall-clock, not serialization-shape-relevant); every other field,
+/// and the resulting `event_hash`, is asserted verbatim against what the
+/// framework's own implementation actually produced for this exact input.
+/// This guards the same regression the old test did -- a field rename,
+/// retype, or presence change silently breaking the persisted hash chain --
+/// just against a frozen value instead of a live comparison. It does NOT
+/// re-verify that this crate still matches the framework (the framework is
+/// gone), only that this crate does not drift from where it stood at the
+/// moment of cutover.
 #[cfg(test)]
-mod oracle_test {
+mod golden_test {
     use super::*;
     use crate::platform::policy::{AccessAction, PolicyAccess};
     use crate::platform::user_auth::UserAuth;
     use crate::product_api::{RuntimeDataType, RuntimeEntityMetadata, RuntimePropertyMetadata};
     use serde_json::json;
 
+    // Deliberately the same two-property entity shape the deleted
+    // `oracle_test` used -- not the four-property `entity()` in `mod tests`
+    // above -- since the captured golden values below were produced against
+    // this exact shape.
     fn entity() -> RuntimeEntityMetadata {
         RuntimeEntityMetadata {
             id: "entity-1".to_string(),
@@ -764,26 +798,10 @@ mod oracle_test {
         }
     }
 
-    /// Verifies this module's `AuditEvent::entity_mutation` produces the exact
-    /// same JSON shape (field names, types, presence) as the real framework
-    /// `crate::platform::runtime::RuntimeAuditEvent::entity_mutation`, and that both
-    /// produce the same `event_hash` given the same (patched-for-determinism)
-    /// input. This is a persisted-data contract: existing audit rows' hashes
-    /// were computed by the framework's serialization, so any drift here
-    /// would make new hash-chain links unverifiable against historical rows.
     #[test]
-    fn matches_framework_audit_event_json_shape_and_hash() {
+    fn audit_event_json_shape_and_hash_do_not_drift_from_the_last_framework_comparison() {
         let entity = entity();
-        let record_id = Some("account-1".to_string());
-        let before = Some(json!({ "id": "account-1", "api_token": "old" }));
-        let after = Some(json!({ "id": "account-1", "api_token": "new" }));
-
-        // --- Framework side (real appfw_runtime types, named explicitly:
-        // `crate::platform::runtime::{extension::UserAuth, PolicyAccess,
-        // AccessAction}` are self-owned now via the facade override, slice
-        // 3, so this oracle test needs the actual framework types by their
-        // real crate path to compare against, not the facade names) ---
-        let framework_user = appfw_runtime::extension::UserAuth::human(
+        let user = UserAuth::human(
             "tenant-1",
             "alex",
             "UTC",
@@ -791,63 +809,68 @@ mod oracle_test {
             Vec::new(),
             "do-not-store",
         );
-        let framework_access = appfw_runtime::PolicyAccess::allow_all();
-        let framework_event = appfw_runtime::RuntimeAuditEvent::entity_mutation(
-            &entity,
-            appfw_runtime::AccessAction::Update,
-            &framework_user,
-            record_id.clone(),
-            before.clone(),
-            after.clone(),
-            &framework_access,
-        );
+        let access = PolicyAccess::allow_all();
 
-        // --- Product side (this module) ---
-        let product_user = UserAuth::human(
-            "tenant-1",
-            "alex",
-            "UTC",
-            vec!["admin".to_string()],
-            Vec::new(),
-            "do-not-store",
-        );
-        let product_access = PolicyAccess::allow_all();
-        let mut product_event = AuditEvent::entity_mutation(
+        let mut event = AuditEvent::entity_mutation(
             &entity,
             AccessAction::Update,
-            &product_user,
-            record_id,
-            before,
-            after,
-            &product_access,
+            &user,
+            Some("account-1".to_string()),
+            Some(json!({ "id": "account-1", "api_token": "old" })),
+            Some(json!({ "id": "account-1", "api_token": "new" })),
+            &access,
         );
 
-        // Copy the two inherently non-deterministic fields so the comparison
-        // below isolates everything that SHOULD be identical given identical
-        // inputs.
-        product_event.audit_id = framework_event.audit_id.clone();
-        product_event.occurred_at = framework_event.occurred_at;
+        // Non-deterministic fields, excluded the same way the original
+        // oracle test excluded them (it copied the framework's values onto
+        // the product side before comparing).
+        event.audit_id = "4a79a529-3032-41d9-8089-1f665d580732".to_string();
+        event.occurred_at = chrono::DateTime::parse_from_rfc3339("2026-09-07T08:55:42.623929600Z")
+            .unwrap()
+            .with_timezone(&chrono::Utc);
 
-        let framework_json =
-            serde_json::to_value(&framework_event).expect("framework event serializes");
-        let product_json = serde_json::to_value(&product_event).expect("product event serializes");
+        let actual_json = serde_json::to_value(&event).expect("event serializes");
+        let expected_json = json!({
+            "audit_id": "4a79a529-3032-41d9-8089-1f665d580732",
+            "occurred_at": "2026-09-07T08:55:42.623929600Z",
+            "tenant_id": "tenant-1",
+            "actor_user_name": "alex",
+            "actor_roles": ["admin"],
+            "action": "update",
+            "outcome": "succeeded",
+            "schema_name": "crm",
+            "entity_name": "Account",
+            "table_name": "accounts",
+            "audit_table_name": "accounts_audit",
+            "record_id": "account-1",
+            "before_json": { "id": "account-1", "api_token": { "_redacted": true } },
+            "after_json": { "id": "account-1", "api_token": { "_redacted": true } },
+            "diff_json": {},
+            "policy_json": { "allow": true, "filter": null },
+            "redactions_json": {
+                "omitted_actor_fields": ["token"],
+                "redacted_properties": ["api_token"],
+                "strategy": "replace_value"
+            },
+            "chain_scope": "crm.Account:tenant-1:account-1",
+            "prev_hash": null,
+            "event_hash": "",
+            "signature": null
+        });
         assert_eq!(
-            framework_json, product_json,
-            "AuditEvent must serialize to the exact same JSON shape as RuntimeAuditEvent"
+            actual_json, expected_json,
+            "AuditEvent's JSON shape has drifted from the last verified-against-the-framework snapshot"
         );
 
-        let framework_finalized = framework_event
+        let finalized = event
             .finalize(Some("shared-prev-hash".to_string()))
-            .expect("framework finalize succeeds");
-        let product_finalized = product_event
-            .finalize(Some("shared-prev-hash".to_string()))
-            .expect("product finalize succeeds");
-
+            .expect("finalize succeeds");
         assert_eq!(
-            framework_finalized.event_hash, product_finalized.event_hash,
-            "event_hash must match the framework's hash for identical event data -- \
-             a mismatch here means new audit rows would be unverifiable against the \
-             existing hash chain"
+            finalized.event_hash,
+            "8d9a96322532e1a6a23156f050c1ac8c2dcc85d47c61fa4d9764cd60986dc542",
+            "event_hash has drifted from the last verified-against-the-framework snapshot -- \
+             new audit rows would be unverifiable against the existing hash chain"
         );
     }
 }
+

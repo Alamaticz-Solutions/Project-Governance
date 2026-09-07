@@ -61,44 +61,15 @@ impl ProviderPoolStats {
     }
 }
 
-// Bidirectional bridges to the framework's still-live `ProviderPoolStats`:
-// `PostgresClient`'s `impl RuntimeProviderIdentity` (fixed trait, see that
-// file's own comment) still returns the framework's type, and
-// `observability::metrics::record_provider_pool_stats` (still
-// framework-owned, deferred to a later slice) still takes it as a
-// parameter -- so `data_access.rs::pool_stats()` needs to convert inbound,
-// and its callers need to convert outbound, at this one boundary each way.
-impl From<appfw_runtime::ProviderPoolStats> for ProviderPoolStats {
-    fn from(stats: appfw_runtime::ProviderPoolStats) -> Self {
-        Self {
-            provider: stats.provider,
-            data_source: stats.data_source,
-            instrumented: stats.instrumented,
-            max_size: stats.max_size,
-            size: stats.size,
-            available: stats.available,
-            in_use: stats.in_use,
-            waiting: stats.waiting,
-            pressure: stats.pressure,
-        }
-    }
-}
-
-impl From<ProviderPoolStats> for appfw_runtime::ProviderPoolStats {
-    fn from(stats: ProviderPoolStats) -> Self {
-        Self {
-            provider: stats.provider,
-            data_source: stats.data_source,
-            instrumented: stats.instrumented,
-            max_size: stats.max_size,
-            size: stats.size,
-            available: stats.available,
-            in_use: stats.in_use,
-            waiting: stats.waiting,
-            pressure: stats.pressure,
-        }
-    }
-}
+// The bidirectional bridges to the framework's `ProviderPoolStats` that
+// used to live here (backend framework replacement phase 7) are deleted
+// as of slice 8: confirmed dead by grep before removal -- `PostgresClient`
+// no longer implements the framework's fixed `RuntimeProviderIdentity`
+// trait at all (it implements only the self-owned `ProviderIdentity`/
+// `DatabaseClient`, see `postgres_client.rs`), and
+// `platform::metrics::record_provider_pool_stats` takes this crate's own
+// `ProviderPoolStats` directly, not the framework's. Nothing anywhere in
+// `backend/src` constructed the framework-typed side any more.
 
 #[cfg(test)]
 mod tests {

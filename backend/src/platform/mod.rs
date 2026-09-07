@@ -30,6 +30,9 @@ pub(crate) mod graphql_context;
 #[cfg(feature = "http")]
 pub(crate) mod graphql_gateway;
 
+#[cfg(feature = "http")]
+pub(crate) mod graphiql;
+
 // Not `http`-gated: `main.rs` consults the transport-selection types before it
 // knows whether it will serve HTTP. The `axum`-dependent pieces inside are
 // gated instead.
@@ -40,6 +43,8 @@ pub(crate) mod identifier;
 pub(crate) mod json_utils;
 
 pub(crate) mod metrics;
+
+pub(crate) mod model_metadata;
 
 pub(crate) mod observability;
 
@@ -52,6 +57,9 @@ pub(crate) mod provider_keys;
 pub(crate) mod provider_operation;
 
 pub(crate) mod provider_pool_stats;
+
+#[cfg(feature = "http")]
+pub(crate) mod provider_registry;
 
 pub(crate) mod provider_request;
 

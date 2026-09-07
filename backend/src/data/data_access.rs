@@ -1,12 +1,10 @@
 use std::{env, sync::Arc, time::Instant};
 
 use anyhow::Result;
-use crate::platform::runtime::data_access as runtime_data_access;
 use crate::platform::runtime::json as json_utils;
 use crate::platform::runtime::observability::{current_request_context, MetricsRegistry};
 use crate::platform::runtime::{
-    RuntimeProviderDescriptor, RuntimeProviderOperation, RuntimeProviderOperationCounts,
-    RuntimeProviderPlanInput,
+    RuntimeProviderOperation, RuntimeProviderOperationCounts, RuntimeProviderPlanInput,
 };
 use serde_json::{json, Value};
 use tracing::debug;
@@ -114,10 +112,11 @@ impl DataAccess {
         }
 
         ensure_provider_operation(self.client.as_ref(), RuntimeProviderOperation::FindItem)?;
-        // `DatabaseClient::find_item_json`'s `user` parameter is still the
-        // framework's own `extension::UserAuth` (slice 3's remainder,
-        // RuntimeJwtExtractor not yet ported) even though `access` is
-        // already self-owned `PolicyAccess` -- bridge just the one field.
+        // `DatabaseClient::find_item_json`'s `user` parameter is this
+        // crate's own self-owned `UserAuth` (`platform::user_auth`, via the
+        // `extension::UserAuth` facade path) -- `RuntimeJwtExtractor`'s
+        // slice 3 remainder made this self-owned end-to-end, same as
+        // `access`'s `PolicyAccess`, so no bridge conversion is needed here.
         let visible = self
             .client
             .find_item_json(

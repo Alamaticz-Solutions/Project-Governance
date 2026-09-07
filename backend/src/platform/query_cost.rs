@@ -271,46 +271,13 @@ impl QueryCost {
     }
 }
 
-// Bridges into the framework's still-live `RuntimeQueryPlanDiagnostic`
-// (appfw_runtime::data_access, part of the admin diagnose_query path
-// deferred to slice 5): that struct's `cost`/`budget` fields are fixed to
-// the framework's own `QueryCost`/`QueryCostBudget`, identical in shape to
-// these self-owned ones. A plain field-for-field conversion, not a
-// same-type reflexive impl -- the two sides are genuinely distinct types
-// until slice 5 replaces that struct too.
-impl From<QueryCost> for appfw_runtime::QueryCost {
-    fn from(cost: QueryCost) -> Self {
-        Self {
-            score: cost.score,
-            selected_fields: cost.selected_fields,
-            relationship_depth: cost.relationship_depth,
-            relationship_edges: cost.relationship_edges,
-            many_to_many_expansions: cost.many_to_many_expansions,
-            filter_predicates: cost.filter_predicates,
-            sort_specs: cost.sort_specs,
-            aggregate_outputs: cost.aggregate_outputs,
-            offset_rows: cost.offset_rows,
-            page_size: cost.page_size,
-            pagination_cost: cost.pagination_cost,
-        }
-    }
-}
-
-impl From<QueryCostBudget> for appfw_runtime::QueryCostBudget {
-    fn from(budget: QueryCostBudget) -> Self {
-        Self {
-            max_query_cost: budget.max_query_cost,
-            max_aggregate_cost: budget.max_aggregate_cost,
-            max_relationship_depth: budget.max_relationship_depth,
-            max_many_to_many_expansions: budget.max_many_to_many_expansions,
-            max_filter_predicates: budget.max_filter_predicates,
-            max_sort_specs: budget.max_sort_specs,
-            max_aggregate_outputs: budget.max_aggregate_outputs,
-            max_selected_fields: budget.max_selected_fields,
-            max_offset_rows: budget.max_offset_rows,
-        }
-    }
-}
+// The bridges into the framework's `QueryCost`/`QueryCostBudget` that used
+// to live here (backend framework replacement phase 7) are deleted as of
+// slice 8: confirmed dead by grep before removal -- `admin_runtime::
+// RuntimeQueryPlanDiagnostic`'s `cost`/`budget` fields are this crate's
+// own self-owned `QueryCost`/`QueryCostBudget` directly (`admin_ui.rs`'s
+// `AdminQueryDiagnoseProvider` impl was ported to self-owned types in
+// slice 6.3), not the framework's.
 
 fn selection_cost(selection: &RuntimeSelectionCostTree, cost: &mut QueryCost) {
     for node in &selection.fields {

@@ -138,10 +138,11 @@ async fn create_database_client(
     data_source_name: String,
 ) -> Result<DatabaseClientBox, AppError> {
     let provider = runtime_provider(app_config.get_data_source_type(&data_source_name)?);
-    // `RuntimeProviderRegistry` is still framework-owned, so bridge this
-    // self-owned `FrameworkProvider` into the framework's own type.
+    // `RuntimeProviderRegistry` is self-owned as of phase 7 slice 8 -- no
+    // bridge conversion needed any more, `provider` is already its own
+    // `FrameworkProvider` parameter type.
     database_client_registry(app_config)
-        .create(provider.into(), data_source_name)
+        .create(provider, data_source_name)
         .await
 }
 
@@ -152,7 +153,7 @@ fn database_client_registry(
     let registry = RuntimeProviderRegistry::new();
 
     #[cfg(feature = "provider-postgres")]
-    let registry = registry.register(FrameworkProvider::Postgres.into(), {
+    let registry = registry.register(FrameworkProvider::Postgres, {
         let app_config = app_config.clone();
         move |data_source_name| {
             let app_config = app_config.clone();

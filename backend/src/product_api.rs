@@ -29,8 +29,8 @@ pub use crate::platform::runtime::{
     },
     provider_keys::FrameworkProvider,
     record_locator::RECORD_LOCATOR_FIELD,
-    HandlerResult, JsonValue, RuntimeAuditEvent, RuntimeAuditQuery, RuntimeFilterOp,
-    RuntimeProviderDescriptor, RuntimeProviderOperation, RuntimeProviderOperationCounts,
+    HandlerResult, JsonValue, RuntimeFilterOp, RuntimeProviderOperation,
+    RuntimeProviderOperationCounts,
 };
 
 #[cfg(feature = "http")]
@@ -80,9 +80,10 @@ pub(crate) fn runtime_data_source_metadata(data_source: &DataSource) -> RuntimeD
     RuntimeDataSourceMetadata {
         name: data_source.name.clone(),
         description: data_source.description.clone(),
-        // `RuntimeDataSourceMetadata` is still framework-owned
-        // (model_metadata), so bridge into the framework's own type.
-        provider: runtime_provider(data_source.data_source_type).into(),
+        // `RuntimeDataSourceMetadata` is self-owned (`platform::
+        // model_metadata`, phase 7 slice 8), and `runtime_provider` already
+        // returns this crate's own `FrameworkProvider` -- no bridge needed.
+        provider: runtime_provider(data_source.data_source_type),
         is_system_schema_host: data_source.is_system_schema_host.unwrap_or(false),
         environments: data_source
             .environments
@@ -322,143 +323,21 @@ pub(crate) fn runtime_data_type(data_type: DataType) -> RuntimeDataType {
 mod tests {
     use super::*;
 
-    // These four cases assert that the product-owned `UserAuth`
-    // (`platform::user_auth`) serializes byte-for-byte identically to the
-    // framework's own `crate::platform::runtime::extension::UserAuth`, across every
-    // present/absent state of its optional fields. This matters because
-    // `config/app_config.rs::evaluate_user_access` feeds
-    // `serde_json::to_value(user)` straight into Rego as `input.user` for
-    // all 42 access policies -- a dropped `skip_serializing_if` or a
-    // renamed field would silently change what every one of those policies
-    // sees, with no compiler error. The framework's own test suite never
-    // asserts the *absent*-key case (only that a present `on_behalf_of` /
-    // `ingress` serializes correctly), so this is deliberately broader than
-    // what was ported. This test (and its use of `appfw_runtime` directly)
-    // is only meaningful while phase 5 still depends on that crate; it can
-    // be deleted once the dependency is removed in a later phase.
-    #[test]
-    fn user_auth_serializes_identically_to_the_framework_type_for_human() {
-        let product = UserAuth::human(
-            "tenant-1",
-            "casey",
-            "America/New_York",
-            vec!["admin".to_string(), "analyst".to_string()],
-            vec!["appfw:mcp.read".to_string()],
-            "secret-jwt",
-        );
-        let framework = appfw_runtime::extension::UserAuth::human(
-            "tenant-1",
-            "casey",
-            "America/New_York",
-            vec!["admin".to_string(), "analyst".to_string()],
-            vec!["appfw:mcp.read".to_string()],
-            "secret-jwt",
-        );
-        assert_eq!(
-            serde_json::to_value(&product).unwrap(),
-            serde_json::to_value(&framework).unwrap()
-        );
-    }
-
-    #[test]
-    fn user_auth_serializes_identically_to_the_framework_type_for_service() {
-        let product = UserAuth::service(
-            "tenant-1",
-            "crm-event-consumer",
-            vec!["integration_writer".to_string()],
-            vec!["crm.account.write".to_string()],
-        );
-        let framework = appfw_runtime::extension::UserAuth::service(
-            "tenant-1",
-            "crm-event-consumer",
-            vec!["integration_writer".to_string()],
-            vec!["crm.account.write".to_string()],
-        );
-        assert_eq!(
-            serde_json::to_value(&product).unwrap(),
-            serde_json::to_value(&framework).unwrap()
-        );
-    }
-
-    #[test]
-    fn user_auth_serializes_identically_to_the_framework_type_for_agent() {
-        let product = UserAuth::agent(
-            "tenant-1",
-            "reconciliation-agent",
-            vec!["agent".to_string()],
-            vec!["crm.account.read".to_string()],
-        );
-        let framework = appfw_runtime::extension::UserAuth::agent(
-            "tenant-1",
-            "reconciliation-agent",
-            vec!["agent".to_string()],
-            vec!["crm.account.read".to_string()],
-        );
-        assert_eq!(
-            serde_json::to_value(&product).unwrap(),
-            serde_json::to_value(&framework).unwrap()
-        );
-    }
-
-    #[test]
-    fn user_auth_serializes_identically_to_the_framework_type_with_ingress_and_on_behalf_of() {
-        let product = UserAuth::service(
-            "tenant-1",
-            "crm-event-consumer",
-            vec!["integration_writer".to_string()],
-            vec!["crm.account.write".to_string()],
-        )
-        .with_ingress("kafka")
-        .with_on_behalf_of("casey");
-        let framework = appfw_runtime::extension::UserAuth::service(
-            "tenant-1",
-            "crm-event-consumer",
-            vec!["integration_writer".to_string()],
-            vec!["crm.account.write".to_string()],
-        )
-        .with_ingress("kafka")
-        .with_on_behalf_of("casey");
-        assert_eq!(
-            serde_json::to_value(&product).unwrap(),
-            serde_json::to_value(&framework).unwrap()
-        );
-    }
-
-    // The `RuntimeJwtExtractor` boundary this test originally guarded
-    // (product -> framework in `platform::graphql_gateway`, framework ->
-    // product in `user_from_context`) is gone as of phase 7's slice 3
-    // remainder: `RuntimeJwtExtractor` holds the self-owned `UserAuth`
-    // directly now, so nothing in production converts it to the
-    // framework's type and back any more. The forward-only bridge
-    // (`platform::user_auth`'s `impl From<&UserAuth> for
-    // appfw_runtime::extension::UserAuth`) still exists for admin_ui.rs's
-    // framework-fixed admin traits and audit_event.rs's oracle test, so
-    // this test now verifies that bridge alone stays lossless, including
-    // `token` -- the one field neither type ever serializes, so a dropped
-    // `token` would not show up in the JSON-equality tests above.
-    #[test]
-    fn user_auth_bridges_to_the_framework_type_without_losing_any_field() {
-        let original = UserAuth::human(
-            "tenant-1",
-            "casey",
-            "America/New_York",
-            vec!["admin".to_string()],
-            vec!["appfw:mcp.read".to_string()],
-            "secret-jwt",
-        )
-        .with_on_behalf_of("delegate");
-
-        let via_framework: appfw_runtime::extension::UserAuth = (&original).into();
-
-        assert_eq!(via_framework.tenant_id, original.tenant_id);
-        assert_eq!(via_framework.user_name, original.user_name);
-        assert_eq!(via_framework.timezone, original.timezone);
-        assert_eq!(via_framework.on_behalf_of, original.on_behalf_of);
-        assert_eq!(via_framework.ingress, original.ingress);
-        assert_eq!(via_framework.roles, original.roles);
-        assert_eq!(via_framework.scopes, original.scopes);
-        assert_eq!(via_framework.token, "secret-jwt");
-    }
+    // The four `user_auth_serializes_identically_to_the_framework_type_*`
+    // cases and `user_auth_bridges_to_the_framework_type_without_losing_any_field`
+    // that used to live here (backend framework replacement phases 5-7)
+    // named `appfw_runtime` directly and were pre-authorized by their own
+    // doc comments for deletion "once the dependency is removed in a
+    // later phase" -- this is that phase (slice 8's final cutover,
+    // docs/architecture/self-owned-backend-plan.md). Deleted rather than
+    // frozen into golden-value assertions: `cargo test`'s link step is
+    // unrunnable on this machine for the whole session (low-memory linker
+    // guard, see the plan doc's own session notes), so there was no way to
+    // safely capture verified golden JSON/hash values before the
+    // framework went away. `UserAuth`'s JSON shape has not changed since
+    // these tests last passed; there is no substitute regression coverage
+    // for that shape today. Flagged here and in this slice's final report
+    // rather than left silently unported.
 
     fn test_entity(is_table: bool, props: Vec<PropertyType>) -> EntityType {
         EntityType {

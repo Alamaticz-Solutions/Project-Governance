@@ -162,106 +162,17 @@ impl UserAuth {
     }
 }
 
-// Bidirectional bridges to the framework's still-live `RuntimePrincipalType`/
-// `UserAuth` (backend framework replacement phase 7, slice 3): plain owned-
-// value conversions. Needed by `admin_ui.rs`'s framework-fixed admin
-// traits (part of slice 6's admin.rs entanglement, not yet ported) in both
-// directions -- forward to build the framework's own `AuditEvent`-adjacent
-// values and hand results back through fixed trait return types, reverse
-// because `AdminAuditTimelineProvider`/`AdminQueryDiagnoseProvider`'s
-// `user: appfw_runtime::UserAuth` parameters are fixed by that trait but
-// need to become self-owned before calling this crate's own
-// `DataAccess`/`evaluate_user_access` methods -- and by `audit_event.rs`'s
-// oracle test (which deliberately compares this crate's `AuditEvent`
-// against the framework's own `RuntimeAuditEvent::entity_mutation` output
-// -- see that test's own comment).
-impl From<RuntimePrincipalType> for appfw_runtime::extension::RuntimePrincipalType {
-    fn from(kind: RuntimePrincipalType) -> Self {
-        match kind {
-            RuntimePrincipalType::User => appfw_runtime::extension::RuntimePrincipalType::User,
-            RuntimePrincipalType::Service => {
-                appfw_runtime::extension::RuntimePrincipalType::Service
-            }
-            RuntimePrincipalType::Agent => appfw_runtime::extension::RuntimePrincipalType::Agent,
-        }
-    }
-}
-
-impl From<appfw_runtime::extension::RuntimePrincipalType> for RuntimePrincipalType {
-    fn from(kind: appfw_runtime::extension::RuntimePrincipalType) -> Self {
-        match kind {
-            appfw_runtime::extension::RuntimePrincipalType::User => RuntimePrincipalType::User,
-            appfw_runtime::extension::RuntimePrincipalType::Service => {
-                RuntimePrincipalType::Service
-            }
-            appfw_runtime::extension::RuntimePrincipalType::Agent => RuntimePrincipalType::Agent,
-        }
-    }
-}
-
-impl From<UserAuth> for appfw_runtime::extension::UserAuth {
-    fn from(user: UserAuth) -> Self {
-        appfw_runtime::extension::UserAuth {
-            tenant_id: user.tenant_id,
-            user_name: user.user_name,
-            timezone: user.timezone,
-            principal_type: user.principal_type.into(),
-            on_behalf_of: user.on_behalf_of,
-            ingress: user.ingress,
-            roles: user.roles,
-            scopes: user.scopes,
-            token: user.token,
-        }
-    }
-}
-
-impl From<&UserAuth> for appfw_runtime::extension::UserAuth {
-    fn from(user: &UserAuth) -> Self {
-        appfw_runtime::extension::UserAuth {
-            tenant_id: user.tenant_id.clone(),
-            user_name: user.user_name.clone(),
-            timezone: user.timezone.clone(),
-            principal_type: user.principal_type.into(),
-            on_behalf_of: user.on_behalf_of.clone(),
-            ingress: user.ingress.clone(),
-            roles: user.roles.clone(),
-            scopes: user.scopes.clone(),
-            token: user.token.clone(),
-        }
-    }
-}
-
-impl From<appfw_runtime::extension::UserAuth> for UserAuth {
-    fn from(user: appfw_runtime::extension::UserAuth) -> Self {
-        UserAuth {
-            tenant_id: user.tenant_id,
-            user_name: user.user_name,
-            timezone: user.timezone,
-            principal_type: user.principal_type.into(),
-            on_behalf_of: user.on_behalf_of,
-            ingress: user.ingress,
-            roles: user.roles,
-            scopes: user.scopes,
-            token: user.token,
-        }
-    }
-}
-
-impl From<&appfw_runtime::extension::UserAuth> for UserAuth {
-    fn from(user: &appfw_runtime::extension::UserAuth) -> Self {
-        UserAuth {
-            tenant_id: user.tenant_id.clone(),
-            user_name: user.user_name.clone(),
-            timezone: user.timezone.clone(),
-            principal_type: user.principal_type.into(),
-            on_behalf_of: user.on_behalf_of.clone(),
-            ingress: user.ingress.clone(),
-            roles: user.roles.clone(),
-            scopes: user.scopes.clone(),
-            token: user.token.clone(),
-        }
-    }
-}
+// The bidirectional bridges to the framework's `RuntimePrincipalType`/
+// `UserAuth` that used to live here (backend framework replacement phase
+// 7, slice 3) are deleted as of slice 8: confirmed dead by grep before
+// removal -- `admin_ui.rs`'s admin trait impls (`AdminPolicyExplainProvider`/
+// `AdminAuditTimelineProvider`/`AdminQueryDiagnoseProvider`) all take this
+// crate's own self-owned `UserAuth` directly (the framework-fixed admin
+// trait entanglement was resolved by slice 6.3), and `audit_event.rs`'s
+// former oracle test -- the other stated consumer -- named
+// `appfw_runtime::extension::UserAuth` directly rather than going through
+// this bridge, and was itself retired in slice 8's final cutover (see
+// that file's own doc comment).
 
 #[cfg(test)]
 mod tests {

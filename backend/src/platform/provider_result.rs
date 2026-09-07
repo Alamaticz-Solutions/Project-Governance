@@ -115,74 +115,14 @@ fn page_index(skip: i32, limit: i32) -> i32 {
     }
 }
 
-// Bridges into the framework's still-live `RuntimeJsonQueryResult`/
-// `RuntimeJsonAggregateResult` (fixed return types on
-// `appfw_runtime::provider_bridge::RuntimeProviderDataClient`, implemented
-// by `DatabaseClientRuntimeAdapter` until it's replaced) -- identical
-// field shapes, genuinely distinct types.
-impl From<RuntimeJsonQueryResult> for appfw_runtime::RuntimeJsonQueryResult {
-    fn from(result: RuntimeJsonQueryResult) -> Self {
-        Self {
-            date_time: result.date_time,
-            request_duration: result.request_duration,
-            skip: result.skip,
-            limit: result.limit,
-            page_count: result.page_count,
-            page_index: result.page_index,
-            query_count: result.query_count,
-            next_cursor: result.next_cursor,
-            previous_cursor: result.previous_cursor,
-            items: result.items,
-        }
-    }
-}
-
-impl From<appfw_runtime::RuntimeJsonQueryResult> for RuntimeJsonQueryResult {
-    fn from(result: appfw_runtime::RuntimeJsonQueryResult) -> Self {
-        Self {
-            date_time: result.date_time,
-            request_duration: result.request_duration,
-            skip: result.skip,
-            limit: result.limit,
-            page_count: result.page_count,
-            page_index: result.page_index,
-            query_count: result.query_count,
-            next_cursor: result.next_cursor,
-            previous_cursor: result.previous_cursor,
-            items: result.items,
-        }
-    }
-}
-
-impl From<RuntimeJsonAggregateResult> for appfw_runtime::RuntimeJsonAggregateResult {
-    fn from(result: RuntimeJsonAggregateResult) -> Self {
-        Self {
-            date_time: result.date_time,
-            request_duration: result.request_duration,
-            skip: result.skip,
-            limit: result.limit,
-            page_count: result.page_count,
-            page_index: result.page_index,
-            query_count: result.query_count,
-            items: result.items,
-        }
-    }
-}
-
-impl From<appfw_runtime::RuntimeJsonAggregateResult> for RuntimeJsonAggregateResult {
-    fn from(result: appfw_runtime::RuntimeJsonAggregateResult) -> Self {
-        Self {
-            date_time: result.date_time,
-            request_duration: result.request_duration,
-            skip: result.skip,
-            limit: result.limit,
-            page_count: result.page_count,
-            page_index: result.page_index,
-            query_count: result.query_count,
-            items: result.items,
-        }
-    }
-}
+// The bidirectional bridges to the framework's `RuntimeJsonQueryResult`/
+// `RuntimeJsonAggregateResult` that used to live here (backend framework
+// replacement phase 7) are deleted as of slice 8: confirmed dead by grep
+// before removal -- `appfw_runtime::provider_bridge::
+// RuntimeProviderDataClient` (the fixed trait these bridges existed for)
+// has no implementor anywhere in `backend/src` any more;
+// `DatabaseClientRuntimeAdapter`, its only implementor, was deleted
+// outright in slice 5.
 
 #[cfg(test)]
 mod tests {

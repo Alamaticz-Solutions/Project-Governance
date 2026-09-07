@@ -133,56 +133,16 @@ impl FrameworkProvider {
     }
 }
 
-// Bidirectional bridges to the framework's still-live `FrameworkProvider`:
-// `PostgresClient`'s and `DatabaseClientRuntimeAdapter`'s
-// `impl RuntimeProviderIdentity` (fixed trait) still return the
-// framework's own type from `framework_provider(&self)`, and
-// `provider_error`'s classification functions still take it as a
-// parameter -- both deferred until `RuntimeProviderIdentity` itself is
-// replaced. Identical 13-variant enums, genuinely distinct types.
-impl From<appfw_runtime::provider_keys::FrameworkProvider> for FrameworkProvider {
-    fn from(provider: appfw_runtime::provider_keys::FrameworkProvider) -> Self {
-        match provider {
-            appfw_runtime::provider_keys::FrameworkProvider::Postgres => Self::Postgres,
-            appfw_runtime::provider_keys::FrameworkProvider::Mongo => Self::Mongo,
-            appfw_runtime::provider_keys::FrameworkProvider::Mssql => Self::Mssql,
-            appfw_runtime::provider_keys::FrameworkProvider::FabricSqlAnalytics => {
-                Self::FabricSqlAnalytics
-            }
-            appfw_runtime::provider_keys::FrameworkProvider::Snowflake => Self::Snowflake,
-            appfw_runtime::provider_keys::FrameworkProvider::Neo4j => Self::Neo4j,
-            appfw_runtime::provider_keys::FrameworkProvider::ServiceNow => Self::ServiceNow,
-            appfw_runtime::provider_keys::FrameworkProvider::Workday => Self::Workday,
-            appfw_runtime::provider_keys::FrameworkProvider::Icims => Self::Icims,
-            appfw_runtime::provider_keys::FrameworkProvider::Salesforce => Self::Salesforce,
-            appfw_runtime::provider_keys::FrameworkProvider::Anaplan => Self::Anaplan,
-            appfw_runtime::provider_keys::FrameworkProvider::OracleFinancials => {
-                Self::OracleFinancials
-            }
-            appfw_runtime::provider_keys::FrameworkProvider::AiSearch => Self::AiSearch,
-        }
-    }
-}
-
-impl From<FrameworkProvider> for appfw_runtime::provider_keys::FrameworkProvider {
-    fn from(provider: FrameworkProvider) -> Self {
-        match provider {
-            FrameworkProvider::Postgres => Self::Postgres,
-            FrameworkProvider::Mongo => Self::Mongo,
-            FrameworkProvider::Mssql => Self::Mssql,
-            FrameworkProvider::FabricSqlAnalytics => Self::FabricSqlAnalytics,
-            FrameworkProvider::Snowflake => Self::Snowflake,
-            FrameworkProvider::Neo4j => Self::Neo4j,
-            FrameworkProvider::ServiceNow => Self::ServiceNow,
-            FrameworkProvider::Workday => Self::Workday,
-            FrameworkProvider::Icims => Self::Icims,
-            FrameworkProvider::Salesforce => Self::Salesforce,
-            FrameworkProvider::Anaplan => Self::Anaplan,
-            FrameworkProvider::OracleFinancials => Self::OracleFinancials,
-            FrameworkProvider::AiSearch => Self::AiSearch,
-        }
-    }
-}
+// The bidirectional bridges to the framework's `FrameworkProvider` that
+// used to live here (backend framework replacement phase 7) are deleted
+// as of slice 8: confirmed dead by grep before removal -- neither
+// `PostgresClient` nor any other type in `backend/src` implements the
+// framework's fixed `RuntimeProviderIdentity` trait any more
+// (`DatabaseClientRuntimeAdapter`, the other thing that once required it,
+// was deleted in slice 5); `postgres_client.rs`'s own
+// `framework_provider(&self) -> FrameworkProvider` returns this
+// self-owned type directly. `provider_error`'s classification functions
+// likewise already take this self-owned type, not the framework's.
 
 #[cfg(test)]
 mod tests {

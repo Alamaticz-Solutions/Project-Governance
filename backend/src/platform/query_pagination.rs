@@ -27,26 +27,15 @@ pub enum RuntimePaginationStrategy {
     Keyset { after: Option<String> },
 }
 
-// Bridge into the framework's still-live `appfw_runtime::query_ir::
-// RuntimePagination` (consumed by `pagination_diagnostic`, part of the
-// admin diagnose_query path deferred to slice 5) -- identical shape,
-// genuinely distinct types.
-impl From<RuntimePagination> for appfw_runtime::query_ir::RuntimePagination {
-    fn from(pagination: RuntimePagination) -> Self {
-        Self {
-            skip: pagination.skip,
-            limit: pagination.limit,
-            strategy: match pagination.strategy {
-                RuntimePaginationStrategy::Offset => {
-                    appfw_runtime::query_ir::RuntimePaginationStrategy::Offset
-                }
-                RuntimePaginationStrategy::Keyset { after } => {
-                    appfw_runtime::query_ir::RuntimePaginationStrategy::Keyset { after }
-                }
-            },
-        }
-    }
-}
+// The bridge into the framework's `appfw_runtime::query_ir::
+// RuntimePagination` that used to live here (backend framework
+// replacement phase 7) is deleted as of slice 8: confirmed dead by grep
+// before removal -- `data/read_orchestration.rs::pagination_diagnostic`
+// (its only stated consumer) returns this crate's own self-owned
+// `PaginationDiagnostic` directly, not the framework's type, and bridges
+// separately into `platform::admin_runtime`'s self-owned
+// `RuntimePaginationDiagnostic` for `admin_ui.rs`'s
+// `AdminQueryDiagnoseProvider` impl (see that file's own comment).
 
 #[cfg(test)]
 mod tests {

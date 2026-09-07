@@ -6,6 +6,16 @@
 //! see via `async-graphql`'s blanket `From<E: std::error::Error> for Error`,
 //! and `AppError::category()`/variant matches drive branching elsewhere in
 //! this crate), so this is a byte-for-byte oracle port, not a redesign.
+//!
+//! This file used to also carry one-way `From<appfw_runtime::*Error>`
+//! bridges for producers that, at the time, still returned the
+//! framework's own error types (`RuntimeEntityMetadata`/
+//! `RuntimePropertyMetadata`/`RuntimeFilterOp`). Deleted in slice 8:
+//! confirmed dead by grep before removal -- every one of those producers
+//! is self-owned now (`platform::model_metadata`/`platform::
+//! query_filter`, both ported earlier in this same slice), and nothing
+//! else anywhere in `backend/src` names `appfw_runtime::ConfigError`/
+//! `DataStoreError`/`MetadataError`/`QueryBuildError`/`RuntimeError`.
 
 use thiserror::Error;
 
@@ -183,210 +193,6 @@ impl From<RuntimeError> for RuntimeAppError {
                 RuntimeAppError::InternalServerError(anyhow::anyhow!(message))
             }
         }
-    }
-}
-
-// --- bridges from the still-framework-owned producers of these errors -----
-//
-// `RuntimeEntityMetadata`/`RuntimePropertyMetadata`/`RuntimeFilterOp` (not
-// yet ported -- slices 4/5) still return `appfw_runtime`'s own
-// `MetadataError`/`RuntimeError` from their methods. `?` only performs one
-// `From` hop, so a call site returning `Result<_, RuntimeAppError>` needs a
-// direct conversion from the framework's type, not just from this module's
-// same-named one. Each bridge maps every variant exactly (same category,
-// same message shape) rather than collapsing into a generic error, so
-// nothing observable (HTTP/GraphQL error text, `category()`) changes
-// depending on which side of the port produced the error.
-
-impl From<appfw_runtime::ConfigError> for ConfigError {
-    fn from(error: appfw_runtime::ConfigError) -> Self {
-        match error {
-            appfw_runtime::ConfigError::Load(message) => ConfigError::Load(message),
-            appfw_runtime::ConfigError::Io { path, message } => ConfigError::Io { path, message },
-            appfw_runtime::ConfigError::Parse { path, message } => {
-                ConfigError::Parse { path, message }
-            }
-            appfw_runtime::ConfigError::MissingEnvVar { name } => {
-                ConfigError::MissingEnvVar { name }
-            }
-            appfw_runtime::ConfigError::MissingConfiguredEnvironment {
-                data_source_name,
-                environment_name,
-            } => ConfigError::MissingConfiguredEnvironment {
-                data_source_name,
-                environment_name,
-            },
-            appfw_runtime::ConfigError::InvalidPath { path, message } => {
-                ConfigError::InvalidPath { path, message }
-            }
-            appfw_runtime::ConfigError::PolicyLoad { path, message } => {
-                ConfigError::PolicyLoad { path, message }
-            }
-            appfw_runtime::ConfigError::MissingDataSource(name) => {
-                ConfigError::MissingDataSource(name)
-            }
-            appfw_runtime::ConfigError::MissingDataSourceEnvironment(name) => {
-                ConfigError::MissingDataSourceEnvironment(name)
-            }
-            appfw_runtime::ConfigError::MissingEntityType {
-                schema_name,
-                type_name,
-            } => ConfigError::MissingEntityType {
-                schema_name,
-                type_name,
-            },
-            appfw_runtime::ConfigError::PolicyEvaluation {
-                policy_key,
-                message,
-            } => ConfigError::PolicyEvaluation {
-                policy_key,
-                message,
-            },
-            appfw_runtime::ConfigError::InvalidPolicyResult {
-                policy_key,
-                message,
-            } => ConfigError::InvalidPolicyResult {
-                policy_key,
-                message,
-            },
-        }
-    }
-}
-
-impl From<appfw_runtime::DataStoreError> for DataStoreError {
-    fn from(error: appfw_runtime::DataStoreError) -> Self {
-        match error {
-            appfw_runtime::DataStoreError::DuplicateKey => DataStoreError::DuplicateKey,
-            appfw_runtime::DataStoreError::ForeignKeyViolation => {
-                DataStoreError::ForeignKeyViolation
-            }
-            appfw_runtime::DataStoreError::MissingRequiredValue { field } => {
-                DataStoreError::MissingRequiredValue { field }
-            }
-            appfw_runtime::DataStoreError::OperationFailed => DataStoreError::OperationFailed,
-        }
-    }
-}
-
-impl From<appfw_runtime::MetadataError> for MetadataError {
-    fn from(error: appfw_runtime::MetadataError) -> Self {
-        match error {
-            appfw_runtime::MetadataError::MissingEntityType {
-                schema_name,
-                type_name,
-            } => MetadataError::MissingEntityType {
-                schema_name,
-                type_name,
-            },
-            appfw_runtime::MetadataError::MissingProperty {
-                entity_type,
-                property_name,
-            } => MetadataError::MissingProperty {
-                entity_type,
-                property_name,
-            },
-            appfw_runtime::MetadataError::MissingPrimaryKey { entity_type } => {
-                MetadataError::MissingPrimaryKey { entity_type }
-            }
-            appfw_runtime::MetadataError::MissingNavigation {
-                entity_type,
-                property_name,
-            } => MetadataError::MissingNavigation {
-                entity_type,
-                property_name,
-            },
-            appfw_runtime::MetadataError::MissingManyToMany {
-                entity_type,
-                property_name,
-            } => MetadataError::MissingManyToMany {
-                entity_type,
-                property_name,
-            },
-            appfw_runtime::MetadataError::InvalidSelection(message) => {
-                MetadataError::InvalidSelection(message)
-            }
-            appfw_runtime::MetadataError::InvalidComputedMetadata {
-                property_name,
-                message,
-            } => MetadataError::InvalidComputedMetadata {
-                property_name,
-                message,
-            },
-        }
-    }
-}
-
-impl From<appfw_runtime::QueryBuildError> for QueryBuildError {
-    fn from(error: appfw_runtime::QueryBuildError) -> Self {
-        match error {
-            appfw_runtime::QueryBuildError::InvalidTimePeriod(message) => {
-                QueryBuildError::InvalidTimePeriod(message)
-            }
-            appfw_runtime::QueryBuildError::UnsupportedTimePeriod { period, data_type } => {
-                QueryBuildError::UnsupportedTimePeriod { period, data_type }
-            }
-            appfw_runtime::QueryBuildError::InvalidDateBound(message) => {
-                QueryBuildError::InvalidDateBound(message)
-            }
-            appfw_runtime::QueryBuildError::SerializeValue(message) => {
-                QueryBuildError::SerializeValue(message)
-            }
-        }
-    }
-}
-
-impl From<appfw_runtime::RuntimeError> for RuntimeError {
-    fn from(error: appfw_runtime::RuntimeError) -> Self {
-        match error {
-            appfw_runtime::RuntimeError::NotAuthorized => RuntimeError::NotAuthorized,
-            appfw_runtime::RuntimeError::Validation(message) => RuntimeError::Validation(message),
-            appfw_runtime::RuntimeError::AccessDenied => RuntimeError::AccessDenied,
-            appfw_runtime::RuntimeError::InvalidKeyOrVersion => RuntimeError::InvalidKeyOrVersion,
-            appfw_runtime::RuntimeError::Config(error) => RuntimeError::Config(error.into()),
-            appfw_runtime::RuntimeError::Metadata(error) => RuntimeError::Metadata(error.into()),
-            appfw_runtime::RuntimeError::QueryBuild(error) => {
-                RuntimeError::QueryBuild(error.into())
-            }
-            appfw_runtime::RuntimeError::DataStore(error) => {
-                RuntimeError::DataStore(error.into())
-            }
-            appfw_runtime::RuntimeError::DataAccess(message) => {
-                RuntimeError::DataAccess(message)
-            }
-            appfw_runtime::RuntimeError::Internal(message) => RuntimeError::Internal(message),
-        }
-    }
-}
-
-// Direct (single-hop) bridges into `RuntimeAppError` for `?` at call sites
-// whose function signature names `AppError`/`RuntimeAppError` directly.
-impl From<appfw_runtime::RuntimeError> for RuntimeAppError {
-    fn from(error: appfw_runtime::RuntimeError) -> Self {
-        RuntimeError::from(error).into()
-    }
-}
-
-impl From<appfw_runtime::MetadataError> for RuntimeAppError {
-    fn from(error: appfw_runtime::MetadataError) -> Self {
-        RuntimeAppError::Metadata(error.into())
-    }
-}
-
-impl From<appfw_runtime::ConfigError> for RuntimeAppError {
-    fn from(error: appfw_runtime::ConfigError) -> Self {
-        RuntimeAppError::Config(error.into())
-    }
-}
-
-impl From<appfw_runtime::DataStoreError> for RuntimeAppError {
-    fn from(error: appfw_runtime::DataStoreError) -> Self {
-        RuntimeAppError::DataStore(error.into())
-    }
-}
-
-impl From<appfw_runtime::QueryBuildError> for RuntimeAppError {
-    fn from(error: appfw_runtime::QueryBuildError) -> Self {
-        RuntimeAppError::QueryBuild(error.into())
     }
 }
 
