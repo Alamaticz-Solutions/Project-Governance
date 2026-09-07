@@ -132,6 +132,13 @@ pub(crate) use crate::platform::provider_time_period;
 pub use crate::platform::provider_request::RuntimeProviderPlanInput;
 pub use crate::platform::provider_result::{RuntimeJsonAggregateResult, RuntimeJsonQueryResult};
 //
+// `RuntimeProviderOperation`/`RuntimeProviderOperationCounts`: unlike the
+// two above, these are NOT referenced by any *fixed* (non-default) method
+// signature on `RuntimeProviderIdentity`/`RuntimeProviderDataClient` that
+// `DatabaseClientRuntimeAdapter` must implement -- confirmed by reading
+// the trait definition. Safe to override outright.
+pub use crate::platform::provider_operation::{RuntimeProviderOperation, RuntimeProviderOperationCounts};
+//
 // This makes `data/clients/database_client.rs`'s self-owned `DatabaseClient`
 // trait (whose default method signatures already read these three names off
 // this facade) pick up the self-owned versions automatically -- but
