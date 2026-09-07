@@ -91,9 +91,11 @@ pub use crate::platform::graphql_context::{
     RuntimeJwtExtractor,
 };
 //
-// `RuntimeAuthState` alone is NOT overridden: `admin_ui.rs`'s
-// `AdminRuntimeState` trait (framework-fixed, part of slice 6's admin.rs
-// entanglement) requires it by that exact type.
+// `RuntimeAuthState` was, for a while, deliberately left un-overridden:
+// `admin_ui.rs`'s `AdminRuntimeState` trait (framework-fixed, part of
+// slice 6's `admin` entanglement) required it by that exact type. Slice
+// 6.3 ported `admin` itself and deleted `RuntimeAuthState` outright -- see
+// that section below.
 
 // Slice 4 (query IR: filters, pagination, cost):
 //
@@ -130,10 +132,10 @@ pub mod query_ir {
 }
 pub(crate) use crate::platform::provider_time_period;
 //
-// The framework's filter-*capabilities* reporting API
-// (`RuntimeFilterCapabilities` and friends, still reached via the glob
-// above) is deliberately left framework-owned: its only consumer,
-// `admin_ui.rs`, is itself still framework-owned pending slice 6.
+// The filter-*capabilities* reporting API (`RuntimeFilterCapabilities` and
+// friends) moved to `platform::query_filter` in slice 6.3, once its only
+// consumer (`admin_ui.rs`) went self-owned -- see the slice 6.3 section
+// below for the override.
 
 // Slice 5 (provider contract -- leaf data types):
 //
@@ -259,22 +261,32 @@ pub mod observability {
 pub use crate::platform::readiness::{
     runtime_info_routes, RuntimeHealthCheck, RuntimeReadinessProbe, RuntimeReadinessState,
 };
+// Slice 6.3 (admin diagnostics UI backend): `admin_ui.rs` now reaches every
+// `Admin*` name via `runtime::admin::` (confirmed: `grep -rn
+// "runtime::admin::" backend/src` -- the only hits are `admin_ui.rs`'s own
+// import list), a submodule path, so this needs a `pub mod` shadow, same
+// lesson as `security`/`query_cost`/`observability` above. `RequestContext`
+// inside `platform::admin_runtime` is this crate's own self-owned type
+// (`platform::request_context::RequestContext`, ported slice 6.2) -- no
+// bridge, `admin_ui.rs` no longer names the framework path at all.
+#[cfg(feature = "http")]
+pub mod admin {
+    pub use crate::platform::admin_runtime::*;
+}
 //
-// `admin_ui.rs`'s three `Admin*Provider` trait methods still take
-// `&appfw_runtime::observability::RequestContext` by that exact framework
-// path -- the functions those parameters are only ever forwarded to
-// (`AdminServiceError::bad_request`/`admin_missing_data_access_error`/etc)
-// are still framework-owned (`admin` module, slice 6.3, not yet ported).
-// `RequestContext` needs no bridge either way (same `{request_id,
-// correlation_id}` shape on both sides), so `admin_ui.rs` just imports the
-// framework's own path explicitly at those three signatures instead of
-// reading it off this (now self-owned) facade -- see that file's own
-// comment.
+// `RuntimeFilterCapabilities`/`RuntimeFilterDataTypeCapability` are reached
+// at the crate-root path (`admin_ui.rs`'s `use ...RuntimeFilterCapabilities`),
+// so a top-level override is correct here, unlike `admin` above.
+pub use crate::platform::query_filter::{RuntimeFilterCapabilities, RuntimeFilterDataTypeCapability};
 //
-// Still framework-owned pending slice 6.3: `admin`, `RuntimeAuthState`
-// (only used to satisfy `AdminRuntimeState::auth_state`'s fixed return
-// type -- `JwtAuthConfig`, `platform::auth`, is this product's real JWT
-// config and already carries the same three values), the `query_filter`
-// filter-*capabilities* reporting API (admin-only), and
-// `provider_capabilities`/`provider_contract_types` (reached directly via
-// `appfw_runtime::` from `admin_ui.rs`, never through this facade).
+// `RuntimeAuthState` is NOT overridden -- it is deleted outright. It only
+// ever existed to satisfy `AdminRuntimeState::auth_state`'s fixed return
+// type while `admin` was framework-owned; now that this crate owns that
+// trait (`platform::admin_runtime::AdminRuntimeState::auth_state(&self) ->
+// JwtAuthConfig`), nothing in `backend/src` constructs a `RuntimeAuthState`
+// any more (confirmed: `grep -rn "RuntimeAuthState" backend/src` returns
+// nothing after this slice). `platform::auth::JwtAuthConfig` -- this
+// product's real JWT config, already self-owned since phase 4b-4 -- carries
+// the same three values under its own field names and is threaded
+// end-to-end instead (`main.rs` -> `routes::get_routes` -> `admin_ui::
+// get_routes`).

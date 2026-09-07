@@ -1,6 +1,4 @@
 use crate::platform::runtime::security::SecurityConfig;
-#[cfg(feature = "http")]
-use crate::platform::runtime::RuntimeAuthState;
 // Product-owned (backend framework replacement phase 4 -- previously
 // `appfw_runtime::cors`/`observability`/`auth`/`host`).
 use dotenv::dotenv;
@@ -82,13 +80,6 @@ async fn main() {
                 std::process::exit(1);
             }
         };
-        let app_state = match RuntimeAuthState::from_env() {
-            Ok(state) => state,
-            Err(e) => {
-                error!(error = %e, "failed to initialize app state");
-                std::process::exit(1);
-            }
-        };
         let jwt_auth = match JwtAuthConfig::from_env() {
             Ok(config) => config,
             Err(e) => {
@@ -104,7 +95,6 @@ async fn main() {
         let routes = match get_routes(
             cors,
             app_config.clone(),
-            app_state.clone(),
             jwt_auth,
             security,
             host_plan.mode().clone(),

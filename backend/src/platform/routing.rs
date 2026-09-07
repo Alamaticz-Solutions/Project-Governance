@@ -20,12 +20,16 @@
 //! `RuntimeJwtExtractor`, `RuntimeAuthState`, `UserAuth`, and
 //! `runtime_graphql_schema_routes` itself (the GraphQL route + JWT
 //! extraction + introspection-auth-gate handler) were ported in phase 4b-4
-//! -- see `platform::auth` and `platform::graphql_gateway`. Only
-//! `RuntimeAuthState` (needed by `admin_ui.rs`'s framework-trait signature)
-//! and `RuntimeJwtExtractor`/`UserAuth` (the framework types every generated
-//! resolver already reads via `user_from_graphql_context`) stay
-//! framework-owned; the JWT verification/local-dev-bypass logic and the
-//! GraphQL route handler itself are now product-owned.
+//! -- see `platform::auth` and `platform::graphql_gateway`. `RuntimeAuthState`
+//! was, for a while, kept framework-owned solely because `admin_ui.rs`'s
+//! `AdminRuntimeState` trait required it by that exact fixed type; phase 7
+//! slice 6.3 ported that trait too (`platform::admin_runtime`) and deleted
+//! `RuntimeAuthState` outright in favor of `platform::auth::JwtAuthConfig`
+//! (see `platform::runtime`'s own doc comment). `RuntimeJwtExtractor`/
+//! `UserAuth` are self-owned as of phase 7 slice 3's remainder
+//! (`platform::graphql_context`/`platform::user_auth`); the JWT
+//! verification/local-dev-bypass logic and the GraphQL route handler itself
+//! are also product-owned.
 //!
 //! `chat` is unreachable in this product (`backend/Cargo.toml` never defines
 //! or forwards a `chat` feature to `appfw_runtime`) and is dropped entirely.

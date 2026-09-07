@@ -72,13 +72,21 @@ pub fn pagination_diagnostic(
     }
 }
 
-// Bridges into the framework's still-live `RuntimeQueryPlanDiagnostic`/
-// `RuntimePaginationDiagnostic` (appfw_runtime::data_access), needed only
-// by `admin_ui.rs`'s `AdminQueryDiagnoseProvider` impl -- a framework
-// trait whose fixed return type this product's own `DataAccess::
-// diagnose_query` (now returning this self-owned type) doesn't satisfy
-// directly. Identical field shapes, genuinely distinct types.
-impl From<PaginationDiagnostic> for appfw_runtime::data_access::RuntimePaginationDiagnostic {
+// Bridges into `platform::admin_runtime`'s `RuntimeQueryPlanDiagnostic`/
+// `RuntimePaginationDiagnostic` (self-owned as of backend framework
+// replacement phase 7 slice 6.3), needed only by `admin_ui.rs`'s
+// `AdminQueryDiagnoseProvider` impl -- a trait whose return type this
+// product's own `DataAccess::diagnose_query` (returning this self-owned
+// type) doesn't satisfy directly. Identical field shapes, genuinely
+// distinct types: this one is built during the read path with no admin
+// dependency at all, the other is purely an admin-response DTO.
+// `platform::admin_runtime` is `http`-gated (it's axum route/handler code),
+// so these two bridges -- which exist solely for its
+// `AdminQueryDiagnoseProvider` boundary -- must be gated the same way.
+// Without this, a `--no-default-features --features provider-postgres`
+// build (no `http`) fails to resolve `crate::platform::admin_runtime` here.
+#[cfg(feature = "http")]
+impl From<PaginationDiagnostic> for crate::platform::admin_runtime::RuntimePaginationDiagnostic {
     fn from(diagnostic: PaginationDiagnostic) -> Self {
         Self {
             strategy: diagnostic.strategy,
@@ -89,7 +97,8 @@ impl From<PaginationDiagnostic> for appfw_runtime::data_access::RuntimePaginatio
     }
 }
 
-impl From<QueryPlanDiagnostic> for appfw_runtime::data_access::RuntimeQueryPlanDiagnostic {
+#[cfg(feature = "http")]
+impl From<QueryPlanDiagnostic> for crate::platform::admin_runtime::RuntimeQueryPlanDiagnostic {
     fn from(diagnostic: QueryPlanDiagnostic) -> Self {
         Self {
             schema_name: diagnostic.schema_name,
@@ -98,8 +107,8 @@ impl From<QueryPlanDiagnostic> for appfw_runtime::data_access::RuntimeQueryPlanD
             data_source: diagnostic.data_source,
             pagination: diagnostic.pagination.into(),
             access_filter_applied: diagnostic.access_filter_applied,
-            cost: diagnostic.cost.into(),
-            budget: diagnostic.budget.into(),
+            cost: diagnostic.cost,
+            budget: diagnostic.budget,
             provider_diagnostic: diagnostic.provider_diagnostic,
         }
     }

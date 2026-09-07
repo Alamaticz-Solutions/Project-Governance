@@ -7,20 +7,13 @@ use crate::platform::runtime::{
         AdminMigration, AdminModelProvider, AdminPolicyDecision as PolicyDecision,
         AdminPolicyExplainProvider, AdminPolicyExplainResult, AdminQueryDiagnoseProvider,
         AdminRuntimeState, AdminSchema, AdminSchemaSummaryInput, AdminServiceError,
+        RuntimeQueryPlanDiagnostic,
     },
-    data_access::RuntimeQueryPlanDiagnostic,
     extension::UserAuth,
     security::SecurityConfig,
-    RuntimeAuthState, RuntimeFilterCapabilities,
+    RuntimeFilterCapabilities,
 };
-// `RequestContext` is fixed by the three `Admin*Provider` trait methods
-// below (`admin` is still framework-owned, slice 6.3) -- named explicitly
-// via its real framework path rather than the facade, which resolves this
-// name to the self-owned type as of slice 6.2. No bridge needed either way:
-// both types are the same plain `{request_id, correlation_id}` shape, and
-// every use here only forwards the value into other still-framework `admin`
-// functions.
-use appfw_runtime::observability::RequestContext;
+use crate::platform::request_context::RequestContext;
 use async_trait::async_trait;
 use axum::Router;
 use serde_json::Value;
@@ -30,6 +23,7 @@ use crate::{
     config::app_config::AppConfig,
     data::audit as runtime_audit,
     data::data_access::DataAccess,
+    platform::auth::JwtAuthConfig,
     platform::policy::AccessAction,
     product_api::{product_data_type, runtime_entity_metadata, runtime_provider},
     schemas::system::{DataSourceType, EntityType},
@@ -38,7 +32,7 @@ use crate::{
 #[derive(Clone)]
 struct AdminState {
     app_config: Arc<AppConfig>,
-    app_state: RuntimeAuthState,
+    jwt_auth: JwtAuthConfig,
     data_access_by_schema: HashMap<String, Arc<DataAccess>>,
     troubleshooting_enabled: bool,
 }
@@ -49,13 +43,13 @@ type FilterCapabilities =
 
 pub fn get_routes(
     app_config: Arc<AppConfig>,
-    app_state: RuntimeAuthState,
+    jwt_auth: JwtAuthConfig,
     security: SecurityConfig,
     data_access_by_schema: HashMap<String, Arc<DataAccess>>,
 ) -> Router {
     admin_runtime_routes::<AdminState>().with_state(AdminState {
         app_config,
-        app_state,
+        jwt_auth,
         data_access_by_schema,
         troubleshooting_enabled: security.admin_troubleshooting_enabled,
     })
@@ -91,8 +85,8 @@ impl AdminRuntimeState for AdminState {
         env!("CARGO_PKG_VERSION")
     }
 
-    fn auth_state(&self) -> RuntimeAuthState {
-        self.app_state.clone()
+    fn auth_state(&self) -> JwtAuthConfig {
+        self.jwt_auth.clone()
     }
 
     fn troubleshooting_enabled(&self) -> bool {
@@ -144,8 +138,8 @@ impl AdminPolicyExplainProvider for ProductAdminPolicyExplainProvider<'_> {
         &self,
         schema_name: &str,
         type_name: &str,
-        action: appfw_runtime::AccessAction,
-        user: &appfw_runtime::extension::UserAuth,
+        action: AccessAction,
+        user: &UserAuth,
         request_context: &RequestContext,
     ) -> Result<AdminPolicyExplainResult, AdminServiceError> {
         let schema_name = schema_name.to_string();
@@ -158,18 +152,14 @@ impl AdminPolicyExplainProvider for ProductAdminPolicyExplainProvider<'_> {
         let access = self
             .state
             .app_config
-            .evaluate_user_access(entity_type.clone(), action.into(), &user.into())
+            .evaluate_user_access(entity_type.clone(), action, user)
             .map_err(|err| AdminServiceError::internal(err.to_string(), request_context))?;
 
         Ok(admin_policy_explain_result(
             format!("{}.{}", entity_type.schema_name, entity_type.snake_1),
             entity_type.schema_name.clone(),
             entity_type.pascal_1.clone(),
-            // `PolicyDecision`/`AdminPolicyDecision` is still
-            // framework-owned (fixed `From<appfw_runtime::PolicyAccess>`),
-            // so bridge explicitly through the real framework type rather
-            // than the (now self-owned) facade name.
-            appfw_runtime::PolicyAccess::from(access).into(),
+            access.into(),
         ))
     }
 }
@@ -186,7 +176,7 @@ impl AdminAuditTimelineProvider for ProductAdminAuditTimelineProvider<'_> {
         type_name: &str,
         record_id: &str,
         limit: i64,
-        user: &appfw_runtime::extension::UserAuth,
+        user: &UserAuth,
         request_context: &RequestContext,
     ) -> Result<AdminAuditTimelineResult, AdminServiceError> {
         let schema_name = schema_name.to_string();
@@ -196,14 +186,12 @@ impl AdminAuditTimelineProvider for ProductAdminAuditTimelineProvider<'_> {
             .app_config
             .get_entity_type(&schema_name, &type_name)
             .map_err(|err| AdminServiceError::bad_request(err.to_string(), request_context))?;
-        let product_user: UserAuth = user.into();
         let current_access = self
             .state
             .app_config
-            .evaluate_user_access(entity_type.clone(), AccessAction::Read, &product_user)
+            .evaluate_user_access(entity_type.clone(), AccessAction::Read, user)
             .map_err(|err| AdminServiceError::internal(err.to_string(), request_context))?;
-        let current_policy: PolicyDecision =
-            appfw_runtime::PolicyAccess::from(current_access.clone()).into();
+        let current_policy: PolicyDecision = current_access.clone().into();
 
         let subject = AdminAuditTimelineSubject {
             schema_name: entity_type.schema_name.clone(),
@@ -232,7 +220,7 @@ impl AdminAuditTimelineProvider for ProductAdminAuditTimelineProvider<'_> {
                         entity_type.clone(),
                         record_id,
                         limit,
-                        &product_user,
+                        user,
                         &current_access,
                     )
                     .await
@@ -258,7 +246,7 @@ impl AdminQueryDiagnoseProvider for ProductAdminQueryDiagnoseProvider<'_> {
         skip: i32,
         limit: i32,
         after: Option<String>,
-        user: appfw_runtime::extension::UserAuth,
+        user: UserAuth,
         request_context: &RequestContext,
     ) -> Result<RuntimeQueryPlanDiagnostic, AdminServiceError> {
         let schema_name = schema_name.to_string();
@@ -280,11 +268,14 @@ impl AdminQueryDiagnoseProvider for ProductAdminQueryDiagnoseProvider<'_> {
             ));
         };
 
-        // `diagnose_query` now returns the self-owned
-        // `read_orchestration::QueryPlanDiagnostic`; this trait's fixed
-        // return type is still the framework's own diagnostic struct.
+        // `diagnose_query` returns the self-owned
+        // `read_orchestration::QueryPlanDiagnostic`; this trait's return
+        // type is now the self-owned `RuntimeQueryPlanDiagnostic` too --
+        // same field shapes, so `.into()` is a plain field-for-field
+        // conversion rather than a framework bridge (see
+        // `read_orchestration.rs`'s own comment at its `From` impls).
         data_access
-            .diagnose_query(entity_type, filter, sort, skip, limit, after, user.into())
+            .diagnose_query(entity_type, filter, sort, skip, limit, after, user)
             .await
             .map(Into::into)
             .map_err(|err| AdminServiceError::bad_request(err.to_string(), request_context))
@@ -315,14 +306,7 @@ fn admin_schemas(
                     entity.schema_name == schema.name && entity.is_table && !entity.is_union
                 })
                 .count();
-            // `admin_filter_capabilities_for_provider`/`admin_migration_dialect`/
-            // `admin_provider_capabilities_for_provider` are still
-            // framework-owned, so bridge this self-owned `FrameworkProvider`
-            // into the framework's own type once, up front.
-            let framework_provider: Option<appfw_runtime::provider_keys::FrameworkProvider> =
-                data_source_type
-                    .map(runtime_provider)
-                    .map(Into::into);
+            let framework_provider = data_source_type.map(runtime_provider);
             let filter_capabilities =
                 data_source_type
                     .zip(framework_provider)

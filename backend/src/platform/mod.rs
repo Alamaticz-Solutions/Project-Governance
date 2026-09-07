@@ -6,6 +6,13 @@
 //! docs/architecture/self-owned-backend-plan.md). Not a generator output
 //! -- hand-written support code, same as `data/clients/postgres`.
 
+// Named `admin_runtime`, not `admin`: the crate root already has a binary-side
+// `mod admin_ui;` (see `backend/src/main.rs`) that consumes this module, and
+// a same-named `platform::admin` would be confusing next to it even though
+// Rust itself would not collide on the two paths.
+#[cfg(feature = "http")]
+pub(crate) mod admin_runtime;
+
 #[cfg(feature = "http")]
 pub(crate) mod auth;
 

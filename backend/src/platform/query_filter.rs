@@ -3,17 +3,41 @@
 //! `appfw_runtime::query_filter` (backend framework replacement phase 7,
 //! slice 4 -- docs/architecture/self-owned-backend-plan.md).
 //!
-//! Scoped down from the framework's version: the filter-*capabilities*
-//! reporting API (`RuntimeFilterCapabilities`, `RuntimeFilterOperatorSpec`,
-//! `runtime_filter_capabilities_for_provider`, and friends) is NOT ported
-//! here -- confirmed its only consumer in this product is `admin_ui.rs`'s
-//! introspection endpoint, which is still framework-owned pending slice 6.
-//! This module covers only the operator vocabulary the actual filter-
-//! building path (`data/clients/postgres/filter*.rs`) uses.
+//! This module also carries the filter-*capabilities* reporting API
+//! (`RuntimeFilterCapabilities`, `RuntimeFilterOperatorSpec`,
+//! `runtime_filter_capabilities_for_provider`, and friends), ported in
+//! slice 6.3 once its only consumer -- `platform::admin_runtime`'s
+//! introspection endpoint -- went self-owned.
+//!
+//! Scoped down from the framework's version: `runtime_filter_operator_support`
+//! (and the private per-data-type `postgres_*_supports` helpers it calls)
+//! only implement real per-operator logic for `FrameworkProvider::Postgres`.
+//! Every other `FrameworkProvider` variant reports every operator
+//! unsupported with an explicit "scoped to PostgreSQL only" reason instead
+//! of the framework's Mongo/MSSQL/Fabric/Snowflake/Neo4j-specific matrix --
+//! confirmed this product only ever configures a `PostgreSQL` data source
+//! (`backend/config/generated/data_sources.yaml` has exactly one
+//! `data_source_type: PostgreSQL` entry) and `backend/Cargo.toml`'s
+//! `default = ["http", "provider-postgres"]` never enables another provider
+//! feature. Same scoping precedent as the mcp/kafka/sync deletion and phase
+//! 6's CRM-specific-hardcoding drop (see `platform::routing`'s doc comment
+//! and `docs/architecture/self-owned-backend-plan.md`'s Phase 7 section).
+//! `FrameworkProvider` itself stays at its full 13-variant surface (ported
+//! at that width already in slice 2/5, see `platform::provider_keys`'s doc
+//! comment) so this function stays total without a fake `Postgres`-only enum.
+//!
+//! `RuntimeDataType` (the per-property data-type enum this API classifies
+//! filter operators by) is deliberately NOT ported here -- it lives on
+//! `model_metadata`, which is out of scope for this slice and stays
+//! framework-owned; reached the same way `product_api::product_data_type`
+//! already reaches it, via the framework's own path.
 
 use serde_json::{Map, Value};
 
 use crate::platform::errors::RuntimeError;
+use crate::platform::provider_keys::FrameworkProvider;
+use crate::platform::runtime::model_metadata::RuntimeDataType;
+use serde::Serialize;
 
 pub mod conjunction_token {
     pub const AND: &str = "_and";
@@ -178,6 +202,534 @@ impl RuntimeFilterOp {
             Self::Has => filter_token::HAS,
         }
     }
+}
+
+// --- filter capability reporting (admin-only, Postgres-scoped) ---------
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RuntimeFilterValueShape {
+    Scalar,
+    List,
+    ScalarOrList,
+    Period,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct RuntimeFilterOperatorCapability {
+    pub op: &'static str,
+    pub label: &'static str,
+    pub value_shape: RuntimeFilterValueShape,
+    pub supported: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unsupported_reason: Option<&'static str>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RuntimeFilterOperatorSupport {
+    pub supported: bool,
+    pub reason: Option<&'static str>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct RuntimeFilterDataTypeCapability<T> {
+    pub data_type: T,
+    pub operators: Vec<RuntimeFilterOperatorCapability>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct RuntimeFilterCapabilities<P, T> {
+    pub provider: P,
+    pub data_types: Vec<RuntimeFilterDataTypeCapability<T>>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub struct RuntimeFilterOperatorSpec {
+    pub op: &'static str,
+    pub label: &'static str,
+    pub value_shape: RuntimeFilterValueShape,
+}
+
+impl RuntimeFilterOperatorSpec {
+    pub const fn new(
+        op: &'static str,
+        label: &'static str,
+        value_shape: RuntimeFilterValueShape,
+    ) -> Self {
+        Self {
+            op,
+            label,
+            value_shape,
+        }
+    }
+}
+
+pub const RUNTIME_FILTER_DATA_TYPES: [RuntimeDataType; 22] = [
+    RuntimeDataType::Boolean,
+    RuntimeDataType::String,
+    RuntimeDataType::Enum,
+    RuntimeDataType::Uuid,
+    RuntimeDataType::ObjectId,
+    RuntimeDataType::Date,
+    RuntimeDataType::DateTime,
+    RuntimeDataType::Time,
+    RuntimeDataType::Int8,
+    RuntimeDataType::Int16,
+    RuntimeDataType::Int32,
+    RuntimeDataType::Int64,
+    RuntimeDataType::Float32,
+    RuntimeDataType::Float64,
+    RuntimeDataType::StringArray,
+    RuntimeDataType::EnumArray,
+    RuntimeDataType::UuidArray,
+    RuntimeDataType::ObjectIdArray,
+    RuntimeDataType::Int8Array,
+    RuntimeDataType::Int16Array,
+    RuntimeDataType::Int32Array,
+    RuntimeDataType::Int64Array,
+];
+
+pub fn runtime_filter_data_types() -> &'static [RuntimeDataType] {
+    &RUNTIME_FILTER_DATA_TYPES
+}
+
+pub fn runtime_filter_capabilities_for_provider(
+    provider: FrameworkProvider,
+) -> RuntimeFilterCapabilities<FrameworkProvider, RuntimeDataType> {
+    RuntimeFilterCapabilities {
+        provider,
+        data_types: runtime_filter_data_types()
+            .iter()
+            .copied()
+            .map(|data_type| RuntimeFilterDataTypeCapability {
+                data_type,
+                operators: runtime_filter_capabilities_for_data_type(provider, data_type),
+            })
+            .collect(),
+    }
+}
+
+pub fn runtime_filter_specs_for_data_type(
+    data_type: RuntimeDataType,
+) -> Vec<RuntimeFilterOperatorSpec> {
+    match data_type {
+        RuntimeDataType::Boolean => eq_ne_ops(),
+        RuntimeDataType::String | RuntimeDataType::Enum => text_ops(),
+        RuntimeDataType::Uuid | RuntimeDataType::ObjectId => id_ops(),
+        RuntimeDataType::Date | RuntimeDataType::DateTime => temporal_ops(true),
+        RuntimeDataType::Time => temporal_ops(false),
+        RuntimeDataType::Int8
+        | RuntimeDataType::Int16
+        | RuntimeDataType::Int32
+        | RuntimeDataType::Int64
+        | RuntimeDataType::Float32
+        | RuntimeDataType::Float64 => numeric_ops(),
+        RuntimeDataType::StringArray
+        | RuntimeDataType::EnumArray
+        | RuntimeDataType::UuidArray
+        | RuntimeDataType::ObjectIdArray
+        | RuntimeDataType::Int8Array
+        | RuntimeDataType::Int16Array
+        | RuntimeDataType::Int32Array
+        | RuntimeDataType::Int64Array => array_ops(),
+        _ => Vec::new(),
+    }
+}
+
+pub fn runtime_filter_capabilities_for_data_type(
+    provider: FrameworkProvider,
+    data_type: RuntimeDataType,
+) -> Vec<RuntimeFilterOperatorCapability> {
+    runtime_filter_specs_for_data_type(data_type)
+        .into_iter()
+        .map(|spec| runtime_filter_operator_capability(provider, data_type, spec))
+        .collect()
+}
+
+pub fn runtime_filter_operator_capability(
+    provider: FrameworkProvider,
+    data_type: RuntimeDataType,
+    spec: RuntimeFilterOperatorSpec,
+) -> RuntimeFilterOperatorCapability {
+    let support = runtime_filter_operator_support(provider, data_type, spec.op);
+    RuntimeFilterOperatorCapability {
+        op: spec.op,
+        label: spec.label,
+        value_shape: spec.value_shape,
+        supported: support.supported,
+        unsupported_reason: support.reason,
+    }
+}
+
+/// Per-operator support decision. Real logic only for
+/// `FrameworkProvider::Postgres` -- see this module's doc comment for why
+/// every other provider reports a uniform "out of scope" reason instead of
+/// the framework's full per-provider matrix.
+pub fn runtime_filter_operator_support(
+    provider: FrameworkProvider,
+    data_type: RuntimeDataType,
+    op: &str,
+) -> RuntimeFilterOperatorSupport {
+    if provider != FrameworkProvider::Postgres {
+        return unsupported(
+            "filter-capability reporting is scoped to PostgreSQL only in this product; no other provider is ever configured",
+        );
+    }
+
+    if runtime_filter_postgres_supports(data_type, op) {
+        return supported();
+    }
+
+    unsupported(match (data_type, op) {
+        (RuntimeDataType::ObjectId | RuntimeDataType::ObjectIdArray, _) => {
+            "PostgreSQL filter compiler does not support ObjectId data types"
+        }
+        (RuntimeDataType::String | RuntimeDataType::Enum, filter_token::NOT_CONTAINS) => {
+            "provider filter compiler does not implement scalar text negated containment"
+        }
+        (
+            RuntimeDataType::Float32 | RuntimeDataType::Float64,
+            filter_token::IN | filter_token::NOT_IN,
+        ) => "provider filter compiler does not support scalar float membership",
+        (data_type, filter_token::EQUALS | filter_token::NOT_EQUALS)
+            if is_array_type(data_type) =>
+        {
+            "PostgreSQL filter compiler does not support array equality"
+        }
+        _ => "provider filter compiler does not support this filter operator for this data type",
+    })
+}
+
+fn runtime_filter_postgres_supports(data_type: RuntimeDataType, op: &str) -> bool {
+    match data_type {
+        RuntimeDataType::Boolean => is_eq_ne(op),
+        RuntimeDataType::String | RuntimeDataType::Enum => postgres_text_supports(op),
+        RuntimeDataType::Uuid => id_supports(op),
+        // PostgreSQL filter compiler does not support ObjectId at all.
+        RuntimeDataType::ObjectId => false,
+        RuntimeDataType::Date | RuntimeDataType::DateTime => temporal_supports(true, op),
+        RuntimeDataType::Time => temporal_supports(false, op),
+        RuntimeDataType::Int8
+        | RuntimeDataType::Int16
+        | RuntimeDataType::Int32
+        | RuntimeDataType::Int64 => postgres_numeric_supports(true, op),
+        RuntimeDataType::Float32 | RuntimeDataType::Float64 => postgres_numeric_supports(false, op),
+        RuntimeDataType::StringArray
+        | RuntimeDataType::EnumArray
+        | RuntimeDataType::UuidArray
+        | RuntimeDataType::Int8Array
+        | RuntimeDataType::Int16Array
+        | RuntimeDataType::Int32Array
+        | RuntimeDataType::Int64Array => postgres_array_supports(op),
+        RuntimeDataType::ObjectIdArray => false,
+        _ => false,
+    }
+}
+
+fn postgres_text_supports(op: &str) -> bool {
+    matches!(
+        op,
+        filter_token::EQUALS
+            | filter_token::NOT_EQUALS
+            | filter_token::STARTS_WITH
+            | filter_token::CONTAINS
+            | filter_token::ENDS_WITH
+            | filter_token::IN
+            | filter_token::NOT_IN
+            | filter_token::REGEX
+    )
+}
+
+fn id_supports(op: &str) -> bool {
+    matches!(
+        op,
+        filter_token::EQUALS | filter_token::NOT_EQUALS | filter_token::IN | filter_token::NOT_IN
+    )
+}
+
+fn temporal_supports(include_period: bool, op: &str) -> bool {
+    matches!(
+        op,
+        filter_token::EQUALS
+            | filter_token::NOT_EQUALS
+            | filter_token::LESS_THAN
+            | filter_token::LESS_THAN_OR_EQUAL
+            | filter_token::GREATER_THAN
+            | filter_token::GREATER_THAN_OR_EQUAL
+    ) || (include_period
+        && matches!(
+            op,
+            filter_token::BEFORE | filter_token::DURING | filter_token::AFTER
+        ))
+}
+
+fn postgres_numeric_supports(is_integer: bool, op: &str) -> bool {
+    if matches!(
+        op,
+        filter_token::EQUALS
+            | filter_token::NOT_EQUALS
+            | filter_token::LESS_THAN
+            | filter_token::LESS_THAN_OR_EQUAL
+            | filter_token::GREATER_THAN
+            | filter_token::GREATER_THAN_OR_EQUAL
+    ) {
+        return true;
+    }
+
+    matches!(op, filter_token::IN | filter_token::NOT_IN) && is_integer
+}
+
+fn postgres_array_supports(op: &str) -> bool {
+    matches!(
+        op,
+        filter_token::CONTAINS
+            | filter_token::NOT_CONTAINS
+            | filter_token::OVERLAPS
+            | filter_token::NOT_OVERLAPS
+            | filter_token::CONTAINED_BY
+            | filter_token::NOT_CONTAINED_BY
+    )
+}
+
+fn is_eq_ne(op: &str) -> bool {
+    matches!(op, filter_token::EQUALS | filter_token::NOT_EQUALS)
+}
+
+fn is_array_type(data_type: RuntimeDataType) -> bool {
+    matches!(
+        data_type,
+        RuntimeDataType::StringArray
+            | RuntimeDataType::EnumArray
+            | RuntimeDataType::UuidArray
+            | RuntimeDataType::ObjectIdArray
+            | RuntimeDataType::Int8Array
+            | RuntimeDataType::Int16Array
+            | RuntimeDataType::Int32Array
+            | RuntimeDataType::Int64Array
+    )
+}
+
+fn supported() -> RuntimeFilterOperatorSupport {
+    RuntimeFilterOperatorSupport {
+        supported: true,
+        reason: None,
+    }
+}
+
+fn unsupported(reason: &'static str) -> RuntimeFilterOperatorSupport {
+    RuntimeFilterOperatorSupport {
+        supported: false,
+        reason: Some(reason),
+    }
+}
+
+fn spec(
+    op: &'static str,
+    label: &'static str,
+    value_shape: RuntimeFilterValueShape,
+) -> RuntimeFilterOperatorSpec {
+    RuntimeFilterOperatorSpec::new(op, label, value_shape)
+}
+
+fn eq_ne_ops() -> Vec<RuntimeFilterOperatorSpec> {
+    vec![
+        spec(
+            filter_token::EQUALS,
+            "equals",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(
+            filter_token::NOT_EQUALS,
+            "does not equal",
+            RuntimeFilterValueShape::Scalar,
+        ),
+    ]
+}
+
+fn text_ops() -> Vec<RuntimeFilterOperatorSpec> {
+    vec![
+        spec(
+            filter_token::CONTAINS,
+            "contains",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(
+            filter_token::NOT_CONTAINS,
+            "does not contain",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(
+            filter_token::STARTS_WITH,
+            "starts with",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(
+            filter_token::ENDS_WITH,
+            "ends with",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(
+            filter_token::REGEX,
+            "matches regex",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(
+            filter_token::EQUALS,
+            "equals",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(
+            filter_token::NOT_EQUALS,
+            "does not equal",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(filter_token::IN, "is one of", RuntimeFilterValueShape::List),
+        spec(
+            filter_token::NOT_IN,
+            "is not one of",
+            RuntimeFilterValueShape::List,
+        ),
+    ]
+}
+
+fn id_ops() -> Vec<RuntimeFilterOperatorSpec> {
+    vec![
+        spec(
+            filter_token::EQUALS,
+            "equals",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(
+            filter_token::NOT_EQUALS,
+            "does not equal",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(filter_token::IN, "is one of", RuntimeFilterValueShape::List),
+        spec(
+            filter_token::NOT_IN,
+            "is not one of",
+            RuntimeFilterValueShape::List,
+        ),
+    ]
+}
+
+fn temporal_ops(include_period: bool) -> Vec<RuntimeFilterOperatorSpec> {
+    let mut operators = scalar_comparison_ops(false);
+    if include_period {
+        operators.extend([
+            spec(
+                filter_token::BEFORE,
+                "before period",
+                RuntimeFilterValueShape::Period,
+            ),
+            spec(
+                filter_token::DURING,
+                "during period",
+                RuntimeFilterValueShape::Period,
+            ),
+            spec(
+                filter_token::AFTER,
+                "after period",
+                RuntimeFilterValueShape::Period,
+            ),
+        ]);
+    }
+    operators
+}
+
+fn numeric_ops() -> Vec<RuntimeFilterOperatorSpec> {
+    scalar_comparison_ops(true)
+}
+
+fn scalar_comparison_ops(include_list: bool) -> Vec<RuntimeFilterOperatorSpec> {
+    let mut operators = vec![
+        spec(
+            filter_token::EQUALS,
+            "equals",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(
+            filter_token::NOT_EQUALS,
+            "does not equal",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(
+            filter_token::GREATER_THAN,
+            "greater than",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(
+            filter_token::GREATER_THAN_OR_EQUAL,
+            "greater than or equal",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(
+            filter_token::LESS_THAN,
+            "less than",
+            RuntimeFilterValueShape::Scalar,
+        ),
+        spec(
+            filter_token::LESS_THAN_OR_EQUAL,
+            "less than or equal",
+            RuntimeFilterValueShape::Scalar,
+        ),
+    ];
+    if include_list {
+        operators.extend([
+            spec(filter_token::IN, "is one of", RuntimeFilterValueShape::List),
+            spec(
+                filter_token::NOT_IN,
+                "is not one of",
+                RuntimeFilterValueShape::List,
+            ),
+        ]);
+    }
+    operators
+}
+
+fn array_ops() -> Vec<RuntimeFilterOperatorSpec> {
+    vec![
+        spec(
+            filter_token::EQUALS,
+            "equals",
+            RuntimeFilterValueShape::List,
+        ),
+        spec(
+            filter_token::NOT_EQUALS,
+            "does not equal",
+            RuntimeFilterValueShape::List,
+        ),
+        spec(
+            filter_token::CONTAINS,
+            "contains all",
+            RuntimeFilterValueShape::ScalarOrList,
+        ),
+        spec(
+            filter_token::NOT_CONTAINS,
+            "does not contain all",
+            RuntimeFilterValueShape::ScalarOrList,
+        ),
+        spec(
+            filter_token::OVERLAPS,
+            "overlaps",
+            RuntimeFilterValueShape::List,
+        ),
+        spec(
+            filter_token::NOT_OVERLAPS,
+            "does not overlap",
+            RuntimeFilterValueShape::List,
+        ),
+        spec(
+            filter_token::CONTAINED_BY,
+            "is contained by",
+            RuntimeFilterValueShape::List,
+        ),
+        spec(
+            filter_token::NOT_CONTAINED_BY,
+            "is not contained by",
+            RuntimeFilterValueShape::List,
+        ),
+    ]
 }
 
 #[cfg(test)]

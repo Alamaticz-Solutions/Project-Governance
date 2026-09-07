@@ -16,7 +16,7 @@ pub(crate) mod system;
 #[cfg(feature = "http")]
 use crate::platform::runtime::{
     observability::MetricsRegistry, provider_keys::FrameworkProvider, security::SecurityConfig,
-    RuntimeAuthState, RuntimeProviderRegistry,
+    RuntimeProviderRegistry,
 };
 #[cfg(feature = "http")]
 use axum::Router;
@@ -52,7 +52,6 @@ use app_error::AppError;
 pub async fn get_routes(
     cors: CorsLayer,
     app_config: Arc<AppConfig>,
-    app_state: RuntimeAuthState,
     jwt_auth: JwtAuthConfig,
     security: SecurityConfig,
     runtime_mode: RuntimeMode,
@@ -84,14 +83,14 @@ pub async fn get_routes(
 
     let admin_router = admin_ui::get_routes(
         app_config.clone(),
-        app_state.clone(),
+        jwt_auth.clone(),
         security.clone(),
         data_access_by_schema.clone(),
     );
     #[cfg(all(feature = "http", feature = "mcp"))]
     let mcp_router = mcp::get_routes(
         app_config.clone(),
-        app_state.clone(),
+        jwt_auth.clone(),
         security.clone(),
         data_access_by_schema.clone(),
     );
