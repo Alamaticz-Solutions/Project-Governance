@@ -46,7 +46,12 @@ pub fn render(
 
 fn render_enum(enum_type: &GqlEnumType) -> String {
     let mut out = String::new();
-    out.push_str("#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]\n#[graphql(rename_items = \"PascalCase\")]\n");
+    // Rust variant identifiers stay SCREAMING_SNAKE (the model's
+    // authoritative enum-value casing, per spec 001 Q7); the GraphQL wire
+    // representation is PascalCase via `rename_items` above. That mismatch
+    // is intentional -- see auth.rs's Rego role-literal note -- so silence
+    // the lint it triggers rather than rename the Rust identifiers.
+    out.push_str("#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]\n#[graphql(rename_items = \"PascalCase\")]\n#[allow(non_camel_case_types)]\n");
     out.push_str(&format!("pub enum {} {{\n", enum_type.name));
     for item in &enum_type.items {
         out.push_str(&format!("    {},\n", item.value));

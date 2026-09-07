@@ -5,7 +5,7 @@
 //! `post_json(path)` against `graph.microsoft.com`). Structure mirrors
 //! `appfw_provider_salesforce`'s module shape:
 //!
-//!   identity          provider descriptor / key
+//!   identity          the pinned Graph API base URL
 //!   auth              env-var auth contract + redaction constants + token acquisition
 //!   registry          the allow-listed named READ operations (no caller-chosen endpoints)
 //!   request           safe request-plan builder — fixed path + field lists per operation
@@ -33,4 +33,4 @@ pub mod writes;
 
 pub use client::GraphClient;
 pub use registry::ReadOperation;
-pub use writes::{WriteContext, WriteError, WriteOperation, WriteOutcome, G1_WRITE_AREAS};
+pub use writes::{WriteContext, WriteOperation};

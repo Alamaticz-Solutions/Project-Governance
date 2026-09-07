@@ -93,6 +93,10 @@ pub enum RuntimeFilterCostNode {
     And(Vec<RuntimeFilterCostNode>),
     Or(Vec<RuntimeFilterCostNode>),
     Field {
+        // Recorded for future cost-heuristic refinement (e.g. weighting a
+        // jsonb-column filter differently from a scalar one); no cost
+        // calculation reads it back yet.
+        #[allow(dead_code)]
         data_type: RuntimeDataType,
     },
     Relation {

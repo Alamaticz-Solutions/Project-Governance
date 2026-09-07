@@ -67,6 +67,7 @@ pub fn classify_postgres_code(code: &str, field: Option<&str>) -> Option<DataSto
     }
 }
 
+#[allow(dead_code)] // tested below; this product is Postgres-only in production (no MSSQL data source is wired)
 pub fn classify_mssql_code(code: u32) -> Option<DataStoreError> {
     match code {
         // 2601: duplicate index; 2627: unique/primary-key constraint.
@@ -81,6 +82,7 @@ pub fn classify_mssql_code(code: u32) -> Option<DataStoreError> {
     }
 }
 
+#[allow(dead_code)] // tested below; same reasoning as classify_mssql_code
 pub fn classify_mongo_code(code: i32) -> Option<DataStoreError> {
     match code {
         11000 | 11001 | 12582 => Some(DataStoreError::DuplicateKey),

@@ -16,6 +16,7 @@ use super::system::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum ApprovalDecision {
     APPROVED,
     REJECTED,
@@ -25,6 +26,7 @@ pub enum ApprovalDecision {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum GateCode {
     A,
     B,
@@ -50,6 +52,7 @@ pub enum GateCode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum NotificationType {
     PROJECT_CREATED,
     TASK_ASSIGNED,
@@ -64,6 +67,7 @@ pub enum NotificationType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum ProjectPriority {
     CRITICAL,
     HIGH,
@@ -73,6 +77,7 @@ pub enum ProjectPriority {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum ProjectRisk {
     VERY_HIGH,
     HIGH,
@@ -82,6 +87,7 @@ pub enum ProjectRisk {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum ProjectStatus {
     DRAFT,
     ACTIVE,
@@ -94,6 +100,7 @@ pub enum ProjectStatus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum TaskStatus {
     PENDING,
     IN_PROGRESS,
@@ -104,6 +111,7 @@ pub enum TaskStatus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum UserRole {
     ADMIN,
     PROJECT_MANAGER,
@@ -123,6 +131,7 @@ pub enum UserRole {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum WorkflowStageStatus {
     LOCKED,
     ELIGIBLE,

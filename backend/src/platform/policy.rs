@@ -46,6 +46,7 @@ impl PolicyAccess {
         }
     }
 
+    #[allow(dead_code)] // tested below; every current policy path returns allow_all or Rego-computed access directly
     pub fn allow_with_filter(filter: serde_json::Value) -> Self {
         Self {
             allow: true,

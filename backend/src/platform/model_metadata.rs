@@ -73,12 +73,17 @@ impl RuntimeModelMetadata {
         }
     }
 
+    // data_source/schema/entities_for_schema/primary_key_name below: no live
+    // call site in this crate today -- kept per this file's header comment
+    // (part of the ported type's public API surface; see there before deleting).
+    #[allow(dead_code)]
     pub fn data_source(&self, name: &str) -> Option<&RuntimeDataSourceMetadata> {
         self.data_source_by_name
             .get(name)
             .map(|index| &self.data_sources[*index])
     }
 
+    #[allow(dead_code)]
     pub fn schema(&self, name: &str) -> Option<&RuntimeSchemaMetadata> {
         self.schema_by_name
             .get(name)
@@ -100,6 +105,7 @@ impl RuntimeModelMetadata {
             })
     }
 
+    #[allow(dead_code)]
     pub fn entities_for_schema(&self, schema_name: &str) -> Vec<&RuntimeEntityMetadata> {
         self.entities
             .iter()
@@ -120,6 +126,7 @@ impl RuntimeModelMetadata {
             })
     }
 
+    #[allow(dead_code)]
     pub fn primary_key_name<'a>(
         &self,
         entity: &'a RuntimeEntityMetadata,
@@ -198,6 +205,7 @@ pub struct RuntimeDataSourceMetadata {
 }
 
 impl RuntimeDataSourceMetadata {
+    #[allow(dead_code)] // see this file's header comment
     pub fn provider_key(&self) -> &'static str {
         self.provider.key()
     }
@@ -258,10 +266,12 @@ impl RuntimeEntityMetadata {
         self.properties.iter().find(|property| property.is_key)
     }
 
+    #[allow(dead_code)] // see this file's header comment
     pub fn is_audited(&self) -> bool {
         self.facets.iter().any(|facet| facet == "audited")
     }
 
+    #[allow(dead_code)]
     pub fn is_soft_deleted(&self) -> bool {
         self.facets.iter().any(|facet| facet == "soft_delete")
     }
@@ -373,6 +383,7 @@ pub enum RuntimeDataType {
 }
 
 impl RuntimeDataType {
+    #[allow(dead_code)] // tested below; see this file's header comment
     pub fn key(self) -> &'static str {
         match self {
             RuntimeDataType::Uuid => "uuid",
@@ -407,6 +418,7 @@ impl RuntimeDataType {
         }
     }
 
+    #[allow(dead_code)] // see this file's header comment
     pub fn is_array(self) -> bool {
         matches!(
             self,

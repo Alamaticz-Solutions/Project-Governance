@@ -883,6 +883,7 @@ dependencies = [
  "serde_yaml",
  "sha2",
  "syn 2.0.119",
+ "uuid",
 ]
 
 [[package]]

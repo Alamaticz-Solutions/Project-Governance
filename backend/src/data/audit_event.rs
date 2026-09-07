@@ -52,6 +52,11 @@ impl AuditQuery {
         }
     }
 
+    /// Convenience constructor over `entity`'s own metadata; tested
+    /// (`for_entity_derives_the_audit_table_name`-style cases below) but no
+    /// handler builds an `AuditQuery` this way yet -- callers currently go
+    /// through `AuditQuery::new` directly.
+    #[allow(dead_code)]
     pub fn for_entity(
         entity: &crate::product_api::RuntimeEntityMetadata,
         tenant_id: impl Into<String>,
@@ -203,6 +208,11 @@ impl AuditEvent {
         compute_hash(&payload)
     }
 
+    /// No caller yet -- kept because `platform::admin_runtime::provider_capabilities`
+    /// names the guard test for this by string
+    /// (`AUDIT_CHAIN_TEST = "data::audit_event::tests::continue_record_chain_is_a_true_no_op"`);
+    /// deleting this would orphan that reference.
+    #[allow(dead_code)]
     pub fn continue_record_chain(self, last_event: Option<&serde_json::Value>) -> Self {
         continue_record_chain(self, last_event)
     }
@@ -212,6 +222,7 @@ impl AuditEvent {
 /// completely unchanged. This is not a bug to fix; it's the exact behavior
 /// being preserved from the reference implementation. Do not make this
 /// actually chain.
+#[allow(dead_code)]
 pub fn continue_record_chain(
     event: AuditEvent,
     last_event: Option<&serde_json::Value>,
@@ -226,6 +237,7 @@ pub fn continue_record_chain(
     event
 }
 
+#[allow(dead_code)] // only caller is the no-op continue_record_chain above
 fn audit_str<'a>(
     event: &'a serde_json::Map<String, serde_json::Value>,
     key: &str,

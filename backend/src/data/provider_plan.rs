@@ -211,10 +211,12 @@ impl<E, Filter, AccessFilter, GroupBy, Metric, Having, Sort>
         }
     }
 
+    #[allow(dead_code)] // mirrors ProviderQueryPlan's accessor; no aggregate caller reads it back yet
     pub fn filter_json(&self) -> Option<serde_json::Value> {
         self.filter_json.clone()
     }
 
+    #[allow(dead_code)]
     pub fn access_filter_json(&self) -> Option<serde_json::Value> {
         self.access_filter_json.clone()
     }

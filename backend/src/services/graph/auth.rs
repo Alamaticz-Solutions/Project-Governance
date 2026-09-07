@@ -48,6 +48,7 @@ pub const ENV_TENANT_ID: &str = "GRAPH_TENANT_ID";
 pub const ENV_CLIENT_ID: &str = "GRAPH_CLIENT_ID";
 pub const ENV_CLIENT_SECRET: &str = "GRAPH_CLIENT_SECRET";
 pub const ENV_DEFAULT_ORGANIZER_ID: &str = "GRAPH_DEFAULT_ORGANIZER_ID";
+#[allow(dead_code)] // read only by notification_client_state() below, not yet called -- webhook ingress isn't built
 pub const ENV_NOTIFICATION_CLIENT_STATE: &str = "GRAPH_NOTIFICATION_CLIENT_STATE";
 
 /// M10 / G1.3 TokenStoreIsolation: a write-capable app registration distinct
@@ -59,6 +60,10 @@ pub const ENV_WRITE_CLIENT_ID: &str = "GRAPH_WRITE_CLIENT_ID";
 pub const ENV_WRITE_CLIENT_SECRET: &str = "GRAPH_WRITE_CLIENT_SECRET";
 
 /// Values that must never be logged, echoed in payloads, or serialized.
+/// Declared as the module's documented redaction contract (see `mod.rs`);
+/// no generic redaction filter consumes this list yet -- `response.rs`'s
+/// own `redact()` matches on JSON key names instead.
+#[allow(dead_code)]
 pub const REDACTION_CONSTANTS: &[&str] = &[
     ENV_CLIENT_SECRET,
     ENV_WRITE_CLIENT_SECRET,
@@ -117,6 +122,7 @@ impl GraphAuthConfig {
         })
     }
 
+    #[allow(dead_code)] // no caller yet -- webhook ingress (graph-notifications) isn't built (spec 003)
     pub fn notification_client_state() -> Option<String> {
         env::var(ENV_NOTIFICATION_CLIENT_STATE)
             .ok()

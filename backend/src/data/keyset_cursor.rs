@@ -182,6 +182,10 @@ pub fn encode_keyset_cursor(
 
 /// Encode a keyset cursor that carries a primary-key tiebreaker. Use whenever the sort field is
 /// not the primary key, so pagination over non-unique columns stays correct.
+/// Decode/filter already handle a tiebreaker cursor (see `cursor.tiebreaker`
+/// in `keyset_cursor_filter`); this encode side is tested (roundtrip below)
+/// but has no caller yet -- no current query sorts by a non-unique field.
+#[allow(dead_code)]
 pub fn encode_keyset_cursor_with_tiebreaker(
     field: &str,
     direction: crate::data::query_ir::SortDirection,

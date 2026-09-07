@@ -161,6 +161,7 @@ pub enum RuntimeAppError {
 }
 
 impl RuntimeError {
+    #[allow(dead_code)] // tested below; GraphQL error categorization currently derives its own labels
     pub fn category(&self) -> &'static str {
         match self {
             RuntimeError::NotAuthorized => "not_authorized",

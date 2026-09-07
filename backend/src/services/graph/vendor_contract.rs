@@ -18,6 +18,12 @@
 //!                         public callback in this environment; SharePoint --
 //!                         spec 004 D1 undecided).
 
+// This whole file is exercised only by `contracts_are_honest` at the bottom
+// -- nothing in the production request path reads a capability tier back
+// (writes.rs enforces G1 directly; this module is the docs-check source of
+// truth file 04 requires, not a runtime gate). Hence "unused" outside its
+// own test for every item below.
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tier {
     LiveCertified,
@@ -26,6 +32,7 @@ pub enum Tier {
     WriteGated,
 }
 
+#[allow(dead_code)]
 impl Tier {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -37,6 +44,7 @@ impl Tier {
     }
 }
 
+#[allow(dead_code)]
 pub struct OperationContract {
     pub name: &'static str,
     pub kind: &'static str,        // "read" | "write"
@@ -44,6 +52,7 @@ pub struct OperationContract {
     pub tier: Tier,
 }
 
+#[allow(dead_code)]
 pub const CONTRACTS: &[OperationContract] = &[
     OperationContract {
         name: "get_online_meeting_by_join_url",
@@ -134,6 +143,7 @@ pub const CONTRACTS: &[OperationContract] = &[
 /// `writes::WriteOperation` arm actually reaching `execute`'s full pipeline
 /// would be the exact overclaim `assert_honest` exists to catch elsewhere,
 /// so keep this list in lockstep with `writes.rs`.
+#[allow(dead_code)]
 const G1_GATED_WRITES: &[&str] = &[
     "schedule_teams_meeting",
     "cancel_online_meeting",
@@ -143,6 +153,7 @@ const G1_GATED_WRITES: &[&str] = &[
 /// Invariant the tests/docs-check assert: nothing claims `live_certified`,
 /// and every `write` operation is `write_gated` UNLESS it's in
 /// `G1_GATED_WRITES` (M10), in which case it may be `compiler_contracted`.
+#[allow(dead_code)]
 pub fn assert_honest() -> Result<(), String> {
     for c in CONTRACTS {
         if c.tier == Tier::LiveCertified {

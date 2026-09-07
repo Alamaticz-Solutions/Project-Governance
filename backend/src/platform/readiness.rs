@@ -68,6 +68,7 @@ where
         }
     }
 
+    #[allow(dead_code)] // the /readyz route builds its response from .checks() directly, not this bool
     pub async fn is_ready(&self) -> bool {
         self.checks().await.iter().all(RuntimeHealthCheck::is_pass)
     }

@@ -14,6 +14,7 @@
 //! converts its own `Pagination`/`PaginationStrategy` into on the way to a
 //! provider plan.
 
+#[allow(dead_code)] // ported near-verbatim, tested below; see this file's header comment
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RuntimePagination {
     pub skip: i32,
@@ -21,6 +22,7 @@ pub struct RuntimePagination {
     pub strategy: RuntimePaginationStrategy,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RuntimePaginationStrategy {
     Offset,

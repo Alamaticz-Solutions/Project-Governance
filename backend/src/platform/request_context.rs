@@ -71,13 +71,6 @@ pub struct RequestContext {
 }
 
 impl RequestContext {
-    pub fn new(request_id: impl Into<String>, correlation_id: impl Into<String>) -> Self {
-        Self {
-            request_id: request_id.into(),
-            correlation_id: correlation_id.into(),
-        }
-    }
-
     #[cfg(feature = "http")]
     pub fn from_headers(headers: &HeaderMap) -> Self {
         let request_id = header_value(headers, REQUEST_ID_HEADER_NAME)

@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum AuditAction {
     Create,
     Read,
@@ -22,6 +23,7 @@ pub enum AuditAction {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum Computed {
     Concatenate,
     Format,
@@ -33,6 +35,7 @@ pub enum Computed {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum CustomMethodKind {
     Query,
     Mutation,
@@ -41,6 +44,7 @@ pub enum CustomMethodKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum DataSourceType {
     PostgreSQL,
     MongoDB,
@@ -58,6 +62,7 @@ pub enum DataSourceType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum DataType {
     Uuid,
     UuidArray,
@@ -92,6 +97,7 @@ pub enum DataType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum Facet {
     Concurrency,
     Audited,
@@ -100,6 +106,7 @@ pub enum Facet {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum FieldValueSource {
     Literal,
     FieldReference,
@@ -109,6 +116,7 @@ pub enum FieldValueSource {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum StandardMethod {
     FindById,
     GetAll,
@@ -120,6 +128,7 @@ pub enum StandardMethod {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum UserStatus {
     Active,
     Disabled,
@@ -128,6 +137,7 @@ pub enum UserStatus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
+#[allow(non_camel_case_types)]
 pub enum CrudEvent {
     Create,
     Read,

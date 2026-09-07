@@ -26,7 +26,10 @@ pub enum GraphError {
     Upstream { status: u16, code: String },
     /// 4xx other than 401/403/404/429.
     BadRequest { status: u16, code: String },
-    /// transport / decode failure (message is pre-redacted).
+    /// transport / decode failure (message is pre-redacted). Matched
+    /// exhaustively below but not yet constructed -- `client.rs`/`writes.rs`
+    /// currently map a transport failure to `Unauthorized { code: "transport" }`.
+    #[allow(dead_code)]
     Transport { message: String },
 }
 

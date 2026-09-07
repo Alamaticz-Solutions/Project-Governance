@@ -91,6 +91,7 @@ pub struct ConnectionSecurity {
 }
 
 impl ConnectionSecurity {
+    #[allow(dead_code)] // tested below; no caller needs this yet outside its own assertions
     pub fn allows_plaintext(&self) -> bool {
         self.security_profile == SecurityProfile::LocalDev && self.tls_mode == TlsMode::Disabled
     }

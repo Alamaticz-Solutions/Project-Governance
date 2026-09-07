@@ -130,6 +130,10 @@ impl ProviderContractArea {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CapabilityStatus {
     Implemented(&'static str),
+    // Not yet constructed by anything -- no capability in this product has
+    // earned a retained live-certification run. Kept as the honest ceiling
+    // of the vocabulary (matched exhaustively below), not dead weight.
+    #[allow(dead_code)]
     LiveCertified,
     Partial(&'static str),
     Unsupported(&'static str),
@@ -158,6 +162,7 @@ impl CapabilityStatus {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CertificationEvidence {
     CompilerContract(&'static str),
+    #[allow(dead_code)] // same honest-ceiling reasoning as CapabilityStatus::LiveCertified
     LiveContract(&'static str),
 }
 

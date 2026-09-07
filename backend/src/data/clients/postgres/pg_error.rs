@@ -11,6 +11,7 @@
 use crate::platform::errors::DataStoreError;
 use crate::platform::runtime::{provider_error, provider_keys::FrameworkProvider, RuntimeError};
 
+#[allow(dead_code)] // tested directly below; production path goes through postgres_runtime_error
 pub fn classify_postgres_error_code(code: &str, field: Option<&str>) -> Option<DataStoreError> {
     provider_error::classify_postgres_code(code, field).map(Into::into)
 }

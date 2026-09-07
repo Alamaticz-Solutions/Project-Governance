@@ -41,6 +41,7 @@ pub struct RuntimeProviderOperationCounts {
 }
 
 impl RuntimeProviderOperation {
+    #[allow(dead_code)] // tested below; no caller enumerates every operation yet
     pub const ALL: [RuntimeProviderOperation; 12] = [
         RuntimeProviderOperation::HealthCheck,
         RuntimeProviderOperation::ExplainQueryPlan,

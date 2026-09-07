@@ -97,6 +97,7 @@ impl UserAuth {
 
     /// Build a principal for a service-to-service caller. Services are never
     /// authenticated via a user-facing bearer JWT in this codebase's model.
+    #[allow(dead_code)] // tested below; no service-to-service ingress is wired in this HTTP-only product yet
     pub fn service(
         tenant_id: impl Into<String>,
         subject: impl Into<String>,
@@ -118,6 +119,7 @@ impl UserAuth {
 
     /// Build a principal for an autonomous agent caller. Agents are never
     /// authenticated via a user-facing bearer JWT in this codebase's model.
+    #[allow(dead_code)] // tested below; no agent ingress is wired in this HTTP-only product yet
     pub fn agent(
         tenant_id: impl Into<String>,
         subject: impl Into<String>,
@@ -137,11 +139,13 @@ impl UserAuth {
         }
     }
 
+    #[allow(dead_code)] // tested below; only service()/agent() principals set ingress today, via the constructor directly
     pub fn with_ingress(mut self, ingress: impl Into<String>) -> Self {
         self.ingress = Some(ingress.into());
         self
     }
 
+    #[allow(dead_code)] // tested below; delegated on_behalf_of auth (OBO) is not wired in this product
     pub fn with_on_behalf_of(mut self, subject: impl Into<String>) -> Self {
         self.on_behalf_of = Some(subject.into());
         self
@@ -149,14 +153,17 @@ impl UserAuth {
 
     /// The subject a policy decision should actually be evaluated against:
     /// `on_behalf_of` when set, otherwise `user_name`.
+    #[allow(dead_code)] // tested below; no policy path reads on_behalf_of yet (see with_on_behalf_of)
     pub fn effective_subject(&self) -> &str {
         self.on_behalf_of.as_deref().unwrap_or(&self.user_name)
     }
 
+    #[allow(dead_code)] // tested below; role checks in this crate go through services::support::has_role instead
     pub fn has_role(&self, role: &str) -> bool {
         self.roles.iter().any(|candidate| candidate == role)
     }
 
+    #[allow(dead_code)] // tested below; no caller checks a scope directly yet
     pub fn has_scope(&self, scope: &str) -> bool {
         self.scopes.iter().any(|candidate| candidate == scope)
     }

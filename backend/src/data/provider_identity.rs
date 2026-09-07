@@ -10,10 +10,12 @@
 pub enum ProviderOperationRequirement {
     Required,
     Optional,
+    #[allow(dead_code)] // no DATABASE_CLIENT entry uses this tier today; see ::legacy's doc comment
     LegacyCompatibility,
 }
 
 impl ProviderOperationRequirement {
+    #[allow(dead_code)] // exercised via ProviderOperationContract::requirement_key in tests
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Required => "required",
@@ -31,6 +33,7 @@ pub enum ProviderOperationSurface {
 }
 
 impl ProviderOperationSurface {
+    #[allow(dead_code)] // exercised via ProviderOperationContract::surface_key in tests
     pub fn as_str(self) -> &'static str {
         match self {
             Self::RuntimeNative => "runtime_native",
@@ -70,6 +73,11 @@ impl ProviderOperationContract {
         }
     }
 
+    // legacy/requirement_key/surface_key: no `DATABASE_CLIENT` entry (below)
+    // is `Legacy`-classified today -- tested (round-trip tests further
+    // down) but no production caller. Ported as part of this contract
+    // type's full classification vocabulary; see the module doc comment.
+    #[allow(dead_code)]
     pub const fn legacy(
         operation: crate::platform::runtime::RuntimeProviderOperation,
         surface: ProviderOperationSurface,
@@ -81,10 +89,12 @@ impl ProviderOperationContract {
         }
     }
 
+    #[allow(dead_code)]
     pub fn requirement_key(self) -> &'static str {
         self.requirement.as_str()
     }
 
+    #[allow(dead_code)]
     pub fn surface_key(self) -> &'static str {
         self.surface.as_str()
     }

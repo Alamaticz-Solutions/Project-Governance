@@ -26,14 +26,21 @@ impl<'a, P> RuntimeProviderPlanInput<'a, P> {
         Self { plan, user, access }
     }
 
+    // plan/user/access below: callers use into_parts() instead (a single
+    // destructure vs. three borrow calls); kept, tested (below), because
+    // consuming only one field via into_parts still requires the other two
+    // dropped explicitly and these read-only accessors are the alternative.
+    #[allow(dead_code)]
     pub fn plan(&self) -> &P {
         &self.plan
     }
 
+    #[allow(dead_code)]
     pub fn user(&self) -> &'a crate::platform::runtime::extension::UserAuth {
         self.user
     }
 
+    #[allow(dead_code)]
     pub fn access(&self) -> &'a crate::platform::runtime::PolicyAccess {
         self.access
     }
@@ -48,6 +55,7 @@ impl<'a, P> RuntimeProviderPlanInput<'a, P> {
         (self.plan, self.user, self.access)
     }
 
+    #[allow(dead_code)] // tested below; no caller transforms a plan in place yet
     pub fn map_plan<Q>(self, map: impl FnOnce(P) -> Q) -> RuntimeProviderPlanInput<'a, Q> {
         RuntimeProviderPlanInput {
             plan: map(self.plan),

@@ -1,26 +1,9 @@
-//! Provider descriptor / key (mirrors `SalesforceProviderDescriptor`).
+//! Provider identity for the Graph client (`client.rs`/`writes.rs` build every
+//! request URL from `GRAPH_BASE`). A `GraphProviderDescriptor` bundling this
+//! with a key/display name/API version (mirroring
+//! `SalesforceProviderDescriptor`) was trimmed 2026-09-08: nothing ever
+//! constructed it, in product code or tests -- re-add only once something
+//! actually consumes provider identity as a value (e.g. a multi-provider
+//! admin listing), not speculatively.
 
-pub const PROVIDER_KEY: &str = "microsoft_graph";
-pub const PROVIDER_DISPLAY: &str = "Microsoft Graph (Teams meetings + transcripts + directory)";
-/// Pinned Graph API version — the only version the registered operations target.
-pub const GRAPH_API_VERSION: &str = "v1.0";
 pub const GRAPH_BASE: &str = "https://graph.microsoft.com/v1.0";
-
-#[derive(Debug, Clone)]
-pub struct GraphProviderDescriptor {
-    pub key: &'static str,
-    pub display: &'static str,
-    pub api_version: &'static str,
-    pub base_url: &'static str,
-}
-
-impl Default for GraphProviderDescriptor {
-    fn default() -> Self {
-        Self {
-            key: PROVIDER_KEY,
-            display: PROVIDER_DISPLAY,
-            api_version: GRAPH_API_VERSION,
-            base_url: GRAPH_BASE,
-        }
-    }
-}

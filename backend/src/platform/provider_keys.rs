@@ -34,6 +34,11 @@ pub enum FrameworkProvider {
     AiSearch,
 }
 
+// The four family arrays + ALL + the is_*_provider methods + parse_key
+// below have no production call site in this Postgres-only deployment
+// (this file's header explains why they're kept regardless: an
+// oracle-equivalent port, tested in full further down).
+#[allow(dead_code)]
 impl FrameworkProvider {
     pub const DATABASE: [FrameworkProvider; 5] = [
         FrameworkProvider::Postgres,

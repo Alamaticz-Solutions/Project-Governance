@@ -10,8 +10,12 @@ use super::request::{odata_string_literal, path_segment, RequestPlan};
 #[derive(Debug, Clone)]
 pub enum ReadOperation {
     /// `GET /users/{organizer}/onlineMeetings?$filter=JoinWebUrl eq '{join_url}'`
+    /// Registered (M9 5-read registry) but no handler builds one yet.
+    #[allow(dead_code)]
     GetOnlineMeetingByJoinUrl { organizer: String, join_url: String },
     /// `GET /users/{organizer}/onlineMeetings/{online_meeting_id}`
+    /// Registered but no handler builds one yet.
+    #[allow(dead_code)]
     GetOnlineMeeting {
         organizer: String,
         online_meeting_id: String,
@@ -22,9 +26,14 @@ pub enum ReadOperation {
         online_meeting_id: String,
         transcript_id: String,
     },
-    /// `GET /users?$search="{term}"&$select=id,displayName,mail,userPrincipalName&$top=10`
+    /// `GET /users?$search="{term}"&$select=id,displayName,mail,userPrincipalName&$top=10`.
+    /// No production handler builds one yet; live-verified 2026-09-07 by the
+    /// `client::live` connection test (`#[ignore]`d by default).
+    #[allow(dead_code)]
     SearchDirectoryUsers { term: String },
-    /// `POST /users/{organizer}/calendar/getSchedule` — vendor-side read (no mutation)
+    /// `POST /users/{organizer}/calendar/getSchedule` — vendor-side read (no mutation).
+    /// Registered but no handler builds one yet.
+    #[allow(dead_code)]
     CheckOrganizerAvailability {
         organizer: String,
         schedules: Vec<String>,

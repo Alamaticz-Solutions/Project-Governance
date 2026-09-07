@@ -45,6 +45,7 @@ use super::{
 /// The 8 write-area contracts. Every one below is implemented by this module
 /// (not `Unsupported`) as of the M10 build; kept as a named list because
 /// `vendor_contract.rs`'s docs-check transcribes from it.
+#[allow(dead_code)] // tested below (write_areas_list_stays_at_eight_items); no docs-check consumes it yet
 pub const G1_WRITE_AREAS: &[&str] = &[
     "GovernedWriteEnforcement",
     "DelegatedActorContext",
@@ -118,6 +119,7 @@ pub enum WriteOperation {
     /// `POST /subscriptions` -- tenant-wide transcript change-notification.
     /// Registered (G1.4/G1.5 apply) but not reachable from any handler: it
     /// needs a public HTTPS `notification_url` this environment lacks.
+    #[allow(dead_code)]
     CreateSubscription {
         resource: String,
         notification_url: String,
@@ -126,15 +128,18 @@ pub enum WriteOperation {
     },
     /// `PATCH /subscriptions/{id}` -- renew. Not wired to a handler (same
     /// reason as `CreateSubscription`).
+    #[allow(dead_code)]
     RenewSubscription {
         subscription_id: String,
         expiration_iso: String,
     },
     /// `DELETE /subscriptions/{id}`. Not wired to a handler.
+    #[allow(dead_code)]
     DeleteSubscription { subscription_id: String },
     /// `PUT /sites/{id}/drives/{id}/root:/…:/content` -- SharePoint upload
     /// (spec 004 D1 owns whether this is ever built at all). Registered as a
     /// placeholder only; `plan()`/`body()` return `None`.
+    #[allow(dead_code)]
     SharePointUpload {
         site_id: String,
         drive_id: String,
