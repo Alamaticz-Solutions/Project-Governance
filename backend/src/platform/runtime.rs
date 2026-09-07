@@ -61,20 +61,20 @@ pub mod security {
     pub use crate::platform::security_config::SecurityConfig;
 }
 //
-// `AccessAction`/`PolicyAccess` (already self-owned at `platform::policy`)
-// and `UserAuth`/`RuntimePrincipalType` (already self-owned at
-// `platform::user_auth`) are NOT overridden here, and never will be by this
-// mechanism: `product_api.rs` already re-exports the self-owned versions as
-// its own canonical `AccessAction`/`PolicyAccess`/`UserAuth`/
-// `RuntimePrincipalType`, with explicit bidirectional `From` bridges to
-// this facade's (still framework-owned) `PolicyAccess`/`extension::UserAuth`
-// at the one real boundary -- where `RuntimeJwtExtractor`'s JWT extraction
-// and the framework's Rego-evaluation glue still produce/consume the
-// framework's own types. Overriding the names here would make those bridge
-// `impl From<...>`s self-referential (a type converting into itself),
-// which conflicts with std's blanket `impl<T> From<T> for T` -- a compile
-// error, not a no-op. They come out once `RuntimeJwtExtractor` itself is
-// replaced (the remainder of this slice).
+// `AccessAction`/`PolicyAccess`/`UserAuth`/`RuntimePrincipalType`: the
+// JWT-boundary bridges above are gone now that `RuntimeJwtExtractor` holds
+// the self-owned `UserAuth` directly, and `DatabaseClientRuntimeAdapter`
+// (the other thing that fixed these to framework types) was deleted in
+// slice 5 -- so these four are safe to override too. `product_api.rs`'s
+// bidirectional bridge `impl From<...>` blocks for all four were deleted
+// at the same time this override landed (they'd otherwise become
+// self-referential, conflicting with std's blanket `impl<T> From<T> for
+// T`).
+pub use crate::platform::policy::{AccessAction, PolicyAccess};
+pub use crate::platform::user_auth::{RuntimePrincipalType, UserAuth};
+pub mod extension {
+    pub use crate::platform::user_auth::{RuntimePrincipalType, UserAuth};
+}
 //
 // `RuntimeJwtExtractor`/`RuntimeHandlerContext`/`user_from_graphql_context`/
 // `data_from_graphql_context` ARE overridden below: unlike `PolicyAccess`/

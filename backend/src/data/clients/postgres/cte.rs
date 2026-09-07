@@ -172,11 +172,7 @@ impl CTE {
             entity_type.pascal_1, alias, recursion_depth
         );
 
-        let access = app_config.evaluate_user_access(
-            entity_type.clone(),
-            AccessAction::Read,
-            &user.into(),
-        )?;
+        let access = app_config.evaluate_user_access(entity_type.clone(), AccessAction::Read, user)?;
 
         if !access.allow {
             return Err(AppError::AccessDenied);

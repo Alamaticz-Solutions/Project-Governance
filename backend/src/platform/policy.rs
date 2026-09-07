@@ -123,6 +123,50 @@ pub fn combine_access_filters(
     }
 }
 
+// Bidirectional bridges to the framework's still-live `AccessAction`/
+// `PolicyAccess` (backend framework replacement phase 7, slice 3): unlike
+// `RuntimeProviderPlanInput`'s reference-holding fields, these are plain
+// owned-value conversions, so a normal `From` impl fits. Needed only by
+// `admin_ui.rs`'s `AdminPolicyExplainProvider`/`AdminAuditTimelineProvider`
+// impls -- part of slice 6's admin.rs entanglement, not yet ported:
+// - forward (self-owned -> framework): handing a `PolicyAccess` to the
+//   framework's own `AdminPolicyDecision: From<appfw_runtime::PolicyAccess>`
+//   (fixed trait bound).
+// - reverse (framework -> self-owned): `AdminPolicyExplainProvider`'s
+//   `action: appfw_runtime::AccessAction` parameter is fixed by that same
+//   framework trait, but needs to become self-owned before calling this
+//   crate's own `evaluate_user_access`.
+impl From<AccessAction> for appfw_runtime::AccessAction {
+    fn from(action: AccessAction) -> Self {
+        match action {
+            AccessAction::Create => appfw_runtime::AccessAction::Create,
+            AccessAction::Read => appfw_runtime::AccessAction::Read,
+            AccessAction::Update => appfw_runtime::AccessAction::Update,
+            AccessAction::Delete => appfw_runtime::AccessAction::Delete,
+        }
+    }
+}
+
+impl From<appfw_runtime::AccessAction> for AccessAction {
+    fn from(action: appfw_runtime::AccessAction) -> Self {
+        match action {
+            appfw_runtime::AccessAction::Create => AccessAction::Create,
+            appfw_runtime::AccessAction::Read => AccessAction::Read,
+            appfw_runtime::AccessAction::Update => AccessAction::Update,
+            appfw_runtime::AccessAction::Delete => AccessAction::Delete,
+        }
+    }
+}
+
+impl From<PolicyAccess> for appfw_runtime::PolicyAccess {
+    fn from(access: PolicyAccess) -> Self {
+        appfw_runtime::PolicyAccess {
+            allow: access.allow,
+            filter: access.filter,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;

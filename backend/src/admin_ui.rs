@@ -137,8 +137,8 @@ impl AdminPolicyExplainProvider for ProductAdminPolicyExplainProvider<'_> {
         &self,
         schema_name: &str,
         type_name: &str,
-        action: crate::platform::runtime::AccessAction,
-        user: &UserAuth,
+        action: appfw_runtime::AccessAction,
+        user: &appfw_runtime::extension::UserAuth,
         request_context: &RequestContext,
     ) -> Result<AdminPolicyExplainResult, AdminServiceError> {
         let schema_name = schema_name.to_string();
@@ -158,7 +158,11 @@ impl AdminPolicyExplainProvider for ProductAdminPolicyExplainProvider<'_> {
             format!("{}.{}", entity_type.schema_name, entity_type.snake_1),
             entity_type.schema_name.clone(),
             entity_type.pascal_1.clone(),
-            crate::platform::runtime::PolicyAccess::from(access).into(),
+            // `PolicyDecision`/`AdminPolicyDecision` is still
+            // framework-owned (fixed `From<appfw_runtime::PolicyAccess>`),
+            // so bridge explicitly through the real framework type rather
+            // than the (now self-owned) facade name.
+            appfw_runtime::PolicyAccess::from(access).into(),
         ))
     }
 }
@@ -175,7 +179,7 @@ impl AdminAuditTimelineProvider for ProductAdminAuditTimelineProvider<'_> {
         type_name: &str,
         record_id: &str,
         limit: i64,
-        user: &UserAuth,
+        user: &appfw_runtime::extension::UserAuth,
         request_context: &RequestContext,
     ) -> Result<AdminAuditTimelineResult, AdminServiceError> {
         let schema_name = schema_name.to_string();
@@ -185,13 +189,14 @@ impl AdminAuditTimelineProvider for ProductAdminAuditTimelineProvider<'_> {
             .app_config
             .get_entity_type(&schema_name, &type_name)
             .map_err(|err| AdminServiceError::bad_request(err.to_string(), request_context))?;
+        let product_user: UserAuth = user.into();
         let current_access = self
             .state
             .app_config
-            .evaluate_user_access(entity_type.clone(), AccessAction::Read, &user.into())
+            .evaluate_user_access(entity_type.clone(), AccessAction::Read, &product_user)
             .map_err(|err| AdminServiceError::internal(err.to_string(), request_context))?;
         let current_policy: PolicyDecision =
-            crate::platform::runtime::PolicyAccess::from(current_access.clone()).into();
+            appfw_runtime::PolicyAccess::from(current_access.clone()).into();
 
         let subject = AdminAuditTimelineSubject {
             schema_name: entity_type.schema_name.clone(),
@@ -220,7 +225,7 @@ impl AdminAuditTimelineProvider for ProductAdminAuditTimelineProvider<'_> {
                         entity_type.clone(),
                         record_id,
                         limit,
-                        &user.into(),
+                        &product_user,
                         &current_access,
                     )
                     .await
@@ -246,7 +251,7 @@ impl AdminQueryDiagnoseProvider for ProductAdminQueryDiagnoseProvider<'_> {
         skip: i32,
         limit: i32,
         after: Option<String>,
-        user: UserAuth,
+        user: appfw_runtime::extension::UserAuth,
         request_context: &RequestContext,
     ) -> Result<RuntimeQueryPlanDiagnostic, AdminServiceError> {
         let schema_name = schema_name.to_string();

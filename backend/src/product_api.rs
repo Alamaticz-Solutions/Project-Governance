@@ -33,167 +33,6 @@ pub use crate::platform::runtime::{
     RuntimeProviderDescriptor, RuntimeProviderOperation, RuntimeProviderOperationCounts,
 };
 
-// Backend framework replacement phase 5: `AccessAction`/`PolicyAccess` are now
-// product-owned (`platform::policy`), but a handful of `appfw_runtime`
-// functions not yet ported (record validation/timezone adjustment, the
-// `data_access`/`record_audit` runtime helpers, and the `admin`/`mcp`
-// trait boundaries) still take the framework's own types. These conversions
-// are the only bridge between the two -- lossless and exhaustive, since both
-// types are plain data (a 4-variant enum, an `{allow, filter}` struct).
-impl From<AccessAction> for crate::platform::runtime::AccessAction {
-    fn from(action: AccessAction) -> Self {
-        match action {
-            AccessAction::Create => crate::platform::runtime::AccessAction::Create,
-            AccessAction::Read => crate::platform::runtime::AccessAction::Read,
-            AccessAction::Update => crate::platform::runtime::AccessAction::Update,
-            AccessAction::Delete => crate::platform::runtime::AccessAction::Delete,
-        }
-    }
-}
-
-impl From<crate::platform::runtime::AccessAction> for AccessAction {
-    fn from(action: crate::platform::runtime::AccessAction) -> Self {
-        match action {
-            crate::platform::runtime::AccessAction::Create => AccessAction::Create,
-            crate::platform::runtime::AccessAction::Read => AccessAction::Read,
-            crate::platform::runtime::AccessAction::Update => AccessAction::Update,
-            crate::platform::runtime::AccessAction::Delete => AccessAction::Delete,
-        }
-    }
-}
-
-impl From<&PolicyAccess> for crate::platform::runtime::PolicyAccess {
-    fn from(access: &PolicyAccess) -> Self {
-        crate::platform::runtime::PolicyAccess {
-            allow: access.allow,
-            filter: access.filter.clone(),
-        }
-    }
-}
-
-impl From<PolicyAccess> for crate::platform::runtime::PolicyAccess {
-    fn from(access: PolicyAccess) -> Self {
-        crate::platform::runtime::PolicyAccess {
-            allow: access.allow,
-            filter: access.filter,
-        }
-    }
-}
-
-impl From<crate::platform::runtime::PolicyAccess> for PolicyAccess {
-    fn from(access: crate::platform::runtime::PolicyAccess) -> Self {
-        PolicyAccess {
-            allow: access.allow,
-            filter: access.filter,
-        }
-    }
-}
-
-impl From<&crate::platform::runtime::PolicyAccess> for PolicyAccess {
-    fn from(access: &crate::platform::runtime::PolicyAccess) -> Self {
-        PolicyAccess {
-            allow: access.allow,
-            filter: access.filter.clone(),
-        }
-    }
-}
-
-// `UserAuth` is now product-owned (`platform::user_auth`), but its serialized
-// shape is fed to Rego as `input.user` by `appfw_runtime`-owned code, and a
-// long tail of not-yet-ported `crate::platform::runtime::data_access`/`record_audit`
-// functions and the `admin`/`mcp` trait boundaries still take the
-// framework's own `UserAuth` by value/reference. These conversions are the
-// only bridge -- lossless and exhaustive, since both are the same 9 plain
-// fields (the `token` field is copied too, not dropped: it's still needed by
-// whichever side receives it, even though neither type ever serializes it).
-impl From<RuntimePrincipalType> for crate::platform::runtime::extension::RuntimePrincipalType {
-    fn from(kind: RuntimePrincipalType) -> Self {
-        match kind {
-            RuntimePrincipalType::User => crate::platform::runtime::extension::RuntimePrincipalType::User,
-            RuntimePrincipalType::Service => {
-                crate::platform::runtime::extension::RuntimePrincipalType::Service
-            }
-            RuntimePrincipalType::Agent => crate::platform::runtime::extension::RuntimePrincipalType::Agent,
-        }
-    }
-}
-
-impl From<crate::platform::runtime::extension::RuntimePrincipalType> for RuntimePrincipalType {
-    fn from(kind: crate::platform::runtime::extension::RuntimePrincipalType) -> Self {
-        match kind {
-            crate::platform::runtime::extension::RuntimePrincipalType::User => RuntimePrincipalType::User,
-            crate::platform::runtime::extension::RuntimePrincipalType::Service => {
-                RuntimePrincipalType::Service
-            }
-            crate::platform::runtime::extension::RuntimePrincipalType::Agent => RuntimePrincipalType::Agent,
-        }
-    }
-}
-
-impl From<&UserAuth> for crate::platform::runtime::extension::UserAuth {
-    fn from(user: &UserAuth) -> Self {
-        crate::platform::runtime::extension::UserAuth {
-            tenant_id: user.tenant_id.clone(),
-            user_name: user.user_name.clone(),
-            timezone: user.timezone.clone(),
-            principal_type: user.principal_type.into(),
-            on_behalf_of: user.on_behalf_of.clone(),
-            ingress: user.ingress.clone(),
-            roles: user.roles.clone(),
-            scopes: user.scopes.clone(),
-            token: user.token.clone(),
-        }
-    }
-}
-
-impl From<UserAuth> for crate::platform::runtime::extension::UserAuth {
-    fn from(user: UserAuth) -> Self {
-        crate::platform::runtime::extension::UserAuth {
-            tenant_id: user.tenant_id,
-            user_name: user.user_name,
-            timezone: user.timezone,
-            principal_type: user.principal_type.into(),
-            on_behalf_of: user.on_behalf_of,
-            ingress: user.ingress,
-            roles: user.roles,
-            scopes: user.scopes,
-            token: user.token,
-        }
-    }
-}
-
-impl From<&crate::platform::runtime::extension::UserAuth> for UserAuth {
-    fn from(user: &crate::platform::runtime::extension::UserAuth) -> Self {
-        UserAuth {
-            tenant_id: user.tenant_id.clone(),
-            user_name: user.user_name.clone(),
-            timezone: user.timezone.clone(),
-            principal_type: user.principal_type.into(),
-            on_behalf_of: user.on_behalf_of.clone(),
-            ingress: user.ingress.clone(),
-            roles: user.roles.clone(),
-            scopes: user.scopes.clone(),
-            token: user.token.clone(),
-        }
-    }
-}
-
-impl From<crate::platform::runtime::extension::UserAuth> for UserAuth {
-    fn from(user: crate::platform::runtime::extension::UserAuth) -> Self {
-        UserAuth {
-            tenant_id: user.tenant_id,
-            user_name: user.user_name,
-            timezone: user.timezone,
-            principal_type: user.principal_type.into(),
-            on_behalf_of: user.on_behalf_of,
-            ingress: user.ingress,
-            roles: user.roles,
-            scopes: user.scopes,
-            token: user.token,
-        }
-    }
-}
-
 #[cfg(feature = "http")]
 pub(crate) fn user_from_context(ctx: &async_graphql::Context<'_>) -> Option<UserAuth> {
     // `user_from_graphql_context` is self-owned as of phase 7's slice 3
@@ -507,7 +346,7 @@ mod tests {
             vec!["appfw:mcp.read".to_string()],
             "secret-jwt",
         );
-        let framework = crate::platform::runtime::extension::UserAuth::human(
+        let framework = appfw_runtime::extension::UserAuth::human(
             "tenant-1",
             "casey",
             "America/New_York",
@@ -529,7 +368,7 @@ mod tests {
             vec!["integration_writer".to_string()],
             vec!["crm.account.write".to_string()],
         );
-        let framework = crate::platform::runtime::extension::UserAuth::service(
+        let framework = appfw_runtime::extension::UserAuth::service(
             "tenant-1",
             "crm-event-consumer",
             vec!["integration_writer".to_string()],
@@ -549,7 +388,7 @@ mod tests {
             vec!["agent".to_string()],
             vec!["crm.account.read".to_string()],
         );
-        let framework = crate::platform::runtime::extension::UserAuth::agent(
+        let framework = appfw_runtime::extension::UserAuth::agent(
             "tenant-1",
             "reconciliation-agent",
             vec!["agent".to_string()],
@@ -571,7 +410,7 @@ mod tests {
         )
         .with_ingress("kafka")
         .with_on_behalf_of("casey");
-        let framework = crate::platform::runtime::extension::UserAuth::service(
+        let framework = appfw_runtime::extension::UserAuth::service(
             "tenant-1",
             "crm-event-consumer",
             vec!["integration_writer".to_string()],
@@ -585,13 +424,20 @@ mod tests {
         );
     }
 
-    // The `From` conversions at the `RuntimeJwtExtractor` boundary
+    // The `RuntimeJwtExtractor` boundary this test originally guarded
     // (product -> framework in `platform::graphql_gateway`, framework ->
-    // product in `user_from_context`) must be lossless in both directions,
-    // including `token` -- the one field neither type ever serializes, so a
-    // dropped `token` would not show up in the JSON-equality tests above.
+    // product in `user_from_context`) is gone as of phase 7's slice 3
+    // remainder: `RuntimeJwtExtractor` holds the self-owned `UserAuth`
+    // directly now, so nothing in production converts it to the
+    // framework's type and back any more. The forward-only bridge
+    // (`platform::user_auth`'s `impl From<&UserAuth> for
+    // appfw_runtime::extension::UserAuth`) still exists for admin_ui.rs's
+    // framework-fixed admin traits and audit_event.rs's oracle test, so
+    // this test now verifies that bridge alone stays lossless, including
+    // `token` -- the one field neither type ever serializes, so a dropped
+    // `token` would not show up in the JSON-equality tests above.
     #[test]
-    fn user_auth_round_trips_through_the_framework_type_without_losing_any_field() {
+    fn user_auth_bridges_to_the_framework_type_without_losing_any_field() {
         let original = UserAuth::human(
             "tenant-1",
             "casey",
@@ -602,11 +448,16 @@ mod tests {
         )
         .with_on_behalf_of("delegate");
 
-        let via_framework: crate::platform::runtime::extension::UserAuth = (&original).into();
-        let round_tripped: UserAuth = (&via_framework).into();
+        let via_framework: appfw_runtime::extension::UserAuth = (&original).into();
 
-        assert_eq!(original, round_tripped);
-        assert_eq!(round_tripped.token, "secret-jwt");
+        assert_eq!(via_framework.tenant_id, original.tenant_id);
+        assert_eq!(via_framework.user_name, original.user_name);
+        assert_eq!(via_framework.timezone, original.timezone);
+        assert_eq!(via_framework.on_behalf_of, original.on_behalf_of);
+        assert_eq!(via_framework.ingress, original.ingress);
+        assert_eq!(via_framework.roles, original.roles);
+        assert_eq!(via_framework.scopes, original.scopes);
+        assert_eq!(via_framework.token, "secret-jwt");
     }
 
     fn test_entity(is_table: bool, props: Vec<PropertyType>) -> EntityType {

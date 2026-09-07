@@ -57,36 +57,17 @@ impl<'a, P> RuntimeProviderPlanInput<'a, P> {
     }
 }
 
-// Bridge from the framework's still-live `RuntimeProviderPlanInput`
-// (fixed parameter type on `appfw_runtime::provider_bridge::
-// RuntimeProviderDataClient`, implemented by `DatabaseClientRuntimeAdapter`
-// until it's replaced) into this self-owned wrapper -- `user`/`access`
-// are references to the same underlying types on both sides (that
-// porting work is separate, slice 3's remainder), so this is a pure
-// struct reshuffle, not a data conversion.
-impl<'a, P> From<appfw_runtime::RuntimeProviderPlanInput<'a, P>> for RuntimeProviderPlanInput<'a, P> {
-    fn from(input: appfw_runtime::RuntimeProviderPlanInput<'a, P>) -> Self {
-        Self {
-            plan: input.plan,
-            user: input.user,
-            access: input.access,
-        }
-    }
-}
-
-// The reverse direction: still needed at the handful of remaining call
-// sites (the admin diagnose_query path) that build this self-owned wrapper
-// but must hand it to a still-framework-owned function expecting the
-// framework's own type.
-impl<'a, P> From<RuntimeProviderPlanInput<'a, P>> for appfw_runtime::RuntimeProviderPlanInput<'a, P> {
-    fn from(input: RuntimeProviderPlanInput<'a, P>) -> Self {
-        Self {
-            plan: input.plan,
-            user: input.user,
-            access: input.access,
-        }
-    }
-}
+// No bridge to/from `appfw_runtime::RuntimeProviderPlanInput` any more:
+// `DatabaseClientRuntimeAdapter` (the only thing that needed one, to
+// forward framework-typed inputs into this self-owned wrapper's methods)
+// was deleted in slice 5. The one remaining framework-facing call site
+// (data_access.rs's admin diagnose_query path, still calling the
+// framework's `provider_explain_query_plan`) builds
+// `appfw_runtime::RuntimeProviderPlanInput` directly instead -- a
+// reference-holding generic struct can't bridge across two different
+// owned field types without an intermediate owned value changing the
+// borrow's lifetime, so a blanket `From` impl doesn't fit here the way it
+// does for owned types elsewhere in this port.
 
 #[cfg(test)]
 mod tests {

@@ -778,8 +778,12 @@ mod oracle_test {
         let before = Some(json!({ "id": "account-1", "api_token": "old" }));
         let after = Some(json!({ "id": "account-1", "api_token": "new" }));
 
-        // --- Framework side (real appfw_runtime types) ---
-        let framework_user = crate::platform::runtime::extension::UserAuth::human(
+        // --- Framework side (real appfw_runtime types, named explicitly:
+        // `crate::platform::runtime::{extension::UserAuth, PolicyAccess,
+        // AccessAction}` are self-owned now via the facade override, slice
+        // 3, so this oracle test needs the actual framework types by their
+        // real crate path to compare against, not the facade names) ---
+        let framework_user = appfw_runtime::extension::UserAuth::human(
             "tenant-1",
             "alex",
             "UTC",
@@ -787,10 +791,10 @@ mod oracle_test {
             Vec::new(),
             "do-not-store",
         );
-        let framework_access = crate::platform::runtime::PolicyAccess::allow_all();
-        let framework_event = crate::platform::runtime::RuntimeAuditEvent::entity_mutation(
+        let framework_access = appfw_runtime::PolicyAccess::allow_all();
+        let framework_event = appfw_runtime::RuntimeAuditEvent::entity_mutation(
             &entity,
-            crate::platform::runtime::AccessAction::Update,
+            appfw_runtime::AccessAction::Update,
             &framework_user,
             record_id.clone(),
             before.clone(),
