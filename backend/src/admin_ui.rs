@@ -299,7 +299,14 @@ fn admin_schemas(
                     entity.schema_name == schema.name && entity.is_table && !entity.is_union
                 })
                 .count();
-            let framework_provider = data_source_type.map(runtime_provider);
+            // `admin_filter_capabilities_for_provider`/`admin_migration_dialect`/
+            // `admin_provider_capabilities_for_provider` are still
+            // framework-owned, so bridge this self-owned `FrameworkProvider`
+            // into the framework's own type once, up front.
+            let framework_provider: Option<appfw_runtime::provider_keys::FrameworkProvider> =
+                data_source_type
+                    .map(runtime_provider)
+                    .map(Into::into);
             let filter_capabilities =
                 data_source_type
                     .zip(framework_provider)

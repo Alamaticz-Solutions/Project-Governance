@@ -39,16 +39,12 @@ pub use crate::platform::errors::{
     ConfigError, DataStoreError, MetadataError, QueryBuildError, RuntimeAppError, RuntimeError,
 };
 //
-// `provider_keys::FrameworkProvider` and `provider_error` are NOT overridden
-// yet, even though self-owned equivalents exist at `platform::provider_keys`/
-// `platform::provider_error` -- `appfw_runtime::provider_bridge::
-// RuntimeProviderIdentity::framework_provider(&self)` has a fixed (not
-// generic/associated) return type of the framework's own internal
-// `FrameworkProvider`, and `DatabaseClientRuntimeAdapter` (still
-// framework-owned, deferred per phase 5's notes) implements that trait.
-// Shadowing the name here would make every such impl a type mismatch
-// against a same-named-but-different type. Move these down once slice 5
-// replaces `RuntimeProviderIdentity`/`DatabaseClientRuntimeAdapter` itself.
+// `provider_keys::FrameworkProvider`/`provider_error` were written here in
+// slice 2 but held back at the time -- `RuntimeProviderIdentity::
+// framework_provider(&self)` has a fixed return type, and
+// `DatabaseClientRuntimeAdapter`/`PostgresClient` both implement that
+// trait directly. See the slice 5 section below for where they actually
+// get overridden, once `pool_stats` proved the fix.
 
 // Slice 3 (auth/security -- partial):
 //
@@ -148,6 +144,19 @@ pub use crate::platform::provider_operation::{RuntimeProviderOperation, RuntimeP
 // fixed-trait block gets the framework type under an alias while
 // everything else here follows this override.
 pub use crate::platform::provider_pool_stats::ProviderPoolStats;
+//
+// `provider_keys::FrameworkProvider`/`provider_error`: unblocked now that
+// `pool_stats` proved the alias-the-framework-type-for-the-fixed-block
+// pattern works for `RuntimeProviderIdentity`. Same submodule-path lesson
+// as `security`/`query_cost` -- both are reached via their submodule path,
+// not the crate root, so both need a `pub mod` shadow, not a top-level
+// `pub use`.
+pub mod provider_keys {
+    pub use crate::platform::provider_keys::FrameworkProvider;
+}
+pub mod provider_error {
+    pub use crate::platform::provider_error::*;
+}
 //
 // This makes `data/clients/database_client.rs`'s self-owned `DatabaseClient`
 // trait (whose default method signatures already read these three names off

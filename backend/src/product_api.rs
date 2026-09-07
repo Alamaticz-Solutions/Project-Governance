@@ -239,7 +239,9 @@ pub(crate) fn runtime_data_source_metadata(data_source: &DataSource) -> RuntimeD
     RuntimeDataSourceMetadata {
         name: data_source.name.clone(),
         description: data_source.description.clone(),
-        provider: runtime_provider(data_source.data_source_type),
+        // `RuntimeDataSourceMetadata` is still framework-owned
+        // (model_metadata), so bridge into the framework's own type.
+        provider: runtime_provider(data_source.data_source_type).into(),
         is_system_schema_host: data_source.is_system_schema_host.unwrap_or(false),
         environments: data_source
             .environments

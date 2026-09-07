@@ -1,10 +1,13 @@
 //! Provider identity keys, shared across every data-source-backed provider
 //! client. Independent reimplementation of `appfw_runtime::provider_keys`
-//! (backend framework replacement phase 7, slice 2 --
-//! docs/architecture/self-owned-backend-plan.md): the type itself has no
-//! framework machinery in it -- a plain enum plus key/alias tables -- so it
-//! is ported near-verbatim, tests included, as an oracle-equivalent port
-//! rather than a from-scratch redesign.
+//! (backend framework replacement phase 7 -- docs/architecture/
+//! self-owned-backend-plan.md): the type itself has no framework machinery
+//! in it -- a plain enum plus key/alias tables -- so it is ported
+//! near-verbatim, tests included, as an oracle-equivalent port rather than
+//! a from-scratch redesign. Written in slice 2 but not facade-overridden
+//! until slice 5, once `RuntimeProviderIdentity`'s fixed
+//! `framework_provider(&self) -> FrameworkProvider` signature could be
+//! handled the same way `pool_stats` was.
 //!
 //! Kept at the full 13-provider surface even though this product only runs
 //! `Postgres` in production: `product_api::runtime_provider` maps every
@@ -126,6 +129,57 @@ impl FrameworkProvider {
                 Ok(FrameworkProvider::AiSearch)
             }
             _ => Err(format!("unknown provider: {provider}")),
+        }
+    }
+}
+
+// Bidirectional bridges to the framework's still-live `FrameworkProvider`:
+// `PostgresClient`'s and `DatabaseClientRuntimeAdapter`'s
+// `impl RuntimeProviderIdentity` (fixed trait) still return the
+// framework's own type from `framework_provider(&self)`, and
+// `provider_error`'s classification functions still take it as a
+// parameter -- both deferred until `RuntimeProviderIdentity` itself is
+// replaced. Identical 13-variant enums, genuinely distinct types.
+impl From<appfw_runtime::provider_keys::FrameworkProvider> for FrameworkProvider {
+    fn from(provider: appfw_runtime::provider_keys::FrameworkProvider) -> Self {
+        match provider {
+            appfw_runtime::provider_keys::FrameworkProvider::Postgres => Self::Postgres,
+            appfw_runtime::provider_keys::FrameworkProvider::Mongo => Self::Mongo,
+            appfw_runtime::provider_keys::FrameworkProvider::Mssql => Self::Mssql,
+            appfw_runtime::provider_keys::FrameworkProvider::FabricSqlAnalytics => {
+                Self::FabricSqlAnalytics
+            }
+            appfw_runtime::provider_keys::FrameworkProvider::Snowflake => Self::Snowflake,
+            appfw_runtime::provider_keys::FrameworkProvider::Neo4j => Self::Neo4j,
+            appfw_runtime::provider_keys::FrameworkProvider::ServiceNow => Self::ServiceNow,
+            appfw_runtime::provider_keys::FrameworkProvider::Workday => Self::Workday,
+            appfw_runtime::provider_keys::FrameworkProvider::Icims => Self::Icims,
+            appfw_runtime::provider_keys::FrameworkProvider::Salesforce => Self::Salesforce,
+            appfw_runtime::provider_keys::FrameworkProvider::Anaplan => Self::Anaplan,
+            appfw_runtime::provider_keys::FrameworkProvider::OracleFinancials => {
+                Self::OracleFinancials
+            }
+            appfw_runtime::provider_keys::FrameworkProvider::AiSearch => Self::AiSearch,
+        }
+    }
+}
+
+impl From<FrameworkProvider> for appfw_runtime::provider_keys::FrameworkProvider {
+    fn from(provider: FrameworkProvider) -> Self {
+        match provider {
+            FrameworkProvider::Postgres => Self::Postgres,
+            FrameworkProvider::Mongo => Self::Mongo,
+            FrameworkProvider::Mssql => Self::Mssql,
+            FrameworkProvider::FabricSqlAnalytics => Self::FabricSqlAnalytics,
+            FrameworkProvider::Snowflake => Self::Snowflake,
+            FrameworkProvider::Neo4j => Self::Neo4j,
+            FrameworkProvider::ServiceNow => Self::ServiceNow,
+            FrameworkProvider::Workday => Self::Workday,
+            FrameworkProvider::Icims => Self::Icims,
+            FrameworkProvider::Salesforce => Self::Salesforce,
+            FrameworkProvider::Anaplan => Self::Anaplan,
+            FrameworkProvider::OracleFinancials => Self::OracleFinancials,
+            FrameworkProvider::AiSearch => Self::AiSearch,
         }
     }
 }
