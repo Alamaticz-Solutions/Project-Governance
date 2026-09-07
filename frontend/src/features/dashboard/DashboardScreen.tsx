@@ -52,7 +52,12 @@ async function loadDashboard(client: AppfwClient, roles: readonly string[]) {
       .queryList(meetingEntity, {
         limit: 3,
         sort: { created_at: 'desc' },
-        selection: ['id', 'subject', 'meeting_type', 'status', 'created_at']
+        // `meeting_type` doesn't exist on this branch's `Meeting` entity
+        // (it has `source` instead) -- selecting it is a hard GraphQL
+        // validation error that silently emptied this column via the
+        // .catch below on every load. Dropped; the render below already
+        // falls back to `status` when `meeting_type` is absent.
+        selection: ['id', 'subject', 'status', 'created_at']
       })
       .catch(() => ({ rows: [] as AppfwRecord[] }))
   ]);
