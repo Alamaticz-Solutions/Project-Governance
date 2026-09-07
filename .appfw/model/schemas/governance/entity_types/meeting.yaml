@@ -25,6 +25,31 @@
       arg_type: serde_json::Value
     return_type: serde_json::Value
 
+  # M10 / G1 governed-write. schedule_via_graph creates a Teams meeting via
+  # Microsoft Graph behind the full 8-item G1 gate (services::graph::writes);
+  # cancel_via_graph deletes the calendar event it created. payload carries
+  # the bound parameters (subject/start/end/attendees; graph_event_id for
+  # cancel). Fail-closed until the Azure app holds the write application
+  # permissions -- see docs/architecture/m10-g1-governed-write-plan.md.
+  - name: schedule_via_graph
+    kind: Mutation
+    mcp_enabled: false
+    args:
+    - name: meeting_id
+      arg_type: String
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+  - name: cancel_via_graph
+    kind: Mutation
+    mcp_enabled: false
+    args:
+    - name: meeting_id
+      arg_type: String
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+
   props:
 
   - name: id

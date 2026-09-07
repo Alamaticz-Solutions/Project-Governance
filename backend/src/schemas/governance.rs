@@ -1786,6 +1786,112 @@ pub struct GraphSubscriptionQueryResult {
     pub items: Vec<GraphSubscriptionProjection>,
 }
 
+// GraphWriteAttempt is_union: false ////////////////////////////////////////////////////////////
+
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
+#[graphql(rename_fields = "snake_case")]
+pub struct GraphWriteAttempt {
+    #[graphql(name = "id")]
+    pub id: String,
+    #[graphql(name = "idempotency_key")]
+    pub idempotency_key: String,
+    #[graphql(name = "operation")]
+    pub operation: String,
+    #[graphql(name = "actor")]
+    pub actor: String,
+    #[graphql(name = "tenant_id")]
+    pub tenant_id: Option<String>,
+    #[graphql(name = "request_fingerprint")]
+    pub request_fingerprint: String,
+    #[graphql(name = "status")]
+    pub status: String,
+    #[graphql(name = "graph_resource_id")]
+    pub graph_resource_id: Option<String>,
+    #[graphql(name = "error_code")]
+    pub error_code: Option<String>,
+    #[graphql(name = "meeting_id")]
+    pub meeting_id: Option<String>,
+    #[graphql(name = "created_at")]
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    #[graphql(name = "completed_at")]
+    pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
+#[graphql(rename_fields = "snake_case")]
+pub struct GraphWriteAttemptProjection {
+    #[serde(default)]
+    pub record_locator: Option<String>,
+    #[graphql(name = "id")]
+    pub id: Option<String>,
+    #[graphql(name = "idempotency_key")]
+    pub idempotency_key: Option<String>,
+    #[graphql(name = "operation")]
+    pub operation: Option<String>,
+    #[graphql(name = "actor")]
+    pub actor: Option<String>,
+    #[graphql(name = "tenant_id")]
+    pub tenant_id: Option<String>,
+    #[graphql(name = "request_fingerprint")]
+    pub request_fingerprint: Option<String>,
+    #[graphql(name = "status")]
+    pub status: Option<String>,
+    #[graphql(name = "graph_resource_id")]
+    pub graph_resource_id: Option<String>,
+    #[graphql(name = "error_code")]
+    pub error_code: Option<String>,
+    #[graphql(name = "meeting_id")]
+    pub meeting_id: Option<String>,
+    #[graphql(name = "created_at")]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[graphql(name = "completed_at")]
+    pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, InputObject)]
+#[graphql(rename_fields = "snake_case")]
+pub struct InputGraphWriteAttempt {
+    #[graphql(name = "id")]
+    pub id: Option<String>,
+    #[graphql(name = "idempotency_key")]
+    pub idempotency_key: String,
+    #[graphql(name = "operation")]
+    pub operation: String,
+    #[graphql(name = "actor")]
+    pub actor: String,
+    #[graphql(name = "tenant_id")]
+    pub tenant_id: Option<String>,
+    #[graphql(name = "request_fingerprint")]
+    pub request_fingerprint: String,
+    #[graphql(name = "status")]
+    pub status: String,
+    #[graphql(name = "graph_resource_id")]
+    pub graph_resource_id: Option<String>,
+    #[graphql(name = "error_code")]
+    pub error_code: Option<String>,
+    #[graphql(name = "meeting_id")]
+    pub meeting_id: Option<String>,
+    #[graphql(name = "created_at")]
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    #[graphql(name = "completed_at")]
+    pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
+#[graphql(rename_fields = "snake_case")]
+pub struct GraphWriteAttemptQueryResult {
+    pub date_time: String,
+    pub request_duration: f64,
+    pub skip: i32,
+    pub limit: i32,
+    pub page_count: i32,
+    pub page_index: i32,
+    pub query_count: i64,
+    pub next_cursor: Option<String>,
+    pub previous_cursor: Option<String>,
+    pub items: Vec<GraphWriteAttemptProjection>,
+}
+
 // KnowledgeChunk is_union: false ////////////////////////////////////////////////////////////
 
 #[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]

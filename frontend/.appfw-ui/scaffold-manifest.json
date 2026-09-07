@@ -21,7 +21,7 @@
       "schemaName": "governance",
       "provider": "PostgreSQL",
       "dataSourceName": "pg_primary",
-      "entityCount": 41,
+      "entityCount": 42,
       "relationshipCount": 38,
       "workflowCount": 0
     }

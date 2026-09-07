@@ -225,13 +225,14 @@ mod tests {
         let governance = ir.schemas.iter().find(|s| s.name == "governance").unwrap();
         assert!(!governance.is_system_schema);
         // 24 base governance entity types (phase-6 entity inventory finding)
-        // plus one `*Audit` companion per "audited"-faceted entity.
+        // + 1 for `GraphWriteAttempt` (M10 / G1.6 idempotency+evidence ledger)
+        // = 25, plus one `*Audit` companion per "audited"-faceted entity.
         let audited_count = governance
             .entities
             .iter()
             .filter(|e| e.facets.iter().any(|f| f == "audited"))
             .count();
-        assert_eq!(governance.entities.len(), 24 + audited_count);
+        assert_eq!(governance.entities.len(), 25 + audited_count);
 
         let system = ir.schemas.iter().find(|s| s.name == "system").unwrap();
         assert!(system.is_system_schema);
@@ -267,6 +268,7 @@ mod tests {
             "GateSubmission",
             "GateSubmissionAudit",
             "GraphSubscription",
+            "GraphWriteAttempt",
             "KnowledgeChunk",
             "KnowledgeDocument",
             "Meeting",

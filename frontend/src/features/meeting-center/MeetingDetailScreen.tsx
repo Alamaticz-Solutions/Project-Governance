@@ -33,12 +33,31 @@ const cardHeader: CSSProperties = {
 export function MeetingDetailScreen() {
   const { meetingId = '' } = useParams();
   const [vtt, setVtt] = useState('');
+  const [attendees, setAttendees] = useState('');
   const state = useAsync((client) => client.findRecord(meetingEntity, meetingId), [meetingId]);
   const process = useAction((client, pastedVtt: string) =>
     client.invoke('processTranscript', {
       meetingId,
       payload: pastedVtt.trim() ? { vtt: pastedVtt } : {}
     })
+  );
+  // M10 / G1 governed writes -- backend services::graph::writes runs the
+  // full 8-item gate (role check, idempotency ledger, audit) before any
+  // Microsoft Graph call. A policy denial or a missing Azure app permission
+  // surfaces here as `schedule.error` / `cancel.error`.
+  const schedule = useAction((client, attendeeEmails: string) =>
+    client.invoke('scheduleViaGraph', {
+      meetingId,
+      payload: {
+        attendees: attendeeEmails
+          .split(',')
+          .map((a) => a.trim())
+          .filter(Boolean)
+      }
+    })
+  );
+  const cancel = useAction((client) =>
+    client.invoke('cancelViaGraph', { meetingId, payload: {} })
   );
 
   return (
@@ -140,6 +159,85 @@ export function MeetingDetailScreen() {
                         Run process_transcript
                       </Button>
                     </div>
+                  </div>
+                </div>
+
+                {/* Microsoft Graph write -- M10 / G1 governed write stack */}
+                <div style={darkCard}>
+                  <div style={cardHeader}>
+                    <Icon name="event" size={20} style={{ color: '#34D399' }} />
+                    <h3 style={{ margin: 0, fontWeight: 700, color: 'white', fontSize: 16 }}>
+                      Microsoft Teams meeting
+                    </h3>
+                  </div>
+                  <div style={{ padding: 20 }}>
+                    {schedule.error && (
+                      <InlineAlert
+                        tone={schedule.error.details.category === 'policy_denied' ? 'warning' : 'danger'}
+                        title="schedule_via_graph failed"
+                        detail={schedule.error.message}
+                      />
+                    )}
+                    {cancel.error && (
+                      <InlineAlert
+                        tone={cancel.error.details.category === 'policy_denied' ? 'warning' : 'danger'}
+                        title="cancel_via_graph failed"
+                        detail={cancel.error.message}
+                      />
+                    )}
+                    {meeting.graph_online_meeting_id ? (
+                      <>
+                        <p style={{ fontSize: 13, color: '#94A3B8', marginTop: 0 }}>
+                          Scheduled on Microsoft Graph. Cancelling deletes the calendar event
+                          for every attendee.
+                        </p>
+                        <div style={{ textAlign: 'right' }}>
+                          <Button
+                            variant="danger"
+                            isLoading={cancel.pending}
+                            onClick={() => cancel.run().then(() => state.reload())}
+                          >
+                            Cancel Teams meeting
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p style={{ fontSize: 13, color: '#94A3B8', marginTop: 0 }}>
+                          Not yet scheduled on Microsoft Graph. Requires the acting user to hold
+                          Admin, Project Manager, or EPMO, and the Graph app registration to have
+                          write permissions granted (see the M10 plan doc if this fails).
+                        </p>
+                        <label style={{ display: 'block', fontSize: 12, color: '#94A3B8', marginBottom: 6 }}>
+                          Attendee emails (comma-separated, optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={attendees}
+                          onChange={(e) => setAttendees(e.target.value)}
+                          placeholder="alice@company.com, bob@company.com"
+                          style={{
+                            width: '100%',
+                            background: '#0f172a',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: 8,
+                            color: '#e2e8f0',
+                            fontSize: 12,
+                            padding: '10px 12px',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                        <div style={{ marginTop: 12, textAlign: 'right' }}>
+                          <Button
+                            variant="primary"
+                            isLoading={schedule.pending}
+                            onClick={() => schedule.run(attendees).then(() => state.reload())}
+                          >
+                            Schedule Teams meeting
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

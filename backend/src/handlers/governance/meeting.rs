@@ -27,3 +27,32 @@ pub async fn process_transcript_impl(
     crate::services::meeting_agent::process_transcript(data_access, &user, meeting_id, payload)
         .await
 }
+
+/// M10 / G1 governed write -- see `services::meeting_scheduling::schedule_via_graph`
+/// and `services::graph::writes` for the full 8-item gate this goes through.
+#[allow(unused)]
+pub async fn schedule_via_graph_impl(
+    user: Option<UserAuth>,
+    data_access: &Arc<DataAccess>,
+    entity_type: &Arc<EntityType>,
+    selections: JsonValue,
+    meeting_id: String,
+    payload: serde_json::Value,
+) -> HandlerResult<serde_json::Value> {
+    crate::services::meeting_scheduling::schedule_via_graph(data_access, &user, meeting_id, payload)
+        .await
+}
+
+/// M10 / G1 governed write -- see `services::meeting_scheduling::cancel_via_graph`.
+#[allow(unused)]
+pub async fn cancel_via_graph_impl(
+    user: Option<UserAuth>,
+    data_access: &Arc<DataAccess>,
+    entity_type: &Arc<EntityType>,
+    selections: JsonValue,
+    meeting_id: String,
+    payload: serde_json::Value,
+) -> HandlerResult<serde_json::Value> {
+    crate::services::meeting_scheduling::cancel_via_graph(data_access, &user, meeting_id, payload)
+        .await
+}

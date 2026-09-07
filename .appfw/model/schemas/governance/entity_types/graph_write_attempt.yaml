@@ -1,0 +1,68 @@
+# M10 / G1.6 IdempotencyAndReplayProtection + part of G1.8 WriteAuditAndEvidence.
+# Append-only ledger of every governed Microsoft Graph WRITE attempt. A retry
+# with the same `idempotency_key` returns the recorded outcome instead of
+# re-issuing the Graph call (prevents a double calendar event). Standalone --
+# no FK to Meeting (matches GraphSubscription / the other graph_* tables);
+# `meeting_id` is a soft correlation only.
+#
+# standard_methods: Query + Create only -- append-only, service-written; no
+# Update/Delete/FindById GraphQL surface. facets: [] (this IS an evidence
+# store; the framework `audited` facet would be circular).
+
+- name: GraphWriteAttempt
+  id: 7a1c9e40-0000-4000-8000-000000000c0b
+  caption: Graph Write Attempt
+  is_table: true
+  facets: []
+  standard_methods: [Query, Create]
+  indexes: [idempotency_key, meeting_id, status]
+  props:
+
+  - name: id
+    fragment: property-primary-key-uuid
+
+  # Deterministic per (operation, meeting, bound-params) -- see
+  # services::graph::writes. A second attempt with this key short-circuits.
+  - name: idempotency_key
+    fragment: property-string-required
+
+  # "schedule_teams_meeting" | "cancel_calendar_event" | "create_subscription" | ...
+  - name: operation
+    fragment: property-string-required
+
+  # The human actor's effective subject (G1.2 DelegatedActorContext). App-only
+  # token means Graph sees the app; this column is how the write is attributed.
+  - name: actor
+    fragment: property-string-required
+
+  # The Graph tenant the write targeted (G1 single-tenant scope assertion).
+  - name: tenant_id
+    fragment: property-string
+
+  # SHA-256 of the bound request parameters. A same-key attempt whose
+  # fingerprint differs is rejected (replay of a mutated request).
+  - name: request_fingerprint
+    fragment: property-string-required
+
+  # pending -> succeeded | failed
+  - name: status
+    fragment: property-string-required
+    default_value: pending
+
+  # Graph resource id returned on success (event id / onlineMeeting id).
+  - name: graph_resource_id
+    fragment: property-string
+
+  # Graph error.code (or innerError.code) on failure; NULL on success.
+  - name: error_code
+    fragment: property-string
+
+  # Soft correlation to the local governance.meetings row. Not an FK.
+  - name: meeting_id
+    fragment: property-string
+
+  - name: created_at
+    fragment: property-date-time-required
+
+  - name: completed_at
+    fragment: property-date-time

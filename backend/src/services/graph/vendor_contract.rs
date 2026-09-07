@@ -4,9 +4,19 @@
 //!
 //!   live_certified     — a retained live contract run exists. NONE here.
 //!   compiler_contracted — request-plan construction proven by unit contracts;
-//!                         reads are executable, but no retained live run exists.
+//!                         executable, but no retained live run exists. As of
+//!                         M10 this also covers the two G1-gated writes
+//!                         (`schedule_teams_meeting`, `cancel_calendar_event`):
+//!                         they execute behind the full 8-item G1 stack
+//!                         (`services::graph::writes`), but the live check
+//!                         run so far (`services::graph::client::live`) is a
+//!                         read/token-acquisition check, not a retained live
+//!                         WRITE run -- see `assert_honest`'s write allow-list.
 //!   planned_gated      — registered, non-executable, with named evidence gates.
-//!   write_gated        — registered write candidate, non-executable pending G1.
+//!   write_gated        — registered write candidate, non-executable: no G1
+//!                         evidence stack covers it yet (subscriptions -- no
+//!                         public callback in this environment; SharePoint --
+//!                         spec 004 D1 undecided).
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tier {
@@ -69,13 +79,16 @@ pub const CONTRACTS: &[OperationContract] = &[
         name: "schedule_teams_meeting",
         kind: "write",
         sensitivity: "pii",
-        tier: Tier::WriteGated,
+        // M10: executes behind the full G1 stack (services::graph::writes).
+        // See `assert_honest`'s G1_GATED_WRITES allow-list for the rule this
+        // exception must satisfy.
+        tier: Tier::CompilerContracted,
     },
     OperationContract {
         name: "cancel_calendar_event",
         kind: "write",
         sensitivity: "none",
-        tier: Tier::WriteGated,
+        tier: Tier::CompilerContracted,
     },
     OperationContract {
         name: "create_subscription",
@@ -103,8 +116,19 @@ pub const CONTRACTS: &[OperationContract] = &[
     },
 ];
 
+/// M10 / G1: the only write operations allowed to claim a tier above
+/// `WriteGated`. Both are gated by every one of the 8 G1 components
+/// (`services::graph::writes::execute`) -- `CompilerContracted` here means
+/// "the gate is real and runs before any network call", the same meaning
+/// the reads use, not "ungated". Adding a name here without the matching
+/// `writes::WriteOperation` arm actually reaching `execute`'s full pipeline
+/// would be the exact overclaim `assert_honest` exists to catch elsewhere,
+/// so keep this list in lockstep with `writes.rs`.
+const G1_GATED_WRITES: &[&str] = &["schedule_teams_meeting", "cancel_calendar_event"];
+
 /// Invariant the tests/docs-check assert: nothing claims `live_certified`,
-/// and every `write` operation is `write_gated`.
+/// and every `write` operation is `write_gated` UNLESS it's in
+/// `G1_GATED_WRITES` (M10), in which case it may be `compiler_contracted`.
 pub fn assert_honest() -> Result<(), String> {
     for c in CONTRACTS {
         if c.tier == Tier::LiveCertified {
@@ -113,8 +137,18 @@ pub fn assert_honest() -> Result<(), String> {
                 c.name
             ));
         }
-        if c.kind == "write" && c.tier != Tier::WriteGated {
-            return Err(format!("{} is a write but not write_gated", c.name));
+        if c.kind == "write" {
+            let is_g1_gated = G1_GATED_WRITES.contains(&c.name);
+            match c.tier {
+                Tier::WriteGated => {}
+                Tier::CompilerContracted if is_g1_gated => {}
+                _ => {
+                    return Err(format!(
+                        "{} is a write but neither write_gated nor an allow-listed G1-gated write",
+                        c.name
+                    ))
+                }
+            }
         }
     }
     Ok(())

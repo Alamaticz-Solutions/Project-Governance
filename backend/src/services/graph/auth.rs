@@ -50,8 +50,20 @@ pub const ENV_CLIENT_SECRET: &str = "GRAPH_CLIENT_SECRET";
 pub const ENV_DEFAULT_ORGANIZER_ID: &str = "GRAPH_DEFAULT_ORGANIZER_ID";
 pub const ENV_NOTIFICATION_CLIENT_STATE: &str = "GRAPH_NOTIFICATION_CLIENT_STATE";
 
+/// M10 / G1.3 TokenStoreIsolation: a write-capable app registration distinct
+/// from the read one (`ENV_TENANT_ID` still applies -- single tenant, ADR
+/// 0018 -- only the client/secret differ). Optional: `writes::write_auth_config`
+/// falls back to the read credential set (with a loud warning) when these are
+/// unset, so a partial local setup still works, just less isolated.
+pub const ENV_WRITE_CLIENT_ID: &str = "GRAPH_WRITE_CLIENT_ID";
+pub const ENV_WRITE_CLIENT_SECRET: &str = "GRAPH_WRITE_CLIENT_SECRET";
+
 /// Values that must never be logged, echoed in payloads, or serialized.
-pub const REDACTION_CONSTANTS: &[&str] = &[ENV_CLIENT_SECRET, ENV_NOTIFICATION_CLIENT_STATE];
+pub const REDACTION_CONSTANTS: &[&str] = &[
+    ENV_CLIENT_SECRET,
+    ENV_WRITE_CLIENT_SECRET,
+    ENV_NOTIFICATION_CLIENT_STATE,
+];
 
 pub const SCOPE: &str = "https://graph.microsoft.com/.default";
 
@@ -72,6 +84,28 @@ impl GraphAuthConfig {
         let tenant_id = env::var(ENV_TENANT_ID).ok().filter(|s| !s.is_empty())?;
         let client_id = env::var(ENV_CLIENT_ID).ok().filter(|s| !s.is_empty())?;
         let client_secret = env::var(ENV_CLIENT_SECRET).ok().filter(|s| !s.is_empty())?;
+        let default_organizer_id = env::var(ENV_DEFAULT_ORGANIZER_ID)
+            .ok()
+            .filter(|s| !s.is_empty())?;
+        Some(Self {
+            tenant_id,
+            client_id,
+            client_secret: SecretString::new(client_secret),
+            default_organizer_id,
+        })
+    }
+
+    /// G1.3 TokenStoreIsolation: the write-capable credential pair, same
+    /// tenant as `from_env()`'s but a distinct client id/secret. Returns
+    /// `None` when either `GRAPH_WRITE_CLIENT_ID`/`_SECRET` is unset --
+    /// `writes::write_auth_config` decides what to do about that (fall back
+    /// to the read app, or refuse entirely).
+    pub fn from_write_env() -> Option<Self> {
+        let tenant_id = env::var(ENV_TENANT_ID).ok().filter(|s| !s.is_empty())?;
+        let client_id = env::var(ENV_WRITE_CLIENT_ID).ok().filter(|s| !s.is_empty())?;
+        let client_secret = env::var(ENV_WRITE_CLIENT_SECRET)
+            .ok()
+            .filter(|s| !s.is_empty())?;
         let default_organizer_id = env::var(ENV_DEFAULT_ORGANIZER_ID)
             .ok()
             .filter(|s| !s.is_empty())?;

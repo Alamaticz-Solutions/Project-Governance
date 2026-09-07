@@ -10745,6 +10745,567 @@ export const governanceUiContract = {
     },
     {
       "schemaName": "governance",
+      "typeName": "GraphWriteAttempt",
+      "routeSegment": "graph_write_attempts",
+      "addressing": {
+        "entityUri": "appfw://entity/governance/GraphWriteAttempt",
+        "recordUriTemplate": "appfw://entity/governance/GraphWriteAttempt/{recordLocator}",
+        "listRoute": "/data/graph_write_attempts",
+        "routeTemplate": "/data/graph_write_attempts/:recordLocator",
+        "filteredListRoute": "/data/graph_write_attempts?filter=:filterJson",
+        "routeIdKind": "record_locator",
+        "idKinds": [
+          {
+            "kind": "record_locator",
+            "field": "record_locator",
+            "public": true,
+            "routeSafe": true,
+            "answerEnvelope": true,
+            "filterOperators": [
+              "eq",
+              "in"
+            ]
+          },
+          {
+            "kind": "primary_key",
+            "field": "id",
+            "public": false,
+            "routeSafe": false,
+            "answerEnvelope": false,
+            "filterOperators": []
+          }
+        ],
+        "queryOperation": {
+          "name": "query_graph_write_attempts",
+          "graphqlName": "queryGraphWriteAttempts"
+        },
+        "batchResolution": {
+          "field": "record_locator",
+          "operator": "in",
+          "maxPageSize": 100,
+          "filterParameter": "filter",
+          "fallback": "by_locator_loop"
+        }
+      },
+      "caption": {
+        "singular": "Graph Write Attempt",
+        "plural": "Graph Write Attempts"
+      },
+      "primaryKey": "id",
+      "captionField": "idempotency_key",
+      "audited": false,
+      "readOnly": false,
+      "facets": [],
+      "fields": [
+        {
+          "name": "id",
+          "label": "Id",
+          "kind": "scalar",
+          "dataType": "Uuid",
+          "required": true,
+          "readOnly": true,
+          "isKey": true,
+          "isConcurrencyControl": false,
+          "ui": {
+            "list": true,
+            "detail": true,
+            "edit": false,
+            "sortable": true,
+            "filterable": true,
+            "formControl": "readonly"
+          },
+          "validation": {
+            "required": true,
+            "readOnly": true,
+            "concurrencyControl": false,
+            "clientHint": "Generated primary key; display only."
+          }
+        },
+        {
+          "name": "idempotency_key",
+          "label": "Idempotency Key",
+          "kind": "scalar",
+          "dataType": "String",
+          "required": true,
+          "readOnly": false,
+          "isKey": false,
+          "isConcurrencyControl": false,
+          "ui": {
+            "list": true,
+            "detail": true,
+            "edit": true,
+            "sortable": true,
+            "filterable": true,
+            "formControl": "text"
+          },
+          "validation": {
+            "required": true,
+            "readOnly": false,
+            "concurrencyControl": false,
+            "clientHint": "Required by the generated model."
+          }
+        },
+        {
+          "name": "operation",
+          "label": "Operation",
+          "kind": "scalar",
+          "dataType": "String",
+          "required": true,
+          "readOnly": false,
+          "isKey": false,
+          "isConcurrencyControl": false,
+          "ui": {
+            "list": true,
+            "detail": true,
+            "edit": true,
+            "sortable": true,
+            "filterable": true,
+            "formControl": "text"
+          },
+          "validation": {
+            "required": true,
+            "readOnly": false,
+            "concurrencyControl": false,
+            "clientHint": "Required by the generated model."
+          }
+        },
+        {
+          "name": "actor",
+          "label": "Actor",
+          "kind": "scalar",
+          "dataType": "String",
+          "required": true,
+          "readOnly": false,
+          "isKey": false,
+          "isConcurrencyControl": false,
+          "ui": {
+            "list": true,
+            "detail": true,
+            "edit": true,
+            "sortable": true,
+            "filterable": true,
+            "formControl": "text"
+          },
+          "validation": {
+            "required": true,
+            "readOnly": false,
+            "concurrencyControl": false,
+            "clientHint": "Required by the generated model."
+          }
+        },
+        {
+          "name": "tenant_id",
+          "label": "Tenant Id",
+          "kind": "scalar",
+          "dataType": "String",
+          "required": false,
+          "readOnly": false,
+          "isKey": false,
+          "isConcurrencyControl": false,
+          "ui": {
+            "list": true,
+            "detail": true,
+            "edit": true,
+            "sortable": true,
+            "filterable": true,
+            "formControl": "text"
+          },
+          "validation": {
+            "required": false,
+            "readOnly": false,
+            "concurrencyControl": false,
+            "clientHint": "Optional field."
+          }
+        },
+        {
+          "name": "request_fingerprint",
+          "label": "Request Fingerprint",
+          "kind": "scalar",
+          "dataType": "String",
+          "required": true,
+          "readOnly": false,
+          "isKey": false,
+          "isConcurrencyControl": false,
+          "ui": {
+            "list": true,
+            "detail": true,
+            "edit": true,
+            "sortable": true,
+            "filterable": true,
+            "formControl": "text"
+          },
+          "validation": {
+            "required": true,
+            "readOnly": false,
+            "concurrencyControl": false,
+            "clientHint": "Required by the generated model."
+          }
+        },
+        {
+          "name": "status",
+          "label": "Status",
+          "kind": "scalar",
+          "dataType": "String",
+          "required": true,
+          "readOnly": false,
+          "isKey": false,
+          "isConcurrencyControl": false,
+          "ui": {
+            "list": true,
+            "detail": true,
+            "edit": true,
+            "sortable": true,
+            "filterable": true,
+            "formControl": "text"
+          },
+          "validation": {
+            "required": true,
+            "readOnly": false,
+            "concurrencyControl": false,
+            "clientHint": "Required by the generated model."
+          }
+        },
+        {
+          "name": "graph_resource_id",
+          "label": "Graph Resource Id",
+          "kind": "scalar",
+          "dataType": "String",
+          "required": false,
+          "readOnly": false,
+          "isKey": false,
+          "isConcurrencyControl": false,
+          "ui": {
+            "list": true,
+            "detail": true,
+            "edit": true,
+            "sortable": true,
+            "filterable": true,
+            "formControl": "text"
+          },
+          "validation": {
+            "required": false,
+            "readOnly": false,
+            "concurrencyControl": false,
+            "clientHint": "Optional field."
+          }
+        },
+        {
+          "name": "error_code",
+          "label": "Error Code",
+          "kind": "scalar",
+          "dataType": "String",
+          "required": false,
+          "readOnly": false,
+          "isKey": false,
+          "isConcurrencyControl": false,
+          "ui": {
+            "list": true,
+            "detail": true,
+            "edit": true,
+            "sortable": true,
+            "filterable": true,
+            "formControl": "text"
+          },
+          "validation": {
+            "required": false,
+            "readOnly": false,
+            "concurrencyControl": false,
+            "clientHint": "Optional field."
+          }
+        },
+        {
+          "name": "meeting_id",
+          "label": "Meeting Id",
+          "kind": "scalar",
+          "dataType": "String",
+          "required": false,
+          "readOnly": false,
+          "isKey": false,
+          "isConcurrencyControl": false,
+          "ui": {
+            "list": true,
+            "detail": true,
+            "edit": true,
+            "sortable": true,
+            "filterable": true,
+            "formControl": "text"
+          },
+          "validation": {
+            "required": false,
+            "readOnly": false,
+            "concurrencyControl": false,
+            "clientHint": "Optional field."
+          }
+        },
+        {
+          "name": "created_at",
+          "label": "Created At",
+          "kind": "scalar",
+          "dataType": "DateTime",
+          "required": true,
+          "readOnly": false,
+          "isKey": false,
+          "isConcurrencyControl": false,
+          "ui": {
+            "list": true,
+            "detail": true,
+            "edit": true,
+            "sortable": true,
+            "filterable": true,
+            "formControl": "datetime",
+            "format": "datetime"
+          },
+          "validation": {
+            "required": true,
+            "readOnly": false,
+            "concurrencyControl": false,
+            "clientHint": "Required by the generated model."
+          }
+        },
+        {
+          "name": "completed_at",
+          "label": "Completed At",
+          "kind": "scalar",
+          "dataType": "DateTime",
+          "required": false,
+          "readOnly": false,
+          "isKey": false,
+          "isConcurrencyControl": false,
+          "ui": {
+            "list": true,
+            "detail": true,
+            "edit": true,
+            "sortable": true,
+            "filterable": true,
+            "formControl": "datetime",
+            "format": "datetime"
+          },
+          "validation": {
+            "required": false,
+            "readOnly": false,
+            "concurrencyControl": false,
+            "clientHint": "Optional field."
+          }
+        }
+      ],
+      "relationships": [],
+      "operations": [
+        {
+          "name": "query_graph_write_attempts",
+          "kind": "query",
+          "graphqlName": "queryGraphWriteAttempts",
+          "variables": [
+            {
+              "name": "filter",
+              "dataType": "JsonValue",
+              "required": false,
+              "description": "Provider-normalized filter JSON"
+            },
+            {
+              "name": "sort",
+              "dataType": "JsonValue",
+              "required": false,
+              "description": "Provider-normalized sort JSON"
+            },
+            {
+              "name": "skip",
+              "dataType": "Int",
+              "required": false,
+              "description": "Offset pagination start"
+            },
+            {
+              "name": "limit",
+              "dataType": "Int",
+              "required": false,
+              "description": "Requested page size"
+            },
+            {
+              "name": "after",
+              "dataType": "String",
+              "required": false,
+              "description": "Cursor returned by the previous page"
+            }
+          ],
+          "returns": "GraphWriteAttemptConnection",
+          "returnsShape": "connection",
+          "selectionPreset": [
+            "idempotency_key",
+            "id",
+            "operation",
+            "actor",
+            "tenant_id",
+            "request_fingerprint",
+            "status",
+            "graph_resource_id",
+            "error_code",
+            "meeting_id",
+            "created_at",
+            "completed_at"
+          ],
+          "requiresAuth": true,
+          "requiresTenant": true
+        },
+        {
+          "name": "aggregate_graph_write_attempts",
+          "kind": "aggregate",
+          "graphqlName": "aggregateGraphWriteAttempts",
+          "variables": [
+            {
+              "name": "filter",
+              "dataType": "JsonValue",
+              "required": false,
+              "description": "Provider-normalized filter JSON"
+            },
+            {
+              "name": "groupBy",
+              "dataType": "JsonValue",
+              "required": false,
+              "description": "Aggregate grouping fields"
+            },
+            {
+              "name": "metrics",
+              "dataType": "JsonValue",
+              "required": false,
+              "description": "Aggregate metric selections"
+            },
+            {
+              "name": "having",
+              "dataType": "JsonValue",
+              "required": false,
+              "description": "Aggregate post-filter JSON"
+            },
+            {
+              "name": "sort",
+              "dataType": "JsonValue",
+              "required": false,
+              "description": "Aggregate sort JSON"
+            },
+            {
+              "name": "skip",
+              "dataType": "Int",
+              "required": false,
+              "description": "Offset pagination start"
+            },
+            {
+              "name": "limit",
+              "dataType": "Int",
+              "required": false,
+              "description": "Requested page size"
+            }
+          ],
+          "returns": "GraphWriteAttemptAggregate",
+          "returnsShape": "aggregate",
+          "selectionPreset": [],
+          "requiresAuth": true,
+          "requiresTenant": true
+        },
+        {
+          "name": "create_graph_write_attempt",
+          "kind": "mutation",
+          "graphqlName": "createGraphWriteAttempt",
+          "variables": [
+            {
+              "name": "input",
+              "dataType": "Input",
+              "required": true,
+              "description": "Generated create input"
+            }
+          ],
+          "returns": "GraphWriteAttempt",
+          "returnsShape": "record",
+          "selectionPreset": [
+            "idempotency_key",
+            "id",
+            "operation",
+            "actor",
+            "tenant_id",
+            "request_fingerprint",
+            "status",
+            "graph_resource_id",
+            "error_code",
+            "meeting_id",
+            "created_at",
+            "completed_at"
+          ],
+          "requiresAuth": true,
+          "requiresTenant": true
+        }
+      ],
+      "scaffold": {
+        "list": {
+          "route": "/data/graph_write_attempts",
+          "fields": [
+            "idempotency_key",
+            "id",
+            "operation",
+            "actor",
+            "tenant_id",
+            "request_fingerprint",
+            "status",
+            "graph_resource_id",
+            "error_code",
+            "meeting_id",
+            "created_at",
+            "completed_at"
+          ],
+          "states": [
+            "loading",
+            "empty",
+            "error",
+            "policy_denied"
+          ]
+        },
+        "detail": {
+          "route": "/data/graph_write_attempts/:recordLocator",
+          "fields": [
+            "idempotency_key",
+            "id",
+            "operation",
+            "actor",
+            "tenant_id",
+            "request_fingerprint",
+            "status",
+            "graph_resource_id",
+            "error_code",
+            "meeting_id",
+            "created_at",
+            "completed_at"
+          ],
+          "states": [
+            "loading",
+            "empty",
+            "error",
+            "policy_denied"
+          ]
+        },
+        "edit": {
+          "route": "/data/graph_write_attempts/:recordLocator/edit",
+          "fields": [
+            "idempotency_key",
+            "operation",
+            "actor",
+            "tenant_id",
+            "request_fingerprint",
+            "status",
+            "graph_resource_id",
+            "error_code",
+            "meeting_id",
+            "created_at",
+            "completed_at"
+          ],
+          "states": [
+            "loading",
+            "validation",
+            "saving",
+            "error",
+            "policy_denied"
+          ],
+          "disabledReason": "No generated update operation is available for this entity."
+        }
+      }
+    },
+    {
+      "schemaName": "governance",
       "typeName": "KnowledgeChunk",
       "routeSegment": "knowledge_chunks",
       "addressing": {
@@ -36542,6 +37103,40 @@ export const governanceUiContract = {
       "supports": {
         "entityTypes": [
           "GraphSubscription"
+        ],
+        "shapes": [
+          "entity_ref",
+          "record_detail"
+        ],
+        "idKinds": [
+          "record_locator"
+        ]
+      }
+    },
+    {
+      "viewId": "entity:graph_write_attempts:list",
+      "route": "/data/graph_write_attempts",
+      "kind": "entity_list",
+      "supports": {
+        "entityTypes": [
+          "GraphWriteAttempt"
+        ],
+        "shapes": [
+          "entity_ref",
+          "filtered_list"
+        ],
+        "idKinds": [
+          "record_locator"
+        ]
+      }
+    },
+    {
+      "viewId": "entity:graph_write_attempts:detail",
+      "route": "/data/graph_write_attempts/:recordLocator",
+      "kind": "entity_detail",
+      "supports": {
+        "entityTypes": [
+          "GraphWriteAttempt"
         ],
         "shapes": [
           "entity_ref",

@@ -10,6 +10,7 @@
 //!   gate_eligibility        prerequisite evaluation over the seeded stage-definition DAG
 //!   approval_state_machine  submit_decision / fast_track_complete / cancel
 //!   workspace               project workspace payload assembly
+//!   meeting_scheduling      M10 / G1 governed Graph writes (schedule/cancel a Teams meeting)
 
 pub mod approval_state_machine;
 pub mod audit;
@@ -17,6 +18,7 @@ pub mod gate_eligibility;
 pub mod gate_review;
 pub mod graph;
 pub mod meeting_agent;
+pub mod meeting_scheduling;
 pub mod notification;
 pub mod support;
 pub mod transition;

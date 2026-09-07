@@ -22,6 +22,7 @@ pub(crate) mod gate_submission;
 pub(crate) mod gate_submission_audit;
 pub(crate) mod generated;
 pub(crate) mod graph_subscription;
+pub(crate) mod graph_write_attempt;
 pub(crate) mod knowledge_chunk;
 pub(crate) mod knowledge_document;
 pub(crate) mod meeting;
@@ -78,10 +79,11 @@ use crate::{
         GateReviewAuditProjection, GateReviewAuditQueryResult, GateReviewProjection,
         GateReviewQueryResult, GateSubmissionAuditProjection, GateSubmissionAuditQueryResult,
         GateSubmissionProjection, GateSubmissionQueryResult, GraphSubscriptionProjection,
-        GraphSubscriptionQueryResult, InputAttachment, InputAttachmentAudit, InputAuditEvent,
-        InputChecklistItem, InputChecklistItemAudit, InputComment, InputCommentAudit,
-        InputEmailQueueItem, InputGateReview, InputGateReviewAudit, InputGateSubmission,
-        InputGateSubmissionAudit, InputGraphSubscription, InputKnowledgeChunk,
+        GraphSubscriptionQueryResult, GraphWriteAttemptProjection, GraphWriteAttemptQueryResult,
+        InputAttachment, InputAttachmentAudit, InputAuditEvent, InputChecklistItem,
+        InputChecklistItemAudit, InputComment, InputCommentAudit, InputEmailQueueItem,
+        InputGateReview, InputGateReviewAudit, InputGateSubmission, InputGateSubmissionAudit,
+        InputGraphSubscription, InputGraphWriteAttempt, InputKnowledgeChunk,
         InputKnowledgeDocument, InputMeeting, InputMeetingAudit, InputNotification, InputProject,
         InputProjectApproval, InputProjectApprovalAudit, InputProjectAudit, InputProjectField,
         InputProjectFieldAudit, InputProjectStakeholder, InputProjectStakeholderAudit,
@@ -1856,6 +1858,86 @@ impl GovernanceQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context =
             from_context_without_selections(ctx, "governance", "GraphSubscription")?;
+        let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
+        let (skip, limit) = pagination_args(skip, limit)?;
+
+        let res = data_access
+            .aggregate_items(
+                entity_type,
+                filter,
+                group_by,
+                metrics,
+                having,
+                sort,
+                skip,
+                limit,
+                user,
+            )
+            .await;
+
+        match res {
+            Ok(res) => Ok(res),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    async fn query_graph_write_attempts(
+        &self,
+        ctx: &Context<'_>,
+        filter: Option<JsonValue>,
+        sort: Option<JsonValue>,
+        skip: Option<i32>,
+        limit: Option<i32>,
+        after: Option<String>,
+    ) -> FieldResult<GraphWriteAttemptQueryResult> {
+        let handler_context = from_context(ctx, "governance", "GraphWriteAttempt")?;
+        let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
+        let (skip, limit) = pagination_args(skip, limit)?;
+
+        let res = graph_write_attempt::query_impl(
+            user,
+            &data_access,
+            &entity_type,
+            selections,
+            filter,
+            sort,
+            skip,
+            limit,
+            after,
+        )
+        .await;
+
+        match res {
+            Ok(res) => Ok(GraphWriteAttemptQueryResult {
+                date_time: res.date_time,
+                request_duration: res.request_duration,
+                skip: res.skip,
+                limit: res.limit,
+                page_count: res.page_count,
+                page_index: res.page_index,
+                query_count: res.query_count,
+                next_cursor: res.next_cursor,
+                previous_cursor: res.previous_cursor,
+                items: res.items,
+            }),
+            Err(e) => Err(e.into()),
+        }
+    }
+    async fn aggregate_graph_write_attempts(
+        &self,
+        ctx: &Context<'_>,
+        filter: Option<JsonValue>,
+        group_by: Option<JsonValue>,
+        metrics: Option<JsonValue>,
+        having: Option<JsonValue>,
+        sort: Option<JsonValue>,
+        skip: Option<i32>,
+        limit: Option<i32>,
+    ) -> FieldResult<AggregateResult> {
+        let handler_context =
+            from_context_without_selections(ctx, "governance", "GraphWriteAttempt")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
         let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
@@ -6505,6 +6587,25 @@ impl GovernanceMutation {
         }
     }
 
+    async fn create_graph_write_attempt(
+        &self,
+        ctx: &Context<'_>,
+        input: InputGraphWriteAttempt,
+    ) -> FieldResult<GraphWriteAttemptProjection> {
+        let handler_context = from_context(ctx, "governance", "GraphWriteAttempt")?;
+        let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
+
+        let res =
+            graph_write_attempt::create_impl(user, &data_access, &entity_type, selections, input)
+                .await;
+
+        match res {
+            Ok(res) => Ok(res),
+            Err(e) => Err(e.into()),
+        }
+    }
+
     async fn create_knowledge_chunk(
         &self,
         ctx: &Context<'_>,
@@ -6675,6 +6776,64 @@ impl GovernanceMutation {
         let user = user.map(crate::product_api::UserAuth::from);
 
         let res = meeting::process_transcript_impl(
+            user,
+            &data_access,
+            &entity_type,
+            selections,
+            meeting_id,
+            payload,
+        )
+        .await;
+
+        match res {
+            Ok(res) => Ok(res),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    async fn schedule_via_graph(
+        &self,
+        ctx: &Context<'_>,
+        meeting_id: String,
+        payload: serde_json::Value,
+    ) -> FieldResult<serde_json::Value> {
+        // Custom-method context: do NOT parse selections against the calling entity's props,
+        // because the return type is `serde_json::Value` whose fields generally do not
+        // exist on `Meeting`. Resolver receives Null selections.
+        let handler_context = from_context_without_selections(ctx, "governance", "Meeting")?;
+        let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
+
+        let res = meeting::schedule_via_graph_impl(
+            user,
+            &data_access,
+            &entity_type,
+            selections,
+            meeting_id,
+            payload,
+        )
+        .await;
+
+        match res {
+            Ok(res) => Ok(res),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    async fn cancel_via_graph(
+        &self,
+        ctx: &Context<'_>,
+        meeting_id: String,
+        payload: serde_json::Value,
+    ) -> FieldResult<serde_json::Value> {
+        // Custom-method context: do NOT parse selections against the calling entity's props,
+        // because the return type is `serde_json::Value` whose fields generally do not
+        // exist on `Meeting`. Resolver receives Null selections.
+        let handler_context = from_context_without_selections(ctx, "governance", "Meeting")?;
+        let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
+
+        let res = meeting::cancel_via_graph_impl(
             user,
             &data_access,
             &entity_type,

@@ -64,8 +64,28 @@ framework was temporarily restored for that work and the exact commits
   `Meeting.process_transcript` orchestration (transcript via governed Graph read
   **or** pasted VTT; AI extraction deferred to spec 004, recorded as pending, no
   egress). Commit `937dfbd`.
-- **M10** — deferred. The G1 governed-write stack is not built; all Graph writes
-  fail closed.
+- **M10** — the G1 governed-write stack is built (`backend/src/services/graph/writes.rs`
+  + `services/meeting_scheduling.rs`), all 8 components real: enforcement
+  chokepoint (`writes::execute` is the only non-GET call site), actor context
+  (`WriteContext`), token isolation (`GRAPH_WRITE_CLIENT_ID`/`_SECRET`, falls
+  back to the read app with a warning), named mutation registry + typed
+  request binding (`WriteOperation::plan/body`), idempotency + replay
+  protection (`GraphWriteAttempt` ledger, sha256 fingerprint), policy gate
+  (Admin/ProjectManager/EPMO, provisional pending the P5 matrix), audit
+  evidence (`AuditEvent` on every outcome). Two operations are wired to a
+  callable custom method (`Meeting.schedule_via_graph`, `.cancel_via_graph`)
+  and the Meeting Center UI; `vendor_contract.rs` upgrades them to
+  `compiler_contracted` (a G1-gated write, not `write_gated`) via an explicit
+  allow-list `assert_honest` checks. The four remaining operations
+  (subscriptions, SharePoint) stay `write_gated` -- no public HTTPS callback
+  for subscriptions in this environment (spec 003 D2), no SharePoint decision
+  (spec 004 D1). 322 backend tests pass (0 failed, 1 ignored -- the live
+  Graph connection check). **Not yet done:** a retained live WRITE run (only
+  a live read/token-acquisition check has been made) and the Azure AD write
+  application permissions (`OnlineMeetings.ReadWrite.All`,
+  `Calendars.ReadWrite`) + admin consent + application access policy scoping
+  the app to the organizer mailbox. See
+  `docs/architecture/m10-g1-governed-write-plan.md`.
 - **M11** — frontend.
   - **11a** (`6915d5f`): generic contract-driven renderer wired to the generated
     `EntityWorkspace`.
@@ -272,13 +292,20 @@ five are unresolved and each can change generated output or service behaviour:
 
 ## 9. Deferred / not done
 
-- **M10** — G1 governed-write stack for Microsoft Graph. All writes fail closed
-  until it exists.
+- **M10 live write certification** — the G1 stack itself is built (see §2 M10
+  above); what's still outstanding is the Azure AD write application
+  permissions + admin consent, and a retained live WRITE run (only a live
+  read/token-acquisition check has been made so far,
+  `services::graph::client::live`). Subscription management and SharePoint
+  upload remain fully `write_gated` (no public callback / spec 004 D1 open).
 - **Spec 004 AI-egress boundary** — the pre-egress PHI classification gate + the
   single OpenAI egress point. `meeting_agent.process_transcript` stops at
   “transcript captured, ai_status: pending”.
-- **Live provider certification** — no Graph read has made a retained live call;
-  tier stays `compiler_contracted`.
+- **Live provider certification (reads)** — one Graph read
+  (`search_directory_users`) has made a retained live call (2026-09-07,
+  against the `lventur.com` tenant, connection/auth evidence only per ADR
+  0018 -- 6 directory users returned); the other 4 registered reads have not.
+  All 5 stay `compiler_contracted` until each has its own retained run.
 - **`product api-test` / `product policy-test`** — not exercised in this rebuild.
 - **Bespoke gate forms** — the seven legacy per-role review forms
   (BTA/EAC/EPMO/Finance/PIC) are replaced by one generic gate form.

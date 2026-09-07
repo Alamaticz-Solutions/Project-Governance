@@ -2166,6 +2166,104 @@ pub(crate) mod graph_subscription {
         Ok(res)
     }
 }
+pub(crate) mod graph_write_attempt {
+    #[allow(unused_imports)]
+    use std::sync::Arc;
+
+    #[allow(unused_imports)]
+    use crate::schemas::governance::*;
+
+    #[allow(unused_imports)]
+    use crate::{
+        product_api::{DataAccess, EntityType, HandlerResult, JsonValue, UserAuth},
+        schemas::common::AggregateResult,
+        schemas::governance::{
+            GraphWriteAttemptProjection, GraphWriteAttemptQueryResult, InputGraphWriteAttempt,
+        },
+    };
+    pub(crate) async fn query_impl(
+        user: Option<UserAuth>,
+        data_access: &Arc<DataAccess>,
+        entity_type: &Arc<EntityType>,
+        selections: JsonValue,
+        filter: Option<JsonValue>,
+        sort: Option<JsonValue>,
+        skip: i32,
+        limit: i32,
+        after: Option<String>,
+    ) -> HandlerResult<GraphWriteAttemptQueryResult> {
+        let res = data_access
+            .query_items::<GraphWriteAttemptProjection>(
+                entity_type.clone(),
+                selections,
+                filter,
+                sort,
+                skip,
+                limit,
+                after,
+                user,
+            )
+            .await?;
+        let query_res = GraphWriteAttemptQueryResult {
+            date_time: res.date_time,
+            request_duration: res.request_duration,
+            skip: res.skip,
+            limit: res.limit,
+            page_count: res.page_count,
+            page_index: res.page_index,
+            query_count: res.query_count,
+            next_cursor: res.next_cursor,
+            previous_cursor: res.previous_cursor,
+            items: res.items,
+        };
+        Ok(query_res)
+    }
+
+    pub(crate) async fn aggregate_impl(
+        user: Option<UserAuth>,
+        data_access: &Arc<DataAccess>,
+        entity_type: &Arc<EntityType>,
+        filter: Option<JsonValue>,
+        group_by: Option<JsonValue>,
+        metrics: Option<JsonValue>,
+        having: Option<JsonValue>,
+        sort: Option<JsonValue>,
+        skip: i32,
+        limit: i32,
+    ) -> HandlerResult<AggregateResult> {
+        let res = data_access
+            .aggregate_items(
+                entity_type.clone(),
+                filter,
+                group_by,
+                metrics,
+                having,
+                sort,
+                skip,
+                limit,
+                user,
+            )
+            .await?;
+        Ok(res)
+    }
+    pub(crate) async fn create_impl(
+        user: Option<UserAuth>,
+        data_access: &Arc<DataAccess>,
+        entity_type: &Arc<EntityType>,
+        selections: JsonValue,
+        input: InputGraphWriteAttempt,
+    ) -> HandlerResult<GraphWriteAttemptProjection> {
+        let res = data_access
+            .create_item::<InputGraphWriteAttempt, GraphWriteAttemptProjection>(
+                entity_type.clone(),
+                selections,
+                input,
+                user,
+            )
+            .await?;
+        Ok(res)
+    }
+}
 pub(crate) mod knowledge_chunk {
     #[allow(unused_imports)]
     use std::sync::Arc;
@@ -2675,6 +2773,32 @@ pub(crate) mod meeting {
     ) -> HandlerResult<serde_json::Value> {
         Err(anyhow::anyhow!(
             "custom method `process_transcript` is not implemented yet"
+        ))
+    }
+    #[allow(unused)]
+    pub(crate) async fn schedule_via_graph_impl(
+        user: Option<UserAuth>,
+        data_access: &Arc<DataAccess>,
+        entity_type: &Arc<EntityType>,
+        selections: JsonValue,
+        meeting_id: String,
+        payload: serde_json::Value,
+    ) -> HandlerResult<serde_json::Value> {
+        Err(anyhow::anyhow!(
+            "custom method `schedule_via_graph` is not implemented yet"
+        ))
+    }
+    #[allow(unused)]
+    pub(crate) async fn cancel_via_graph_impl(
+        user: Option<UserAuth>,
+        data_access: &Arc<DataAccess>,
+        entity_type: &Arc<EntityType>,
+        selections: JsonValue,
+        meeting_id: String,
+        payload: serde_json::Value,
+    ) -> HandlerResult<serde_json::Value> {
+        Err(anyhow::anyhow!(
+            "custom method `cancel_via_graph` is not implemented yet"
         ))
     }
 }

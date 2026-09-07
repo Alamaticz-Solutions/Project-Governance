@@ -383,6 +383,54 @@ BEGIN
         );
     END IF;
 
+    IF EXISTS(SELECT TRUE FROM pg_type where typnamespace = (select oid from pg_catalog.pg_namespace where nspname = 'governance') AND typname = 'graph_write_attempts')
+    THEN
+        RAISE NOTICE 'ALTERING table graph_write_attempts';
+
+        ALTER TABLE governance.graph_write_attempts ADD COLUMN IF NOT EXISTS "idempotency_key" varchar;
+
+        ALTER TABLE governance.graph_write_attempts ADD COLUMN IF NOT EXISTS "operation" varchar;
+
+        ALTER TABLE governance.graph_write_attempts ADD COLUMN IF NOT EXISTS "actor" varchar;
+
+        ALTER TABLE governance.graph_write_attempts ADD COLUMN IF NOT EXISTS "tenant_id" varchar;
+
+        ALTER TABLE governance.graph_write_attempts ADD COLUMN IF NOT EXISTS "request_fingerprint" varchar;
+
+        ALTER TABLE governance.graph_write_attempts ADD COLUMN IF NOT EXISTS "status" varchar;
+
+        ALTER TABLE governance.graph_write_attempts ADD COLUMN IF NOT EXISTS "graph_resource_id" varchar;
+
+        ALTER TABLE governance.graph_write_attempts ADD COLUMN IF NOT EXISTS "error_code" varchar;
+
+        ALTER TABLE governance.graph_write_attempts ADD COLUMN IF NOT EXISTS "meeting_id" varchar;
+
+        ALTER TABLE governance.graph_write_attempts ADD COLUMN IF NOT EXISTS "created_at" timestamptz;
+
+        ALTER TABLE governance.graph_write_attempts ADD COLUMN IF NOT EXISTS "completed_at" timestamptz;
+
+        ALTER TABLE governance.graph_write_attempts ADD COLUMN IF NOT EXISTS "record_locator" varchar NOT NULL DEFAULT ('rl_' || replace(gen_random_uuid()::text, '-', ''));
+
+    ELSE
+        RAISE NOTICE 'CREATING, table graph_write_attempts';
+        CREATE TABLE governance.graph_write_attempts
+        (
+            "id" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY
+            ,"idempotency_key" varchar
+            ,"operation" varchar
+            ,"actor" varchar
+            ,"tenant_id" varchar
+            ,"request_fingerprint" varchar
+            ,"status" varchar
+            ,"graph_resource_id" varchar
+            ,"error_code" varchar
+            ,"meeting_id" varchar
+            ,"created_at" timestamptz
+            ,"completed_at" timestamptz
+            ,"record_locator" varchar NOT NULL DEFAULT ('rl_' || replace(gen_random_uuid()::text, '-', ''))
+        );
+    END IF;
+
     IF EXISTS(SELECT TRUE FROM pg_type where typnamespace = (select oid from pg_catalog.pg_namespace where nspname = 'governance') AND typname = 'knowledge_chunks')
     THEN
         RAISE NOTICE 'ALTERING table knowledge_chunks';
@@ -2413,6 +2461,34 @@ BEGIN
         ON governance.graph_subscriptions ("resource");
     ELSE
         RAISE NOTICE 'Index idx_graph_subscriptions_resource already exists';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_indexes
+        WHERE schemaname = 'governance'
+        AND tablename = 'graph_write_attempts'
+        AND indexname = 'ux_graph_write_attempts_record_locator'
+    ) THEN
+        RAISE NOTICE 'Creating index ux_graph_write_attempts_record_locator';
+        CREATE UNIQUE INDEX ux_graph_write_attempts_record_locator
+        ON governance.graph_write_attempts ("record_locator");
+    ELSE
+        RAISE NOTICE 'Index ux_graph_write_attempts_record_locator already exists';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_indexes
+        WHERE schemaname = 'governance'
+        AND tablename = 'graph_write_attempts'
+        AND indexname = 'idx_graph_write_attempts_idempotency_key_meeting_id_status'
+    ) THEN
+        RAISE NOTICE 'Creating index idx_graph_write_attempts_idempotency_key_meeting_id_status';
+        CREATE INDEX idx_graph_write_attempts_idempotency_key_meeting_id_status
+        ON governance.graph_write_attempts ("idempotency_key", "meeting_id", "status");
+    ELSE
+        RAISE NOTICE 'Index idx_graph_write_attempts_idempotency_key_meeting_id_status already exists';
     END IF;
 
     IF NOT EXISTS (

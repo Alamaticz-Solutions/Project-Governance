@@ -1,4 +1,5 @@
-//! Microsoft Graph SaaS / external-API provider (spec 003).
+//! Microsoft Graph SaaS / external-API provider (spec 003 reads, M10/spec 003
+//! §Non-goal-1 writes).
 //!
 //! Replaces the legacy ungoverned `graph_client.rs` (generic `get(path)` /
 //! `post_json(path)` against `graph.microsoft.com`). Structure mirrors
@@ -9,12 +10,17 @@
 //!   registry          the allow-listed named READ operations (no caller-chosen endpoints)
 //!   request           safe request-plan builder — fixed path + field lists per operation
 //!   response          rate-limit / error classification, redacted payloads, caps
-//!   client            executor: named operation + bound params -> classified result
-//!   writes            EVERY Graph write is write_gated / default-deny pending the G1 stack
+//!   client            executor: named READ operation + bound params -> classified result
+//!   writes            M10 / G1 governed-write stack: the only non-GET call site,
+//!                     named mutations, idempotency ledger, policy gate, audit
 //!   vendor_contract   honest per-operation status tiers (4-status vocab)
 //!
 //! Nothing here is `live_certified`. Reads execute; the tier records only that
-//! no retained live contract run exists (spec 003 Open decision D5).
+//! no retained live contract run exists (spec 003 Open decision D5). Writes
+//! (`schedule_teams_meeting`, `cancel_calendar_event`) execute behind the
+//! full G1 stack as of M10 but are likewise not `live_certified` until a
+//! retained live write run has passed (see
+//! `docs/architecture/m10-g1-governed-write-plan.md` §7).
 
 pub mod auth;
 pub mod client;
@@ -27,4 +33,4 @@ pub mod writes;
 
 pub use client::GraphClient;
 pub use registry::ReadOperation;
-pub use writes::{WriteOperation, WRITE_GATED_REASON};
+pub use writes::{WriteContext, WriteError, WriteOperation, WriteOutcome, G1_WRITE_AREAS};

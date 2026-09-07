@@ -174,14 +174,15 @@ mod tests {
     }
 
     #[test]
-    fn generate_schema_rego_produces_all_41_governance_policies() {
+    fn generate_schema_rego_produces_all_governance_policies() {
         let tmp =
             std::env::temp_dir().join(format!("product-gen-rego-test-{}", std::process::id()));
         let rbac_dir = model_root().join("schemas/governance/rbac");
         generate_schema_rego(&rbac_dir, &tmp, "governance").expect("generate should succeed");
 
         let count = fs::read_dir(&tmp).unwrap().filter(|e| e.is_ok()).count();
-        assert_eq!(count, 41);
+        // 41 + graph_write_attempt (M10 / G1.6 evidence ledger).
+        assert_eq!(count, 42);
 
         fs::remove_dir_all(&tmp).ok();
     }
@@ -224,8 +225,8 @@ mod tests {
             }
         }
         assert_eq!(
-            checked, 42,
-            "expected 41 governance + 1 system policy files"
+            checked, 43,
+            "expected 42 governance + 1 system policy files"
         );
     }
 }
