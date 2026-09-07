@@ -32,6 +32,7 @@ fn meeting_selection() -> JsonValue {
         &[
             field("id"),
             field("subject"),
+            field("source"),
             field("status"),
             field("organizer_email"),
             field("graph_organizer_user_id"),
@@ -52,7 +53,7 @@ fn meeting_input(p: &MeetingProjection) -> InputMeeting {
             .subject
             .clone()
             .unwrap_or_else(|| "(untitled)".to_string()),
-        source: "local_stub".to_string(),
+        source: p.source.clone().unwrap_or_else(|| "local_stub".to_string()),
         status: p.status.clone().unwrap_or_else(|| "scheduled".to_string()),
         start_time: p.start_time,
         end_time: p.end_time,
