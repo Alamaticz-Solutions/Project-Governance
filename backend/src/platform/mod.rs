@@ -10,6 +10,8 @@
 pub(crate) mod auth;
 
 #[cfg(feature = "http")]
+pub(crate) mod connection_security;
+
 pub(crate) mod cors;
 
 pub(crate) mod errors;
@@ -29,6 +31,8 @@ pub(crate) mod host;
 
 pub(crate) mod identifier;
 
+pub(crate) mod json_utils;
+
 pub(crate) mod observability;
 
 pub(crate) mod policy;
@@ -46,6 +50,9 @@ pub(crate) mod provider_request;
 pub(crate) mod provider_result;
 
 pub(crate) mod provider_time_period;
+
+#[cfg(feature = "http")]
+pub(crate) mod product_ui;
 
 pub(crate) mod query_cost;
 

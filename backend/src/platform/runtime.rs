@@ -182,3 +182,47 @@ pub mod provider_error {
 // call into `self.client` (self-owned `DatabaseClient`), both directions:
 // framework-typed parameters in, self-owned-typed returns back out. See
 // that impl block's own comments for the full accounting.
+
+// Slice 6.1 (trivial platform-plumbing leaves -- no fixed traits, no route
+// entanglement):
+//
+// `connection_security` is reached via its submodule path
+// (`runtime::connection_security::{validate, Provider, ...}`, confirmed by
+// `grep -rn "runtime::connection_security::" backend/src`), so this needs a
+// `pub mod` shadow, same lesson as `security`/`query_cost` above.
+pub mod connection_security {
+    pub use crate::platform::connection_security::*;
+}
+//
+// `json` likewise: `data/data_access.rs` imports `runtime::json as
+// json_utils`, a submodule path. `JsonObj` is `RuntimeJsonObj` under a
+// different name (no new type, same as `RuntimeJsonObj` itself needed no
+// override in slice 5) -- only the two conversion functions are real code.
+pub mod json {
+    pub use crate::platform::json_utils::*;
+}
+//
+// `product_ui::product_ui_routes_if_present` is reached via its submodule
+// path too (`runtime::product_ui::product_ui_routes_if_present`,
+// `routes/mod.rs`). Self-contained axum router builder, `http`-gated same
+// as the framework original.
+#[cfg(feature = "http")]
+pub mod product_ui {
+    pub use crate::platform::product_ui::*;
+}
+//
+// `tenant_isolation` was already self-owned from phase 5 (`platform::
+// tenant_isolation`) but was never routed through this facade -- it's
+// reached directly (`crate::platform::tenant_isolation::...`), not via
+// `crate::platform::runtime::tenant_isolation`, so it never needed an
+// override here and isn't listed above for that reason.
+//
+// `RuntimeHandlerContext` and friends were already overridden in slice 3's
+// remainder above (see the `graphql_context` section).
+//
+// Still framework-owned pending slice 6.2/6.3: `observability::
+// {RequestContext, MetricsRegistry, current_request_context}`, `admin`,
+// `RuntimeAuthState`, the `query_filter` filter-*capabilities* reporting
+// API, `provider_capabilities`/`provider_contract_types` (reached directly
+// via `appfw_runtime::` from `admin_ui.rs`, not through this facade at
+// all).
