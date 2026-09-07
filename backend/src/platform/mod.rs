@@ -32,6 +32,10 @@ pub(crate) mod provider_error;
 
 pub(crate) mod provider_keys;
 
+pub(crate) mod provider_request;
+
+pub(crate) mod provider_result;
+
 pub(crate) mod provider_time_period;
 
 pub(crate) mod query_cost;

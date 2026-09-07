@@ -343,13 +343,18 @@ impl DataAccess {
         let provider_descriptor = self.provider_descriptor();
         let provider_plan = plan.clone().into_runtime_provider_plan();
         let provider = self.runtime_provider();
+        // `provider_explain_query_plan` is still framework-owned (admin
+        // diagnose_query path, deferred to a later pass), so this
+        // self-owned `RuntimeProviderPlanInput` bridges into the
+        // framework's own type via `.into()`, same as `pagination` above.
         let provider_diagnostic = runtime_data_access::provider_explain_query_plan(
             &provider,
             RuntimeProviderPlanInput::new(
                 &provider_plan,
                 &crate::platform::runtime::extension::UserAuth::from(&user),
                 &crate::platform::runtime::PolicyAccess::from(&access),
-            ),
+            )
+            .into(),
         )
         .await?;
 

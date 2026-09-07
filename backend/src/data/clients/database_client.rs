@@ -9,6 +9,18 @@ use crate::platform::runtime::{
     RuntimeJsonAggregateResult, RuntimeJsonObj, RuntimeJsonQueryResult, RuntimeProviderClient,
     RuntimeProviderDataClient, RuntimeProviderIdentity, RuntimeProviderPlanInput,
 };
+// The framework's own (fixed, non-generic-over-crate) versions of the three
+// types above, needed only inside `impl RuntimeProviderDataClient for
+// DatabaseClientRuntimeAdapter` below: that trait's method signatures are
+// defined in `appfw_runtime` itself and can't pick up the self-owned
+// versions the bare names now resolve to via the facade override (slice 5
+// -- docs/architecture/self-owned-backend-plan.md). Everywhere else in
+// this file the bare names above are exactly what's wanted.
+use appfw_runtime::{
+    RuntimeJsonAggregateResult as FrameworkJsonAggregateResult,
+    RuntimeJsonQueryResult as FrameworkJsonQueryResult,
+    RuntimeProviderPlanInput as FrameworkProviderPlanInput,
+};
 use async_trait::async_trait;
 use serde_json::Value;
 
@@ -177,58 +189,64 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
 
     async fn create_item_plan_json(
         &self,
-        input: RuntimeProviderPlanInput<'_, Self::MutationPlan>,
+        input: FrameworkProviderPlanInput<'_, Self::MutationPlan>,
     ) -> Result<RuntimeJsonObj, Self::Error> {
-        self.client.create_item_plan_json(input).await
+        self.client.create_item_plan_json(input.into()).await
     }
 
     async fn update_item_plan_json(
         &self,
-        input: RuntimeProviderPlanInput<'_, Self::MutationPlan>,
+        input: FrameworkProviderPlanInput<'_, Self::MutationPlan>,
     ) -> Result<RuntimeJsonObj, Self::Error> {
-        self.client.update_item_plan_json(input).await
+        self.client.update_item_plan_json(input.into()).await
     }
 
     async fn delete_item_plan_json(
         &self,
-        input: RuntimeProviderPlanInput<'_, Self::MutationPlan>,
+        input: FrameworkProviderPlanInput<'_, Self::MutationPlan>,
     ) -> Result<i64, Self::Error> {
-        self.client.delete_item_plan_json(input).await
+        self.client.delete_item_plan_json(input.into()).await
     }
 
     async fn get_items_plan_json(
         &self,
-        input: RuntimeProviderPlanInput<'_, Self::QueryPlan>,
+        input: FrameworkProviderPlanInput<'_, Self::QueryPlan>,
     ) -> Result<Vec<RuntimeJsonObj>, Self::Error> {
-        self.client.get_items_plan_json(input).await
+        self.client.get_items_plan_json(input.into()).await
     }
 
     async fn query_items_plan_json(
         &self,
-        input: RuntimeProviderPlanInput<'_, Self::QueryPlan>,
-    ) -> Result<JsonQueryResult, Self::Error> {
-        self.client.query_items_plan_json(input).await
+        input: FrameworkProviderPlanInput<'_, Self::QueryPlan>,
+    ) -> Result<FrameworkJsonQueryResult, Self::Error> {
+        self.client
+            .query_items_plan_json(input.into())
+            .await
+            .map(Into::into)
     }
 
     async fn batch_get_items_plan_json(
         &self,
-        input: RuntimeProviderPlanInput<'_, Self::QueryPlan>,
+        input: FrameworkProviderPlanInput<'_, Self::QueryPlan>,
     ) -> Result<Vec<RuntimeJsonObj>, Self::Error> {
-        self.client.batch_get_items_plan_json(input).await
+        self.client.batch_get_items_plan_json(input.into()).await
     }
 
     async fn aggregate_items_plan_json(
         &self,
-        input: RuntimeProviderPlanInput<'_, Self::AggregatePlan>,
-    ) -> Result<JsonAggregateResult, Self::Error> {
-        self.client.aggregate_items_plan_json(input).await
+        input: FrameworkProviderPlanInput<'_, Self::AggregatePlan>,
+    ) -> Result<FrameworkJsonAggregateResult, Self::Error> {
+        self.client
+            .aggregate_items_plan_json(input.into())
+            .await
+            .map(Into::into)
     }
 
     async fn explain_query_plan(
         &self,
-        input: RuntimeProviderPlanInput<'_, &Self::QueryPlan>,
+        input: FrameworkProviderPlanInput<'_, &Self::QueryPlan>,
     ) -> Result<Value, Self::Error> {
-        self.client.explain_query_plan(input).await
+        self.client.explain_query_plan(input.into()).await
     }
 
     async fn append_audit_event(&self, event: RuntimeAuditEvent) -> Result<(), Self::Error> {
@@ -329,7 +347,7 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
         limit: i32,
         user: &UserAuth,
         access: &crate::platform::runtime::PolicyAccess,
-    ) -> Result<JsonQueryResult, Self::Error> {
+    ) -> Result<FrameworkJsonQueryResult, Self::Error> {
         self.client
             .query_items_json(
                 entity_type,
@@ -342,6 +360,7 @@ impl RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
                 &access.into(),
             )
             .await
+            .map(Into::into)
     }
 }
 

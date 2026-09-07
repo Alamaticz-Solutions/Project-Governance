@@ -122,3 +122,21 @@ pub(crate) use crate::platform::provider_time_period;
 // (`RuntimeFilterCapabilities` and friends, still reached via the glob
 // above) is deliberately left framework-owned: its only consumer,
 // `admin_ui.rs`, is itself still framework-owned pending slice 6.
+
+// Slice 5 (provider contract -- leaf data types):
+//
+// `RuntimeJsonObj` is a type alias for `serde_json::Map<String, Value>`,
+// not a distinct struct, so re-declaring it creates no new type and needs
+// no override at all -- appfw_runtime::RuntimeJsonObj and this crate's own
+// already name the same underlying type. Not listed below for that reason.
+pub use crate::platform::provider_request::RuntimeProviderPlanInput;
+pub use crate::platform::provider_result::{RuntimeJsonAggregateResult, RuntimeJsonQueryResult};
+//
+// This makes `data/clients/database_client.rs`'s self-owned `DatabaseClient`
+// trait (whose default method signatures already read these three names off
+// this facade) pick up the self-owned versions automatically -- but
+// `DatabaseClientRuntimeAdapter`'s impl of the *framework's* fixed
+// `RuntimeProviderDataClient` trait now needs `.into()` at every forwarding
+// call into `self.client` (self-owned `DatabaseClient`), both directions:
+// framework-typed parameters in, self-owned-typed returns back out. See
+// that impl block's own comments for the full accounting.
