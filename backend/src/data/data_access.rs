@@ -5,8 +5,8 @@ use crate::platform::runtime::data_access as runtime_data_access;
 use crate::platform::runtime::json as json_utils;
 use crate::platform::runtime::observability::{current_request_context, MetricsRegistry};
 use crate::platform::runtime::{
-    RuntimeProviderDescriptor, RuntimeProviderIdentity, RuntimeProviderOperation,
-    RuntimeProviderOperationCounts, RuntimeProviderPlanInput,
+    RuntimeProviderDescriptor, RuntimeProviderOperation, RuntimeProviderOperationCounts,
+    RuntimeProviderPlanInput,
 };
 use serde_json::{json, Value};
 use tracing::debug;
@@ -14,6 +14,7 @@ use tracing::debug;
 use crate::config::app_config::AppConfig;
 use crate::data::audit as runtime_audit;
 use crate::data::mutation_orchestration;
+use crate::data::provider_identity::{ProviderDescriptor, ProviderIdentity};
 use crate::data::query_ir::PaginationPolicy;
 use crate::data::query_ir::{cost_for_query, AggregatePlan, MutationPlan, QueryPlan};
 use crate::data::read_orchestration;
@@ -28,26 +29,28 @@ use crate::schemas::common::{AggregateResult, JsonAggregateResult, JsonQueryResu
 use crate::schemas::system::{EntityType, PropertyType};
 
 use super::clients::database_client::{
-    DatabaseClientBox, DatabaseClientRuntimeAdapter, ProviderRoutineArgument, ProviderRoutineCall,
+    DatabaseClientBox, ProviderRoutineArgument, ProviderRoutineCall,
 };
 
-fn to_runtime_pagination(
-    pagination: &crate::data::provider_plan::Pagination,
-) -> crate::platform::runtime::query_ir::RuntimePagination {
-    crate::platform::runtime::query_ir::RuntimePagination {
-        skip: pagination.skip,
-        limit: pagination.limit,
-        strategy: match &pagination.strategy {
-            crate::data::provider_plan::PaginationStrategy::Offset => {
-                crate::platform::runtime::query_ir::RuntimePaginationStrategy::Offset
-            }
-            crate::data::provider_plan::PaginationStrategy::Keyset { after } => {
-                crate::platform::runtime::query_ir::RuntimePaginationStrategy::Keyset {
-                    after: after.clone(),
-                }
-            }
-        },
+/// Fail closed unless the provider declares support for `operation`.
+///
+/// Duplicated from `mutation_orchestration.rs`/`read_orchestration.rs` --
+/// small enough not to share cross-module (same rationale as those files'
+/// own copies).
+fn ensure_provider_operation(
+    provider: &dyn crate::data::clients::database_client::DatabaseClient,
+    operation: RuntimeProviderOperation,
+) -> Result<(), AppError> {
+    if ProviderIdentity::provider_declares_operation(provider, operation) {
+        return Ok(());
     }
+    let descriptor = ProviderIdentity::provider_descriptor(provider);
+    Err(AppError::DataAccess(format!(
+        "provider '{}' for data source '{}' does not declare operation '{}'",
+        descriptor.provider_key(),
+        descriptor.data_source_name(),
+        operation.as_str()
+    )))
 }
 
 pub struct DataAccess {
@@ -56,7 +59,7 @@ pub struct DataAccess {
     metrics: MetricsRegistry,
 }
 
-pub(crate) type QueryPlanDiagnostic = runtime_data_access::RuntimeQueryPlanDiagnostic;
+pub(crate) type QueryPlanDiagnostic = read_orchestration::QueryPlanDiagnostic;
 
 impl DataAccess {
     pub fn init(
@@ -71,6 +74,14 @@ impl DataAccess {
         }
     }
 
+    /// Product-owned reimplementation of
+    /// `appfw_runtime::data_access::execute_audit_events_read` (backend
+    /// framework replacement phase 7, slice 5): the tenant-isolation and
+    /// access-filter checks below are copied verbatim from that function,
+    /// not just approximated, since this is exactly the kind of
+    /// security-relevant check finding Q's audit trail depends on. Calls
+    /// `self.client` (self-owned `DatabaseClient`) directly instead of
+    /// routing through `DatabaseClientRuntimeAdapter`.
     pub async fn query_audit_events(
         &self,
         entity_type: Arc<EntityType>,
@@ -92,42 +103,50 @@ impl DataAccess {
             record_id,
             limit,
         );
-        let query = crate::platform::runtime::RuntimeAuditQuery::new(
-            query.schema_name,
-            query.entity_name,
-            query.audit_table_name,
-            query.tenant_id,
-            query.record_id,
-            query.limit,
-        );
-        let provider = self.runtime_provider();
-        runtime_data_access::execute_audit_events_read(
-            &provider,
-            entity_type,
-            selections,
-            record_id.to_string(),
-            &crate::platform::runtime::extension::UserAuth::from(user),
-            &crate::platform::runtime::PolicyAccess::from(access),
-            query,
-        )
-        .await
+
+        if query.tenant_id.trim().is_empty() || query.tenant_id != user.tenant_id {
+            return Err(AppError::DataAccess(
+                "audit query tenant does not match authenticated tenant".to_string(),
+            ));
+        }
+        if !access.allow {
+            return Ok(Vec::new());
+        }
+
+        ensure_provider_operation(self.client.as_ref(), RuntimeProviderOperation::FindItem)?;
+        // `DatabaseClient::find_item_json`'s `user` parameter is still the
+        // framework's own `extension::UserAuth` (slice 3's remainder,
+        // RuntimeJwtExtractor not yet ported) even though `access` is
+        // already self-owned `PolicyAccess` -- bridge just the one field.
+        let visible = self
+            .client
+            .find_item_json(
+                entity_type,
+                selections,
+                record_id.to_string(),
+                &crate::platform::runtime::extension::UserAuth::from(user),
+                access,
+            )
+            .await?;
+        if visible.is_none() {
+            return Ok(Vec::new());
+        }
+
+        ensure_provider_operation(self.client.as_ref(), RuntimeProviderOperation::QueryAuditEvents)?;
+        self.client.query_audit_events(query).await
     }
 
-    pub fn provider_descriptor(&self) -> RuntimeProviderDescriptor {
-        self.runtime_provider().provider_descriptor()
+    pub fn provider_descriptor(&self) -> ProviderDescriptor {
+        ProviderIdentity::provider_descriptor(self.client.as_ref())
     }
 
     pub async fn health_check(&self) -> Result<(), AppError> {
-        let provider = self.runtime_provider();
-        runtime_data_access::provider_health_check(&provider).await
+        ensure_provider_operation(self.client.as_ref(), RuntimeProviderOperation::HealthCheck)?;
+        self.client.health_check().await
     }
 
     pub fn pool_stats(&self) -> crate::platform::runtime::ProviderPoolStats {
-        // `runtime_provider().pool_stats()` still returns the framework's
-        // own `ProviderPoolStats` (via `DatabaseClientRuntimeAdapter`'s
-        // fixed `RuntimeProviderIdentity` impl), so bridge into the
-        // self-owned type this method's own signature now names.
-        self.runtime_provider().pool_stats().into()
+        ProviderIdentity::pool_stats(self.client.as_ref())
     }
 
     /// Read the governed Neo4j relationship graph for an account record locator.
@@ -282,10 +301,6 @@ impl DataAccess {
         })
     }
 
-    fn runtime_provider(&self) -> DatabaseClientRuntimeAdapter<'_> {
-        self.client.as_ref().as_runtime_provider()
-    }
-
     #[tracing::instrument(
         skip(self, entity_type, filter, sort, user),
         fields(entity = %entity_type.pascal_1, skip = skip, limit = limit, after_present = after.is_some())
@@ -336,41 +351,35 @@ impl DataAccess {
         };
         let budget = crate::platform::runtime::QueryCostBudget::from_env();
         let cost = cost_for_query(&plan);
-        // `pagination_diagnostic`/`RuntimeQueryPlanDiagnostic` below are
-        // still framework-owned (admin diagnose_query path, deferred to
-        // slice 5), so this self-owned `RuntimePagination` (see
-        // `to_runtime_pagination` above) bridges into the framework's own
-        // type via `.into()` -- identical shape, genuinely distinct types.
-        let pagination = runtime_data_access::pagination_diagnostic(
-            &to_runtime_pagination(&plan.pagination).into(),
-        );
+        let pagination = read_orchestration::pagination_diagnostic(&plan.pagination);
         let provider_descriptor = self.provider_descriptor();
         let provider_plan = plan.clone().into_runtime_provider_plan();
-        let provider = self.runtime_provider();
-        // `provider_explain_query_plan` is still framework-owned (admin
-        // diagnose_query path, deferred to a later pass), so this
-        // self-owned `RuntimeProviderPlanInput` bridges into the
-        // framework's own type via `.into()`, same as `pagination` above.
-        let provider_diagnostic = runtime_data_access::provider_explain_query_plan(
-            &provider,
-            RuntimeProviderPlanInput::new(
+        // Calls `self.client` (self-owned `DatabaseClient`) directly --
+        // `explain_query_plan` is a default method on that trait already,
+        // using the self-owned `RuntimeProviderPlanInput` wrapper (ported
+        // slice 5 part 1). No adapter, no framework free function.
+        ensure_provider_operation(
+            self.client.as_ref(),
+            RuntimeProviderOperation::ExplainQueryPlan,
+        )?;
+        let provider_diagnostic = self
+            .client
+            .explain_query_plan(RuntimeProviderPlanInput::new(
                 &provider_plan,
                 &crate::platform::runtime::extension::UserAuth::from(&user),
                 &crate::platform::runtime::PolicyAccess::from(&access),
-            )
-            .into(),
-        )
-        .await?;
+            ))
+            .await?;
 
-        Ok(runtime_data_access::RuntimeQueryPlanDiagnostic {
+        Ok(read_orchestration::QueryPlanDiagnostic {
             schema_name: entity_type.schema_name.clone(),
             type_name: entity_type.pascal_1.clone(),
             provider: provider_descriptor.provider_key().to_string(),
             data_source: provider_descriptor.data_source_name().to_string(),
             pagination,
             access_filter_applied: plan.access_filter.is_some(),
-            cost: cost.into(),
-            budget: budget.into(),
+            cost,
+            budget,
             provider_diagnostic,
         })
     }

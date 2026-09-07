@@ -72,6 +72,39 @@ pub fn pagination_diagnostic(
     }
 }
 
+// Bridges into the framework's still-live `RuntimeQueryPlanDiagnostic`/
+// `RuntimePaginationDiagnostic` (appfw_runtime::data_access), needed only
+// by `admin_ui.rs`'s `AdminQueryDiagnoseProvider` impl -- a framework
+// trait whose fixed return type this product's own `DataAccess::
+// diagnose_query` (now returning this self-owned type) doesn't satisfy
+// directly. Identical field shapes, genuinely distinct types.
+impl From<PaginationDiagnostic> for appfw_runtime::data_access::RuntimePaginationDiagnostic {
+    fn from(diagnostic: PaginationDiagnostic) -> Self {
+        Self {
+            strategy: diagnostic.strategy,
+            skip: diagnostic.skip,
+            limit: diagnostic.limit,
+            after_present: diagnostic.after_present,
+        }
+    }
+}
+
+impl From<QueryPlanDiagnostic> for appfw_runtime::data_access::RuntimeQueryPlanDiagnostic {
+    fn from(diagnostic: QueryPlanDiagnostic) -> Self {
+        Self {
+            schema_name: diagnostic.schema_name,
+            type_name: diagnostic.type_name,
+            provider: diagnostic.provider,
+            data_source: diagnostic.data_source,
+            pagination: diagnostic.pagination.into(),
+            access_filter_applied: diagnostic.access_filter_applied,
+            cost: diagnostic.cost.into(),
+            budget: diagnostic.budget.into(),
+            provider_diagnostic: diagnostic.provider_diagnostic,
+        }
+    }
+}
+
 /// Convert a batch of ids into a provider query limit, failing closed if the
 /// batch is too large to represent as an `i32` limit.
 pub fn batch_limit_for_ids(ids_len: usize) -> Result<i32, crate::routes::app_error::AppError> {

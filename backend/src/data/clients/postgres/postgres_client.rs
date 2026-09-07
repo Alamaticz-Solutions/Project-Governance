@@ -48,18 +48,7 @@ use super::pg_error::postgres_runtime_error;
 use super::routine_sql::{PostgresFunctionCall, PostgresStoredProcedureCall};
 use super::sort::{aggregate_order_by as provider_aggregate_order_by, PostgresSortField};
 use crate::platform::runtime::{
-    extension::UserAuth, provider_keys::FrameworkProvider, RuntimeProviderIdentity,
-    RuntimeProviderPlanInput,
-};
-// The framework's own `ProviderPoolStats`/`FrameworkProvider`, needed only
-// inside `impl RuntimeProviderIdentity for PostgresClient` below: that
-// trait's `pool_stats`/`framework_provider` signatures are defined in
-// `appfw_runtime` itself and can't pick up the self-owned versions the
-// bare names now resolve to via the facade override (slice 5 --
-// docs/architecture/self-owned-backend-plan.md).
-use appfw_runtime::{
-    provider_keys::FrameworkProvider as FrameworkProviderFw,
-    ProviderPoolStats as FrameworkProviderPoolStats,
+    extension::UserAuth, provider_keys::FrameworkProvider, RuntimeProviderPlanInput,
 };
 
 use super::cte::CTE;
@@ -788,29 +777,6 @@ fn postgres_aggregate_order_by(plan: &ProviderAggregatePlan) -> String {
 
 fn postgres_app_error(error: tokio_postgres::Error) -> AppError {
     AppError::from(postgres_runtime_error(error))
-}
-
-impl RuntimeProviderIdentity for PostgresClient {
-    fn data_source_name(&self) -> &str {
-        &self.data_source_name
-    }
-
-    fn framework_provider(&self) -> FrameworkProviderFw {
-        FrameworkProviderFw::Postgres
-    }
-
-    fn pool_stats(&self) -> FrameworkProviderPoolStats {
-        let status = self.execution.pool().status();
-        let provider = RuntimeProviderIdentity::provider_descriptor(self);
-        FrameworkProviderPoolStats::instrumented(
-            provider.provider_key(),
-            provider.data_source_name(),
-            status.max_size as u64,
-            status.size as u64,
-            status.available as u64,
-            status.waiting as u64,
-        )
-    }
 }
 
 // Product-owned (backend framework replacement phase 5 sub-slice 2). Mirrors

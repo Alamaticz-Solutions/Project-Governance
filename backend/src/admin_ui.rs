@@ -268,9 +268,13 @@ impl AdminQueryDiagnoseProvider for ProductAdminQueryDiagnoseProvider<'_> {
             ));
         };
 
+        // `diagnose_query` now returns the self-owned
+        // `read_orchestration::QueryPlanDiagnostic`; this trait's fixed
+        // return type is still the framework's own diagnostic struct.
         data_access
             .diagnose_query(entity_type, filter, sort, skip, limit, after, user.into())
             .await
+            .map(Into::into)
             .map_err(|err| AdminServiceError::bad_request(err.to_string(), request_context))
     }
 }

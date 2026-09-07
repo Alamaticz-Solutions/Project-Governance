@@ -30,8 +30,7 @@ pub use crate::platform::runtime::{
     provider_keys::FrameworkProvider,
     record_locator::RECORD_LOCATOR_FIELD,
     HandlerResult, JsonValue, RuntimeAuditEvent, RuntimeAuditQuery, RuntimeFilterOp,
-    RuntimeProviderDescriptor, RuntimeProviderIdentity, RuntimeProviderOperation,
-    RuntimeProviderOperationCounts,
+    RuntimeProviderDescriptor, RuntimeProviderOperation, RuntimeProviderOperationCounts,
 };
 
 // Backend framework replacement phase 5: `AccessAction`/`PolicyAccess` are now
