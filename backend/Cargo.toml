@@ -10,6 +10,12 @@ description = "Project Governance product backend"
 # product-intake scaffold omitted it (finding K).
 default = ["http", "provider-postgres"]
 http = [
+    # Framework re-adoption slice 1 (docs/architecture/framework-readopt-plan.md):
+    # appfw_runtime is re-declared below but not yet consumed -- the platform::runtime
+    # facade still re-exports self-owned code. This feature line is restored now so the
+    # dependency's own `http` surface is gated the same way it was pre-removal; slice 2
+    # flips the facade to actually use it.
+    "appfw_runtime/http",
     "dep:async-graphql-axum",
     "dep:axum",
     "dep:hyper",
@@ -17,18 +23,24 @@ http = [
     "dep:tower",
     "dep:tower-http",
 ]
-# mcp/kafka/sync were deleted outright (backend framework replacement phase
-# 7, 2026-09-07): none were in `default`, none were ever enabled by any
-# Dockerfile/compose/CI in this repo, and this product never runs a
-# worker-mode process. See docs/architecture/self-owned-backend-plan.md.
+# mcp/kafka/sync stay deleted (backend framework replacement phase 7, 2026-09-07;
+# confirmed still out of scope for re-adoption -- framework-readopt-plan.md §3):
+# none were in `default`, none were ever enabled by any Dockerfile/compose/CI in
+# this repo, and this product never runs a worker-mode process.
 # The Postgres SQL-generation/execution layer (backend/src/data/clients/postgres)
-# is product-owned code, not a framework dependency (backend framework
-# replacement phase 3 -- docs/architecture/self-owned-backend-plan.md).
+# is currently product-owned code (backend framework replacement phase 3);
+# framework re-adoption slice 2 replaces it with appfw-provider-postgres.
 # This feature now only gates route registration in backend/src/routes/mod.rs.
 provider-postgres = []
 
 [dependencies]
 anyhow = "1.0"
+# Framework re-adoption (docs/architecture/framework-readopt-plan.md). Resolved from
+# the pinned sibling checkout ../app-framework (mirror of Alamaticz-Solutions/app-framework,
+# tag pinned/archive-893829ad0e30). SLICE 1: declared but not yet consumed -- the
+# platform::runtime facade still points at crate::platform::*; slice 2 flips it to
+# `pub use appfw_runtime::*`.
+appfw_runtime = { package = "appfw-runtime", path = "../../app-framework/appfw_runtime", default-features = false }
 async-graphql = { version = "6", features = ["bson", "chrono", "dynamic-schema"] }
 async-graphql-value = "6"
 async-graphql-axum = { version = "6", optional = true }
