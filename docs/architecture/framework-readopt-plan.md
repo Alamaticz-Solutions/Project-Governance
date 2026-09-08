@@ -40,7 +40,7 @@ to `origin`. Commits so far:
 | `4c88c55` | **slice 1** — wiring restored, `cargo check -p backend` green |
 | `8efc7c1` | this doc §6a (teammate setup) + §9 (Windows caveat) |
 | `9e90b94` | **slice 2** — facade flipped, 19 platform + 12 sql files deleted, `appfw-provider-postgres` adopted |
-| `5fb2dda` | **slice 2b** — dead code cleanup (183→0 warnings), live GraphQL audit-hash-chain smoke passed against Postgres |
+| `87bec07` | **slice 2b** — dead code cleanup (183→0 warnings), live GraphQL audit-hash-chain smoke passed against Postgres |
 
 **Framework checkout:** `Alamaticz-Solutions/app-framework` @ tag
 `pinned/archive-893829ad0e30` must be cloned as a sibling of this repo (see §6a
@@ -313,6 +313,9 @@ discipline, in reverse.
   Executed `createComment` mutation → verified `governance.comments_audit` row created with initial `prev_hash`
   and computed `event_hash`. Executed subsequent `updateComment` mutation → verified second audit row whose
   `prev_hash` exactly matches the first row's `event_hash`. Live audit hash chain contract verified end-to-end.
+- **Accepted framework behavior:** The framework now directly owns Prometheus metric emission, the `/info`,
+  `/readyz`, and `/livez` probe response shaping, and TLS connection security enforcement. Any behavioral differences
+  from the retired self-owned shims are accepted as the standard framework contract.
 
 ### Slice 3 — swap the generator
 
