@@ -39,7 +39,8 @@ to `origin`. Commits so far:
 | `ba14bff` | this doc + `framework-readoption-analysis.md` |
 | `4c88c55` | **slice 1** — wiring restored, `cargo check -p backend` green |
 | `8efc7c1` | this doc §6a (teammate setup) + §9 (Windows caveat) |
-| `a6cad92` | **slice 2** — facade flipped, 19 platform + 12 sql files deleted, `appfw-provider-postgres` adopted, `cargo check -p backend --all-targets` green |
+| `9e90b94` | **slice 2** — facade flipped, 19 platform + 12 sql files deleted, `appfw-provider-postgres` adopted |
+| `5fb2dda` | **slice 2b** — dead code cleanup (183→0 warnings), live GraphQL audit-hash-chain smoke passed against Postgres |
 
 **Framework checkout:** `Alamaticz-Solutions/app-framework` @ tag
 `pinned/archive-893829ad0e30` must be cloned as a sibling of this repo (see §6a
@@ -271,7 +272,7 @@ discipline, in reverse.
 - Facade untouched: `platform/runtime.rs` still `pub use crate::platform::*`;
   `appfw_runtime` compiles into the workspace but nothing consumes it.
 
-### Slice 2 — flip the facade ✅ DONE
+### Slice 2 — flip the facade ✅ DONE (`9e90b94`)
 
 - **Facade flipped:** `backend/src/platform/runtime.rs` repointed to `pub use appfw_runtime::*;`.
 - **19 self-owned platform files deleted:** `errors.rs`, `graphiql.rs`, `graphql_context.rs`,
@@ -279,9 +280,6 @@ discipline, in reverse.
   `provider_pool_stats.rs`, `provider_registry.rs`, `provider_request.rs`, `provider_result.rs`,
   `provider_time_period.rs`, `query_cost.rs`, `query_filter.rs`, `query_pagination.rs`,
   `record_locator.rs`, `security_config.rs`, `user_auth.rs`.
-- **Pre-phase-7 platform modules preserved:** `auth`, `admin_runtime`, `connection_security`,
-  `cors`, `host`, `identifier`, `json_utils`, `metrics`, `observability`, `product_ui`, `readiness`,
-  `request_context`, `routing`, `secrets`, `security`, `tenant_isolation` kept with re-exports.
 - **Provider adoption:** `appfw-provider-postgres` added to `backend/Cargo.toml`.
   `DatabaseClientRuntimeAdapter` restored in `backend/src/data/clients/database_client.rs`
   implementing `RuntimeProviderIdentity` and `RuntimeProviderDataClient`.
@@ -300,6 +298,21 @@ discipline, in reverse.
 - **Admin UI:** Repointed `backend/src/admin_ui.rs` to `appfw_runtime::admin` and
   `appfw_runtime::observability::RequestContext`.
 - **Acceptance gate met:** `cargo check -p backend --all-targets` = 0 errors (clean build).
+
+### Slice 2b — warning elimination & live smoke test ✅ DONE
+
+- **Dead platform cleanup:** Removed dead Phase 7 duplicate files: `request_context.rs`,
+  `product_ui.rs`, `admin_runtime/` (mod + provider_capabilities), `connection_security.rs`,
+  `json_utils.rs`, `metrics.rs`, `readiness.rs`. Replaced `identifier.rs` with a direct shim
+  `pub use appfw_runtime::identifier::*;`.
+- **Zero compiler warnings:** `cargo check -p backend --all-targets` and
+  `cargo check --workspace --all-targets` both pass with **0 warnings, 0 errors** (down from 183).
+- **Unit test suite verified:** `cargo test -p backend --bin backend` passes (162 passed, 0 failed, 1 ignored).
+  Confirmed the 311→162 delta is 100% deleted framework-reimplementation tests, with zero product tests lost.
+- **Live GraphQL smoke test verified:** Server booted against live PostgreSQL container `governance-postgres`.
+  Executed `createComment` mutation → verified `governance.comments_audit` row created with initial `prev_hash`
+  and computed `event_hash`. Executed subsequent `updateComment` mutation → verified second audit row whose
+  `prev_hash` exactly matches the first row's `event_hash`. Live audit hash chain contract verified end-to-end.
 
 ### Slice 3 — swap the generator
 
