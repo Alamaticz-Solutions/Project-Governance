@@ -251,7 +251,7 @@ VALUES (
 
   'Intake-BTA',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   NULL,
 
@@ -263,7 +263,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -287,7 +287,7 @@ VALUES (
 
   'Intake-EPMO',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   NULL,
 
@@ -299,7 +299,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -323,7 +323,7 @@ VALUES (
 
   'BTA-Meeting',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["INTAKE_BTA"]}'::jsonb,
 
@@ -335,7 +335,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -359,7 +359,7 @@ VALUES (
 
   'PM',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["INTAKE_EPMO"]}'::jsonb,
 
@@ -371,7 +371,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -395,7 +395,7 @@ VALUES (
 
   'VCR',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["BTA_MEETING","PM_ASSIGN"]}'::jsonb,
 
@@ -407,7 +407,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -431,7 +431,7 @@ VALUES (
 
   'VRA',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["VCR_REVIEW"]}'::jsonb,
 
@@ -443,7 +443,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -467,7 +467,7 @@ VALUES (
 
   'EAC',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["VCR_REVIEW"]}'::jsonb,
 
@@ -479,7 +479,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -503,7 +503,7 @@ VALUES (
 
   'PIC',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["VCR_REVIEW"]}'::jsonb,
 
@@ -515,7 +515,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -539,7 +539,7 @@ VALUES (
 
   'Intake-TRC',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["VRA_REVIEW","EAC_REVIEW","PIC_REVIEW"]}'::jsonb,
 
@@ -551,7 +551,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -575,7 +575,7 @@ VALUES (
 
   'Intake-SRA',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["VRA_REVIEW","EAC_REVIEW","PIC_REVIEW"]}'::jsonb,
 
@@ -587,7 +587,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -611,7 +611,7 @@ VALUES (
 
   'TRC',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["INTAKE_TRC"]}'::jsonb,
 
@@ -623,7 +623,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -647,7 +647,7 @@ VALUES (
 
   'SRA',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["INTAKE_SRA"]}'::jsonb,
 
@@ -659,7 +659,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -683,7 +683,7 @@ VALUES (
 
   'APM',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["TRC_REVIEW","SRA_REVIEW"]}'::jsonb,
 
@@ -695,7 +695,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -719,7 +719,7 @@ VALUES (
 
   'Intake-ST',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["APM_REVIEW"]}'::jsonb,
 
@@ -731,7 +731,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -755,7 +755,7 @@ VALUES (
 
   'ST-Runbook',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["INTAKE_ST"]}'::jsonb,
 
@@ -767,7 +767,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -791,7 +791,7 @@ VALUES (
 
   'TechRB',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["INTAKE_ST"]}'::jsonb,
 
@@ -803,7 +803,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -827,7 +827,7 @@ VALUES (
 
   'Vendor ST',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["INTAKE_ST"]}'::jsonb,
 
@@ -839,7 +839,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -863,7 +863,7 @@ VALUES (
 
   'CAB-CT',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["ST_RUNBOOK","TECH_RB","VENDOR_ST"]}'::jsonb,
 
@@ -875,7 +875,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )
@@ -899,7 +899,7 @@ VALUES (
 
   'CAB-ER',
 
-  '["admin"]'::jsonb,
+  ARRAY['admin'],
 
   '{"gates":["CAB_CT"]}'::jsonb,
 
@@ -911,7 +911,7 @@ VALUES (
 
   5,
 
-  '[]'::jsonb
+  ARRAY[]::varchar[]
 
 
 )

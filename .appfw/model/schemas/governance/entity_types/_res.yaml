@@ -4276,6 +4276,235 @@
     nested_entity_type: null
     enum_type_name: null
     meta: {}
+- id: 7a1c9e40-0000-4000-8000-000000000c0b
+  schema_name: governance
+  schema_id: 604d3bb2-9ec2-4eeb-831a-8d82c3922553
+  pascal_1: GraphWriteAttempt
+  pascal_n: GraphWriteAttempts
+  snake_1: graph_write_attempt
+  snake_n: graph_write_attempts
+  caption_1: Graph Write Attempt
+  caption_n: Graph Write Attempts
+  is_union: false
+  base_type: null
+  is_table: true
+  facets: []
+  indexes:
+  - idempotency_key
+  - meeting_id
+  - status
+  constraints: []
+  meta: null
+  execution: null
+  standard_methods:
+  - Query
+  - Create
+  custom_methods: null
+  props:
+  - id: 398dff0c4cc5ef12
+    name: id
+    caption: Id
+    is_key: true
+    is_caption: false
+    is_required: true
+    is_read_only: true
+    is_concurrency_control: false
+    data_type: Uuid
+    computed: None
+    default_value: {}
+    foreign_key: null
+    nav_by_fk_property: null
+    many_to_many_property: null
+    nested_entity_type: null
+    enum_type_name: null
+    meta: {}
+  - id: dd3da1c005cba5fc
+    name: idempotency_key
+    caption: Idempotency Key
+    is_key: false
+    is_caption: false
+    is_required: true
+    is_read_only: false
+    is_concurrency_control: false
+    data_type: String
+    computed: None
+    default_value: {}
+    foreign_key: null
+    nav_by_fk_property: null
+    many_to_many_property: null
+    nested_entity_type: null
+    enum_type_name: null
+    meta: {}
+  - id: d818ca00598a9193
+    name: operation
+    caption: Operation
+    is_key: false
+    is_caption: false
+    is_required: true
+    is_read_only: false
+    is_concurrency_control: false
+    data_type: String
+    computed: None
+    default_value: {}
+    foreign_key: null
+    nav_by_fk_property: null
+    many_to_many_property: null
+    nested_entity_type: null
+    enum_type_name: null
+    meta: {}
+  - id: 8ead79602ba35e6a
+    name: actor
+    caption: Actor
+    is_key: false
+    is_caption: false
+    is_required: true
+    is_read_only: false
+    is_concurrency_control: false
+    data_type: String
+    computed: None
+    default_value: {}
+    foreign_key: null
+    nav_by_fk_property: null
+    many_to_many_property: null
+    nested_entity_type: null
+    enum_type_name: null
+    meta: {}
+  - id: 3b3c7e35edd2bb5d
+    name: tenant_id
+    caption: Tenant Id
+    is_key: false
+    is_caption: false
+    is_required: false
+    is_read_only: false
+    is_concurrency_control: false
+    data_type: String
+    computed: None
+    default_value: {}
+    foreign_key: null
+    nav_by_fk_property: null
+    many_to_many_property: null
+    nested_entity_type: null
+    enum_type_name: null
+    meta: {}
+  - id: 32ef3384d74fb628
+    name: request_fingerprint
+    caption: Request Fingerprint
+    is_key: false
+    is_caption: false
+    is_required: true
+    is_read_only: false
+    is_concurrency_control: false
+    data_type: String
+    computed: None
+    default_value: {}
+    foreign_key: null
+    nav_by_fk_property: null
+    many_to_many_property: null
+    nested_entity_type: null
+    enum_type_name: null
+    meta: {}
+  - id: 1f908397f9700842
+    name: status
+    caption: Status
+    is_key: false
+    is_caption: false
+    is_required: true
+    is_read_only: false
+    is_concurrency_control: false
+    data_type: String
+    computed: None
+    default_value: pending
+    foreign_key: null
+    nav_by_fk_property: null
+    many_to_many_property: null
+    nested_entity_type: null
+    enum_type_name: null
+    meta: {}
+  - id: 95fbf53d10daa245
+    name: graph_resource_id
+    caption: Graph Resource Id
+    is_key: false
+    is_caption: false
+    is_required: false
+    is_read_only: false
+    is_concurrency_control: false
+    data_type: String
+    computed: None
+    default_value: {}
+    foreign_key: null
+    nav_by_fk_property: null
+    many_to_many_property: null
+    nested_entity_type: null
+    enum_type_name: null
+    meta: {}
+  - id: 4c8d01bdc0e35f4d
+    name: error_code
+    caption: Error Code
+    is_key: false
+    is_caption: false
+    is_required: false
+    is_read_only: false
+    is_concurrency_control: false
+    data_type: String
+    computed: None
+    default_value: {}
+    foreign_key: null
+    nav_by_fk_property: null
+    many_to_many_property: null
+    nested_entity_type: null
+    enum_type_name: null
+    meta: {}
+  - id: f74b49b40ce7e447
+    name: meeting_id
+    caption: Meeting Id
+    is_key: false
+    is_caption: false
+    is_required: false
+    is_read_only: false
+    is_concurrency_control: false
+    data_type: String
+    computed: None
+    default_value: {}
+    foreign_key: null
+    nav_by_fk_property: null
+    many_to_many_property: null
+    nested_entity_type: null
+    enum_type_name: null
+    meta: {}
+  - id: 8eab27c0d314fe6d
+    name: created_at
+    caption: Created At
+    is_key: false
+    is_caption: false
+    is_required: true
+    is_read_only: false
+    is_concurrency_control: false
+    data_type: DateTime
+    computed: None
+    default_value: {}
+    foreign_key: null
+    nav_by_fk_property: null
+    many_to_many_property: null
+    nested_entity_type: null
+    enum_type_name: null
+    meta: {}
+  - id: 72a822e67721a0b6
+    name: completed_at
+    caption: Completed At
+    is_key: false
+    is_caption: false
+    is_required: false
+    is_read_only: false
+    is_concurrency_control: false
+    data_type: DateTime
+    computed: None
+    default_value: {}
+    foreign_key: null
+    nav_by_fk_property: null
+    many_to_many_property: null
+    nested_entity_type: null
+    enum_type_name: null
+    meta: {}
 - id: 7a1c9e40-0000-4000-8000-000000000c08
   schema_name: governance
   schema_id: 604d3bb2-9ec2-4eeb-831a-8d82c3922553
@@ -4594,6 +4823,26 @@
   - Delete
   custom_methods:
   - name: process_transcript
+    kind: Mutation
+    args:
+    - name: meeting_id
+      arg_type: String
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+    mcp_enabled: false
+    provider_routine: null
+  - name: schedule_via_graph
+    kind: Mutation
+    args:
+    - name: meeting_id
+      arg_type: String
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+    mcp_enabled: false
+    provider_routine: null
+  - name: cancel_via_graph
     kind: Mutation
     args:
     - name: meeting_id
@@ -5846,6 +6095,26 @@
       arg_type: String
     - name: reason
       arg_type: String
+    return_type: serde_json::Value
+    mcp_enabled: false
+    provider_routine: null
+  - name: extract_intake
+    kind: Mutation
+    args:
+    - name: payload
+      arg_type: serde_json::Value
+    return_type: serde_json::Value
+    mcp_enabled: false
+    provider_routine: null
+  - name: extract_team_fields
+    kind: Mutation
+    args:
+    - name: project_id
+      arg_type: String
+    - name: team
+      arg_type: String
+    - name: payload
+      arg_type: serde_json::Value
     return_type: serde_json::Value
     mcp_enabled: false
     provider_routine: null
@@ -10873,7 +11142,15 @@
   - Create
   - Update
   - Delete
-  custom_methods: null
+  custom_methods:
+  - name: search_directory
+    kind: Query
+    args:
+    - name: query
+      arg_type: String
+    return_type: serde_json::Value
+    mcp_enabled: false
+    provider_routine: null
   props:
   - id: 64a8ae949db0ca54
     name: id

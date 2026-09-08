@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
-#[allow(non_camel_case_types)]
 pub enum AuditAction {
     Create,
     Read,
@@ -23,7 +22,6 @@ pub enum AuditAction {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
-#[allow(non_camel_case_types)]
 pub enum Computed {
     Concatenate,
     Format,
@@ -35,7 +33,6 @@ pub enum Computed {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
-#[allow(non_camel_case_types)]
 pub enum CustomMethodKind {
     Query,
     Mutation,
@@ -44,7 +41,6 @@ pub enum CustomMethodKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
-#[allow(non_camel_case_types)]
 pub enum DataSourceType {
     PostgreSQL,
     MongoDB,
@@ -62,7 +58,6 @@ pub enum DataSourceType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
-#[allow(non_camel_case_types)]
 pub enum DataType {
     Uuid,
     UuidArray,
@@ -97,7 +92,6 @@ pub enum DataType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
-#[allow(non_camel_case_types)]
 pub enum Facet {
     Concurrency,
     Audited,
@@ -106,7 +100,6 @@ pub enum Facet {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
-#[allow(non_camel_case_types)]
 pub enum FieldValueSource {
     Literal,
     FieldReference,
@@ -116,7 +109,6 @@ pub enum FieldValueSource {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
-#[allow(non_camel_case_types)]
 pub enum StandardMethod {
     FindById,
     GetAll,
@@ -128,7 +120,6 @@ pub enum StandardMethod {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
-#[allow(non_camel_case_types)]
 pub enum UserStatus {
     Active,
     Disabled,
@@ -137,7 +128,6 @@ pub enum UserStatus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 #[graphql(rename_items = "PascalCase")]
-#[allow(non_camel_case_types)]
 pub enum CrudEvent {
     Create,
     Read,
@@ -942,37 +932,8 @@ pub struct InputManyToManyProperty {
     pub target_type: String,
 }
 
-// Validator is_union: true ////////////////////////////////////////////////////////////
-
-#[derive(Union, Debug, Clone, Serialize, Deserialize)]
-pub enum Validator {
-    ValueRangeValidator(ValueRangeValidator),
-    ArrayLengthValidator(ArrayLengthValidator),
-    StringLengthValidator(StringLengthValidator),
-    StringPatternValidator(StringPatternValidator),
-    UniquenessValidator(UniquenessValidator),
-    FunctionValidator(FunctionValidator),
-}
-
-#[derive(Union, Debug, Clone, Serialize, Deserialize)]
-pub enum ValidatorProjection {
-    ValueRangeValidator(ValueRangeValidatorProjection),
-    ArrayLengthValidator(ArrayLengthValidatorProjection),
-    StringLengthValidator(StringLengthValidatorProjection),
-    StringPatternValidator(StringPatternValidatorProjection),
-    UniquenessValidator(UniquenessValidatorProjection),
-    FunctionValidator(FunctionValidatorProjection),
-}
-
-#[derive(OneofObject, Debug, Clone, Serialize, Deserialize)]
-pub enum InputValidator {
-    ValueRangeValidator(InputValueRangeValidator),
-    ArrayLengthValidator(InputArrayLengthValidator),
-    StringLengthValidator(InputStringLengthValidator),
-    StringPatternValidator(InputStringPatternValidator),
-    UniquenessValidator(InputUniquenessValidator),
-    FunctionValidator(InputFunctionValidator),
-}
+// Validator is_union: true ////////////////////////////////////////////////////////////// WARNING: Union type Validator has no variants - skipping generation
+// Add entity types with base_type: Validator to generate this union
 
 // ValueRangeValidator is_union: false ////////////////////////////////////////////////////////////
 

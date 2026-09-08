@@ -14,7 +14,7 @@ import {
   PageHeader,
   Surface,
   type PdsDataGridColumn
-} from "@ui-kit";
+} from "@appfw/pds-health-components";
 import {
   appfwUiContracts,
   type AppfwUiEntityContract

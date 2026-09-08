@@ -23,7 +23,6 @@ use crate::{
     config::app_config::AppConfig,
     data::audit as runtime_audit,
     data::data_access::DataAccess,
-    platform::auth::JwtAuthConfig,
     platform::policy::AccessAction,
     product_api::{product_data_type, runtime_entity_metadata, runtime_provider},
     schemas::system::{DataSourceType, EntityType},
@@ -32,7 +31,7 @@ use crate::{
 #[derive(Clone)]
 struct AdminState {
     app_config: Arc<AppConfig>,
-    jwt_auth: JwtAuthConfig,
+    app_state: RuntimeAuthState,
     data_access_by_schema: HashMap<String, Arc<DataAccess>>,
     troubleshooting_enabled: bool,
 }
@@ -43,13 +42,13 @@ type FilterCapabilities =
 
 pub fn get_routes(
     app_config: Arc<AppConfig>,
-    jwt_auth: JwtAuthConfig,
+    app_state: RuntimeAuthState,
     security: SecurityConfig,
     data_access_by_schema: HashMap<String, Arc<DataAccess>>,
 ) -> Router {
     admin_runtime_routes::<AdminState>().with_state(AdminState {
         app_config,
-        jwt_auth,
+        app_state,
         data_access_by_schema,
         troubleshooting_enabled: security.admin_troubleshooting_enabled,
     })
@@ -86,11 +85,7 @@ impl AdminRuntimeState for AdminState {
     }
 
     fn auth_state(&self) -> RuntimeAuthState {
-        RuntimeAuthState {
-            jwt_issuer: self.jwt_auth.issuer.clone(),
-            jwt_audience: self.jwt_auth.audience.clone(),
-            okta_client_id: self.jwt_auth.client_id.clone(),
-        }
+        self.app_state.clone()
     }
 
     fn troubleshooting_enabled(&self) -> bool {

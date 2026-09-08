@@ -1,20 +1,15 @@
-use crate::platform::runtime::security::SecurityConfig;
-// Product-owned (backend framework replacement phase 4 -- previously
-// `appfw_runtime::cors`/`observability`/`auth`/`host`).
 use dotenv::dotenv;
-#[cfg(feature = "http")]
-use platform::auth::JwtAuthConfig;
-#[cfg(feature = "http")]
-use platform::cors;
-#[cfg(feature = "http")]
-use platform::host::RuntimeHttpServerConfig;
-use platform::host::{RuntimeHostPlan, RuntimeMode};
-use platform::observability::init_tracing;
 #[cfg(feature = "http")]
 use std::sync::Arc;
 use tracing::error;
 #[cfg(feature = "http")]
 use tracing::info;
+
+#[cfg(feature = "http")]
+use appfw_runtime::{cors, RuntimeAuthState, RuntimeHttpServerConfig};
+use appfw_runtime::{
+    observability::init_tracing, security::SecurityConfig, RuntimeHostPlan, RuntimeMode,
+};
 
 #[cfg(feature = "http")]
 mod admin_ui;
@@ -117,10 +112,10 @@ async fn run() {
                 std::process::exit(1);
             }
         };
-        let jwt_auth = match JwtAuthConfig::from_env() {
-            Ok(config) => config,
+        let app_state = match RuntimeAuthState::from_env() {
+            Ok(state) => state,
             Err(e) => {
-                error!(error = %e, "failed to initialize JWT auth configuration");
+                error!(error = %e, "failed to initialize app state");
                 std::process::exit(1);
             }
         };
@@ -132,7 +127,7 @@ async fn run() {
         let routes = match get_routes(
             cors,
             app_config.clone(),
-            jwt_auth,
+            app_state.clone(),
             security,
             host_plan.mode().clone(),
         )
@@ -153,7 +148,7 @@ async fn run() {
             }
         };
 
-        if let Err(e) = platform::host::serve_http_router(routes, &http_config).await {
+        if let Err(e) = appfw_runtime::serve_http_router(routes, &http_config).await {
             error!(error = %e, "backend runtime host error");
             std::process::exit(1);
         }

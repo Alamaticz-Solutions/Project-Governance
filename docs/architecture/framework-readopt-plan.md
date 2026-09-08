@@ -41,6 +41,7 @@ to `origin`. Commits so far:
 | `8efc7c1` | this doc §6a (teammate setup) + §9 (Windows caveat) |
 | `9e90b94` | **slice 2** — facade flipped, 19 platform + 12 sql files deleted, `appfw-provider-postgres` adopted |
 | `87bec07` | **slice 2b** — dead code cleanup (183→0 warnings), live GraphQL audit-hash-chain smoke passed against Postgres |
+| `624664f` | **slice 3** — swap generator (product_gen deleted, app_gen adopted, workspace 0 warnings/0 errors) |
 
 **Framework checkout:** `Alamaticz-Solutions/app-framework` @ tag
 `pinned/archive-893829ad0e30` must be cloned as a sibling of this repo (see §6a
@@ -56,7 +57,7 @@ sibling path).
 cargo check -p backend --all-targets      # must be 0 errors
 ```
 
-**Next action:** Slice 3 (§4). Delete `product_gen/` and regenerate via `app_gen`.
+**Next action:** Slice 4 (§4). Reconcile `.appfw/` to the framework contract.
 
 **The detailed reverse-map lives in `self-owned-backend-plan.md` §"Phase 7"** —
 that section documents, slice by slice, exactly how each `appfw_runtime` symbol
@@ -317,14 +318,15 @@ discipline, in reverse.
   `/readyz`, and `/livez` probe response shaping, and TLS connection security enforcement. Any behavioral differences
   from the retired self-owned shims are accepted as the standard framework contract.
 
-### Slice 3 — swap the generator
+### Slice 3 — swap the generator ✅ DONE
 
-- Delete `product_gen/` and `product_cli/`.
-- `scripts/appfw product validate --json` → `scripts/appfw product generate` →
-  `git diff` (large, generated) → `scripts/appfw product generate --check
-  --json`.
-- Regenerates `routes/`, `schemas/`, `handlers/*/generated.rs`,
-  `entity_types.yaml`, `appfw-ui-contract.ts`, `podman-compose.yml`.
+- **Generator swapped:** Deleted `product_gen/` (23 files + `product_cli` binary). Repointed `rego_test` to `appfw-test` and restored `rego_test` as an active member in root `Cargo.toml`.
+- **Clean framework validation:** Executed `scripts/appfw product validate --json` under Linux container (`rust-appfw`) → 0 errors, 0 warnings.
+- **Code regenerated via `app_gen`:** Executed `scripts/appfw product generate` → regenerated `routes/`, `schemas/`, `handlers/*/mod.rs`, `database/_pkg/**`, `entity_types.yaml`, `appfw-ui-contract.ts`, and `podman-compose.yml`.
+- **Deterministic verification:** Executed `scripts/appfw product generate --check --json` → `{"command":"generate-check","ok":true}`.
+- **Dead platform cleanup:** Removed dead Phase 7 duplicate files now owned by framework runtime: `auth.rs`, `cors.rs`, `graphql_gateway.rs`, `host.rs`, `observability.rs`, `routing.rs`, and `security.rs`.
+- **Zero compiler warnings:** `cargo check -p backend --all-targets` and `cargo check --workspace --all-targets` both pass with **0 warnings, 0 errors**.
+- **Test suites pass:** `backend` (122 passed, 0 failed, 1 ignored, including `audit_event::golden_test`), `rego_test` (4 passed), and `api_tests` (7 passed) all pass cleanly.
 
 ### Slice 4 — reconcile `.appfw/` to the framework contract
 

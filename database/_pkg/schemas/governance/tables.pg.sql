@@ -7,8 +7,6 @@
 DO $$
 BEGIN
 
-    CREATE SCHEMA IF NOT EXISTS governance;
-
 
 
 

@@ -15,7 +15,7 @@
 
 use std::path::PathBuf;
 
-use product_gen::policy::{
+use appfw_test::policy::{
     AccessAction, AccessInput, AccessResult, AccessUser, evaluate_access, evaluate_access_rule,
 };
 use serde_json::json;

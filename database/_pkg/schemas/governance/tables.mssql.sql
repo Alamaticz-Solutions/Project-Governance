@@ -858,6 +858,117 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'[governance].[graph_write_attempts]', N'U') IS NOT NULL
+BEGIN
+    PRINT N'ALTERING table graph_write_attempts';
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+          AND name = N'idempotency_key'
+    )
+        ALTER TABLE [governance].[graph_write_attempts] ADD [idempotency_key] nvarchar(450);
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+          AND name = N'operation'
+    )
+        ALTER TABLE [governance].[graph_write_attempts] ADD [operation] nvarchar(450);
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+          AND name = N'actor'
+    )
+        ALTER TABLE [governance].[graph_write_attempts] ADD [actor] nvarchar(450);
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+          AND name = N'tenant_id'
+    )
+        ALTER TABLE [governance].[graph_write_attempts] ADD [tenant_id] nvarchar(450);
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+          AND name = N'request_fingerprint'
+    )
+        ALTER TABLE [governance].[graph_write_attempts] ADD [request_fingerprint] nvarchar(450);
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+          AND name = N'status'
+    )
+        ALTER TABLE [governance].[graph_write_attempts] ADD [status] nvarchar(450);
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+          AND name = N'graph_resource_id'
+    )
+        ALTER TABLE [governance].[graph_write_attempts] ADD [graph_resource_id] nvarchar(450);
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+          AND name = N'error_code'
+    )
+        ALTER TABLE [governance].[graph_write_attempts] ADD [error_code] nvarchar(450);
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+          AND name = N'meeting_id'
+    )
+        ALTER TABLE [governance].[graph_write_attempts] ADD [meeting_id] nvarchar(450);
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+          AND name = N'created_at'
+    )
+        ALTER TABLE [governance].[graph_write_attempts] ADD [created_at] datetimeoffset(7);
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+          AND name = N'completed_at'
+    )
+        ALTER TABLE [governance].[graph_write_attempts] ADD [completed_at] datetimeoffset(7);
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+          AND name = N'record_locator'
+    )
+        ALTER TABLE [governance].[graph_write_attempts] ADD [record_locator] nvarchar(450) NOT NULL CONSTRAINT [df_graph_write_attempts_record_locator] DEFAULT CONCAT(N'rl_', REPLACE(CONVERT(nvarchar(36), NEWID()), N'-', N''));
+
+END
+ELSE
+BEGIN
+    PRINT N'CREATING table graph_write_attempts';
+    CREATE TABLE [governance].[graph_write_attempts]
+    (
+        [id] uniqueidentifier NOT NULL CONSTRAINT [df_graph_write_attempts_id] DEFAULT NEWID() CONSTRAINT [pk_graph_write_attempts] PRIMARY KEY
+        ,[idempotency_key] nvarchar(450)
+        ,[operation] nvarchar(450)
+        ,[actor] nvarchar(450)
+        ,[tenant_id] nvarchar(450)
+        ,[request_fingerprint] nvarchar(450)
+        ,[status] nvarchar(450)
+        ,[graph_resource_id] nvarchar(450)
+        ,[error_code] nvarchar(450)
+        ,[meeting_id] nvarchar(450)
+        ,[created_at] datetimeoffset(7)
+        ,[completed_at] datetimeoffset(7)
+        ,[record_locator] nvarchar(450) NOT NULL CONSTRAINT [df_graph_write_attempts_record_locator] DEFAULT CONCAT(N'rl_', REPLACE(CONVERT(nvarchar(36), NEWID()), N'-', N''))
+    );
+END
+GO
+
 IF OBJECT_ID(N'[governance].[knowledge_chunks]', N'U') IS NOT NULL
 BEGIN
     PRINT N'ALTERING table knowledge_chunks';
@@ -4245,6 +4356,30 @@ BEGIN
     PRINT N'Creating index idx_graph_subscriptions_resource';
     CREATE INDEX [idx_graph_subscriptions_resource]
         ON [governance].[graph_subscriptions] ([resource]);
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE name = N'ux_graph_write_attempts_record_locator'
+      AND object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+)
+BEGIN
+    PRINT N'Creating index ux_graph_write_attempts_record_locator';
+    CREATE UNIQUE INDEX [ux_graph_write_attempts_record_locator]
+        ON [governance].[graph_write_attempts] ([record_locator]);
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE name = N'idx_graph_write_attempts_idempotency_key_meeting_id_status'
+      AND object_id = OBJECT_ID(N'[governance].[graph_write_attempts]')
+)
+BEGIN
+    PRINT N'Creating index idx_graph_write_attempts_idempotency_key_meeting_id_status';
+    CREATE INDEX [idx_graph_write_attempts_idempotency_key_meeting_id_status]
+        ON [governance].[graph_write_attempts] ([idempotency_key], [meeting_id], [status]);
 END
 GO
 

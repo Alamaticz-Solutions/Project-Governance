@@ -32,6 +32,10 @@ http = [
 # framework re-adoption slice 2 replaces it with appfw-provider-postgres.
 # This feature now only gates route registration in backend/src/routes/mod.rs.
 provider-postgres = []
+mcp = []
+
+[lints.rust]
+non_camel_case_types = "allow"
 
 [dependencies]
 anyhow = "1.0"

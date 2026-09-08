@@ -66,7 +66,6 @@ impl SystemQuery {
     ) -> FieldResult<Option<SchemaProjection>> {
         let handler_context = from_context(ctx, "system", "Schema")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
-        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = schema::find_impl(user, &data_access, &entity_type, selections, id).await;
 
@@ -83,7 +82,6 @@ impl SystemQuery {
     ) -> FieldResult<Option<SchemaProjection>> {
         let handler_context = from_context(ctx, "system", "Schema")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
-        let user = user.map(crate::product_api::UserAuth::from);
 
         let res =
             schema::find_by_locator_impl(user, &data_access, &entity_type, selections, locator)
@@ -98,7 +96,6 @@ impl SystemQuery {
     async fn get_schemas(&self, ctx: &Context<'_>) -> FieldResult<Vec<SchemaProjection>> {
         let handler_context = from_context(ctx, "system", "Schema")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
-        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = schema::get_impl(user, &data_access, &entity_type, selections).await;
 
@@ -119,7 +116,6 @@ impl SystemQuery {
     ) -> FieldResult<SchemaQueryResult> {
         let handler_context = from_context(ctx, "system", "Schema")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
-        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = schema::query_impl(
@@ -164,7 +160,6 @@ impl SystemQuery {
     ) -> FieldResult<AggregateResult> {
         let handler_context = from_context_without_selections(ctx, "system", "Schema")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
-        let user = user.map(crate::product_api::UserAuth::from);
         let (skip, limit) = pagination_args(skip, limit)?;
 
         let res = data_access
@@ -197,7 +192,6 @@ impl SystemQuery {
         // exist on `EntityType`. Resolver receives Null selections.
         let handler_context = from_context_without_selections(ctx, "system", "EntityType")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
-        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = entity_type::get_schema_types_impl(
             user,
@@ -234,7 +228,6 @@ impl SystemMutation {
     ) -> FieldResult<SchemaProjection> {
         let handler_context = from_context(ctx, "system", "Schema")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
-        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = schema::create_impl(user, &data_access, &entity_type, selections, input).await;
 
@@ -251,7 +244,6 @@ impl SystemMutation {
     ) -> FieldResult<SchemaProjection> {
         let handler_context = from_context(ctx, "system", "Schema")?;
         let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
-        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = schema::update_impl(user, &data_access, &entity_type, selections, input).await;
 
@@ -264,7 +256,6 @@ impl SystemMutation {
     pub async fn delete_schema(&self, ctx: &Context<'_>, input: InputSchema) -> FieldResult<i64> {
         let handler_context = from_context_without_selections(ctx, "system", "Schema")?;
         let (user, data_access, entity_type, _) = handler_context.into_handler_parts();
-        let user = user.map(crate::product_api::UserAuth::from);
 
         let res = schema::delete_impl(user, &data_access, &entity_type, input).await;
 

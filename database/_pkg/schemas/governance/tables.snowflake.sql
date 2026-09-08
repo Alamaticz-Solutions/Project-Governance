@@ -475,6 +475,67 @@ ALTER TABLE "governance"."graph_subscriptions"
 
 
 
+CREATE TABLE IF NOT EXISTS "governance"."graph_write_attempts"
+(
+    "id" VARCHAR NOT NULL DEFAULT UUID_STRING() PRIMARY KEY
+    ,"idempotency_key" VARCHAR
+    ,"operation" VARCHAR
+    ,"actor" VARCHAR
+    ,"tenant_id" VARCHAR
+    ,"request_fingerprint" VARCHAR
+    ,"status" VARCHAR
+    ,"graph_resource_id" VARCHAR
+    ,"error_code" VARCHAR
+    ,"meeting_id" VARCHAR
+    ,"created_at" TIMESTAMP_TZ
+    ,"completed_at" TIMESTAMP_TZ
+    ,"record_locator" VARCHAR NOT NULL DEFAULT ('rl_' || REPLACE(UUID_STRING(), '-', ''))
+);
+
+
+ALTER TABLE "governance"."graph_write_attempts"
+    ADD COLUMN IF NOT EXISTS "idempotency_key" VARCHAR;
+
+ALTER TABLE "governance"."graph_write_attempts"
+    ADD COLUMN IF NOT EXISTS "operation" VARCHAR;
+
+ALTER TABLE "governance"."graph_write_attempts"
+    ADD COLUMN IF NOT EXISTS "actor" VARCHAR;
+
+ALTER TABLE "governance"."graph_write_attempts"
+    ADD COLUMN IF NOT EXISTS "tenant_id" VARCHAR;
+
+ALTER TABLE "governance"."graph_write_attempts"
+    ADD COLUMN IF NOT EXISTS "request_fingerprint" VARCHAR;
+
+ALTER TABLE "governance"."graph_write_attempts"
+    ADD COLUMN IF NOT EXISTS "status" VARCHAR;
+
+ALTER TABLE "governance"."graph_write_attempts"
+    ADD COLUMN IF NOT EXISTS "graph_resource_id" VARCHAR;
+
+ALTER TABLE "governance"."graph_write_attempts"
+    ADD COLUMN IF NOT EXISTS "error_code" VARCHAR;
+
+ALTER TABLE "governance"."graph_write_attempts"
+    ADD COLUMN IF NOT EXISTS "meeting_id" VARCHAR;
+
+ALTER TABLE "governance"."graph_write_attempts"
+    ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMP_TZ;
+
+ALTER TABLE "governance"."graph_write_attempts"
+    ADD COLUMN IF NOT EXISTS "completed_at" TIMESTAMP_TZ;
+
+ALTER TABLE "governance"."graph_write_attempts"
+    ADD COLUMN IF NOT EXISTS "record_locator" VARCHAR;
+UPDATE "governance"."graph_write_attempts"
+    SET "record_locator" = ('rl_' || REPLACE(UUID_STRING(), '-', ''))
+    WHERE "record_locator" IS NULL;
+ALTER TABLE "governance"."graph_write_attempts"
+    ALTER COLUMN "record_locator" SET NOT NULL;
+
+
+
 CREATE TABLE IF NOT EXISTS "governance"."knowledge_chunks"
 (
     "id" VARCHAR NOT NULL DEFAULT UUID_STRING() PRIMARY KEY

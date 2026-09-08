@@ -14,9 +14,12 @@ pub(crate) mod governance;
 pub(crate) mod system;
 
 #[cfg(feature = "http")]
-use crate::platform::runtime::{
-    observability::MetricsRegistry, provider_keys::FrameworkProvider, security::SecurityConfig,
-    RuntimeProviderRegistry,
+use appfw_runtime::{
+    ingress::{assemble_runtime_router_for_mode, RuntimeRouteSet},
+    observability::MetricsRegistry,
+    provider_keys::FrameworkProvider,
+    security::SecurityConfig,
+    RuntimeAuthState, RuntimeMode, RuntimeProviderRegistry,
 };
 #[cfg(feature = "http")]
 use axum::Router;
@@ -29,12 +32,8 @@ use tower_http::cors::CorsLayer;
 use crate::admin_ui;
 #[cfg(feature = "http")]
 use crate::data::clients::database_client::DatabaseClientBox;
-#[cfg(feature = "http")]
-use crate::platform::{
-    auth::JwtAuthConfig,
-    host::RuntimeMode,
-    routing::{assemble_runtime_router_for_mode, RuntimeRouteSet},
-};
+#[cfg(all(feature = "http", feature = "mcp"))]
+use crate::mcp;
 #[cfg(feature = "http")]
 use crate::{
     config::app_config::AppConfig, data::data_access::DataAccess, product_api::runtime_provider,
@@ -50,7 +49,7 @@ use app_error::AppError;
 pub async fn get_routes(
     cors: CorsLayer,
     app_config: Arc<AppConfig>,
-    jwt_auth: JwtAuthConfig,
+    app_state: RuntimeAuthState,
     security: SecurityConfig,
     runtime_mode: RuntimeMode,
 ) -> Result<Router, AppError> {
@@ -71,7 +70,7 @@ pub async fn get_routes(
     let info_router = info::nest_routes(Router::new(), metrics.clone(), readiness).await;
     let governance_router = governance::get_routes(
         governance_data_access.clone(),
-        jwt_auth.clone(),
+        app_state.clone(),
         security.clone(),
     )
     .await;
@@ -81,23 +80,34 @@ pub async fn get_routes(
 
     let admin_router = admin_ui::get_routes(
         app_config.clone(),
-        jwt_auth.clone(),
+        app_state.clone(),
         security.clone(),
         data_access_by_schema.clone(),
     );
+    #[cfg(all(feature = "http", feature = "mcp"))]
+    let mcp_router = mcp::get_routes(
+        app_config.clone(),
+        app_state.clone(),
+        security.clone(),
+        data_access_by_schema.clone(),
+    );
+
     let mut route_set = RuntimeRouteSet::new()
         .with_info(info_router)
         .with_admin(admin_router)
         .with_schema(governance_router);
 
     if security.product_ui_enabled {
-        if let Some(product_ui_router) = crate::platform::runtime::product_ui::product_ui_routes_if_present(
+        if let Some(product_ui_router) = appfw_runtime::product_ui::product_ui_routes_if_present(
             env!("CARGO_MANIFEST_DIR"),
             ["/governance", "/system"],
         ) {
             route_set = route_set.with_product_ui(product_ui_router);
         }
     }
+
+    #[cfg(all(feature = "http", feature = "mcp"))]
+    let route_set = route_set.with_mcp(mcp_router);
 
     Ok(assemble_runtime_router_for_mode(
         route_set,
@@ -125,9 +135,6 @@ async fn create_database_client(
     data_source_name: String,
 ) -> Result<DatabaseClientBox, AppError> {
     let provider = runtime_provider(app_config.get_data_source_type(&data_source_name)?);
-    // `RuntimeProviderRegistry` is self-owned as of phase 7 slice 8 -- no
-    // bridge conversion needed any more, `provider` is already its own
-    // `FrameworkProvider` parameter type.
     database_client_registry(app_config)
         .create(provider, data_source_name)
         .await
