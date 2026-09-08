@@ -1,3 +1,5 @@
 target/
 admin_dist/
 product_dist/
+**/.env
+*.env

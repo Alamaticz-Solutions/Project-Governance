@@ -7,3 +7,5 @@ backend/admin_dist/
 .git/
 logs/
 *.log
+**/.env
+*.env
