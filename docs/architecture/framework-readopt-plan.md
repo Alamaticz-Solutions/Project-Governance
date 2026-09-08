@@ -42,6 +42,8 @@ to `origin`. Commits so far:
 | `9e90b94` | **slice 2** — facade flipped, 19 platform + 12 sql files deleted, `appfw-provider-postgres` adopted |
 | `87bec07` | **slice 2b** — dead code cleanup (183→0 warnings), live GraphQL audit-hash-chain smoke passed against Postgres |
 | `b6ef392` | **slice 3** — swap generator (product_gen deleted, app_gen adopted, workspace 0 warnings/0 errors) |
+| `25a8999` | slice 3 followup — repoint rego_test to appfw-test, restore to workspace members |
+| `c702fc8` | slice 3 review — live smoke test rerun, non_camel_case_types comment, docker runner recipe in §9 |
 
 **Framework checkout:** `Alamaticz-Solutions/app-framework` @ tag
 `pinned/archive-893829ad0e30` must be cloned as a sibling of this repo (see §6a
@@ -57,7 +59,7 @@ sibling path).
 cargo check -p backend --all-targets      # must be 0 errors
 ```
 
-**Next action:** Slice 4 (§4). Reconcile `.appfw/` to the framework contract.
+**Next action:** Slice 5 (§4). Product-surface fallout & boundary-check cleanup.
 
 **The detailed reverse-map lives in `self-owned-backend-plan.md` §"Phase 7"** —
 that section documents, slice by slice, exactly how each `appfw_runtime` symbol
@@ -328,17 +330,15 @@ discipline, in reverse.
 - **Zero compiler warnings:** `cargo check -p backend --all-targets` and `cargo check --workspace --all-targets` both pass with **0 warnings, 0 errors**.
 - **Test suites pass:** `backend` (122 passed, 0 failed, 1 ignored, including `audit_event::golden_test`), `rego_test` (4 passed), and `api_tests` (7 passed) all pass cleanly.
 
-### Slice 4 — reconcile `.appfw/` to the framework contract
+### Slice 4 — reconcile `.appfw/` to the framework contract ✅ DONE
 
-Likely light — `.appfw/manifest.yaml` is already in framework v1 shape
-(`version: 1`, `topology.data_sources[].role: transactional`,
-`topology.schemas[].role: framework`/`product`, `ingress`, `ui` blocks — matches
-the CRM sample's manifest structure). Confirm against the checkout's
-`.appfw/model/_specs/CONFIG_CONTRACT.md`:
-
-- `.appfw/manifest.yaml` field names/values still valid for the adopted version.
-- Schema `_res.yaml`: storage postures (`app_owned` etc.).
-- `scripts/appfw product validate --json` until clean (run under WSL/Linux — §9).
+Verified against the adopted framework contract (`app_gen/_config/_specs/CONFIG_CONTRACT.md` and CRM sample):
+- `.appfw/manifest.yaml` field names, versions, topology blocks (`pg_primary` transactional, `system` framework schema, `governance` product schema, `governance-http` ingress, UI product_spa packaging) match the framework v1 contract.
+- Schema `_res.yaml`: storage postures verified (`governance` defaults to `app_owned` for product tables; `system` is `role: framework`). Data sources declare `pg_primary` for `local` and `compose` environments with `is_system_schema_host: true`.
+- `scripts/appfw product validate --json` (run in `rust-appfw:latest` container) passes cleanly: `valid: true`, `summary: { errors: 0, warnings: 0 }`, `ok: true`.
+- `scripts/appfw product generate --check --json` (run in `rust-appfw:latest` container) passes cleanly: `ok: true` (zero generation drift).
+- `cargo check --workspace --all-targets` passes with **0 warnings, 0 errors**.
+- All unit tests pass (`backend`: 122 passed, `rego_test`: 4 passed, `api_tests`: 7 passed).
 
 ### Slice 5 — product-surface fallout
 
