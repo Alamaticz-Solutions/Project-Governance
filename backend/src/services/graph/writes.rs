@@ -14,7 +14,7 @@
 //!   G1.7 WritePolicyAndScopeEnforcement  `policy_check`, role + tenant gate
 //!   G1.8 WriteAuditAndEvidence       `AuditEvent` + the ledger row, every outcome
 //!
-//! Design: `docs/architecture/m10-g1-governed-write-plan.md`. Three
+//! Design: `docs/architecture/governed-write-microsoft-graph.md`. Three
 //! operations are wired to a callable custom method today
 //! (`ScheduleTeamsMeeting`, plus `CancelOnlineMeeting`/`CancelCalendarEvent`
 //! -- `Meeting.cancel_via_graph` picks whichever matches what
@@ -409,7 +409,7 @@ pub enum WriteError {
 }
 
 /// G1.7 WritePolicyAndScopeEnforcement. Provisional role matrix -- ties to
-/// the P5 gate matrix (not yet in the repo; HANDOFF.md §8). Mirrors the Rego
+/// the P5 gate matrix (not yet in the repo; see docs/architecture/open-decisions.md). Mirrors the Rego
 /// shape used everywhere else in this product, kept in Rust here because
 /// this gate runs before any entity/DataAccess call exists to evaluate a
 /// Rego policy against.
@@ -453,7 +453,7 @@ fn write_auth_config() -> Option<GraphAuthConfig> {
     tracing::warn!(
         "GRAPH_WRITE_CLIENT_ID/GRAPH_WRITE_CLIENT_SECRET not set; falling back to the read \
          Graph app registration for writes (G1.3 token isolation degraded -- see \
-         docs/architecture/m10-g1-governed-write-plan.md \u{a7}G1.3)"
+         docs/architecture/governed-write-microsoft-graph.md \u{a7}G1.3)"
     );
     GraphAuthConfig::from_env()
 }

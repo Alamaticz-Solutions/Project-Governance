@@ -1,14 +1,10 @@
-//! Real Rego access-policy coverage against this product's checked-in
-//! generated policies -- the first such coverage this crate has had. Per
-//! `docs/architecture/phase6-app-gen-scoping.md` §8, neither this crate nor
-//! `api_tests` ever actually called into the policy-evaluation mechanism
-//! before phase 6 (this file was a 4-line naming tautology); with the
-//! mechanism now ported into `product_gen::policy`, these tests exercise
-//! real access rules in `backend/config/generated/schemas/governance/comment.rego`.
+//! Rego access-policy coverage against this product's checked-in generated
+//! policies, exercised through the framework's `appfw-test` policy verifier
+//! against `backend/config/generated/schemas/governance/comment.rego`.
 //!
 //! Deliberately not covered: the author-ownership update/delete branch,
 //! which reads `input.user.id` -- a field `AccessUser` does not carry.
-//! That's HANDOFF.md §8 decision A ("whether the actor id belongs in the
+//! That's docs/architecture/open-decisions.md decision A ("whether the actor id belongs in the
 //! Rego input for single-row ownership filters"), still open. Testing that
 //! branch would mean silently resolving an unresolved product decision
 //! rather than reporting it, so it's left alone here.

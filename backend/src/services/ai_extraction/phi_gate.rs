@@ -1,5 +1,5 @@
 //! Pre-egress PHI/PII classification gate (spec 004's "single OpenAI egress
-//! point" requirement -- HANDOFF.md flagged this as the missing piece
+//! point" requirement -- spec 004 identifies this as the pre-egress control
 //! blocking AI extraction; this module is it). Runs on every document's
 //! extracted text BEFORE any content reaches `openai_client` -- see
 //! `super::extract_intake`/`extract_team_fields`, the only two call sites

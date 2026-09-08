@@ -1,9 +1,7 @@
 //! Secret loading abstraction (env-var backed today; the trait lets the
 //! product swap in a real secret manager later without touching callers).
 //!
-//! Product-owned (backend framework replacement phase 4 --
-//! docs/architecture/self-owned-backend-plan.md). Previously
-//! `appfw_runtime::secrets`.
+//! Product-owned wiring over the framework's secret contract.
 
 use std::{env, error::Error, fmt};
 

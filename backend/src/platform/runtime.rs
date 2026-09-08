@@ -1,5 +1,5 @@
 //! Single chokepoint for the framework runtime crate (backend framework
-//! re-adoption slice 2 -- docs/architecture/framework-readopt-plan.md).
+//! runtime crate.
 //!
 //! Re-exports the framework runtime crate `appfw_runtime` directly.
 

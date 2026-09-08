@@ -1,65 +1,101 @@
 # Project Governance
 
-Governance portfolio + gate-workflow application: a schema-driven Rust/Axum
-backend and React/TS frontend. Originally scaffolded from the PDS App
-Framework's generator/runtime; as of backend framework replacement phase 7
-(2026-09-07, see `docs/architecture/self-owned-backend-plan.md`), that
-framework is no longer a dependency at all -- the backend runs on self-owned
-code only (`product_gen`/`product_cli` replace the generator, `backend/src/
-platform/*` replaces the runtime). Branch `governance-restructure`. Local git
-only.
+A governance portfolio and gate-workflow application: a schema-driven Rust/Axum
+backend and a React/TypeScript single-page frontend, built on the PDS App
+Framework.
 
-**Start here:** [`HANDOFF.md`](./HANDOFF.md) — full state, what is generated vs
-hand-owned, how to run every gate, retained evidence, and the open decisions.
+## Architecture
+
+The backend is generated and run on the **PDS App Framework** (`appfw_runtime`
+plus `appfw-provider-postgres`), consumed as a pinned dependency. The
+application model lives in `.appfw/model/**`; the framework's `app_gen`
+generator turns that model into the GraphQL schema, routes, handler scaffolds,
+database DDL, and the frontend contract. Durable business logic is hand-owned
+and lives outside the generated surface.
+
+| Path | Contents | Ownership |
+|---|---|---|
+| `.appfw/model/` | Application model — 24 governance entities, 9 enum types, RBAC policies, seeds. Source of truth. | Product |
+| `.appfw/manifest.yaml` | Topology: schemas, data sources, ingress, UI packaging. | Product |
+| `.appfw/specs/` | Feature specifications (auth/RBAC, gate-workflow engine, Microsoft Graph provider, AI storage). | Product |
+| `backend/src/services/` | Gate/workflow engine and the governed Microsoft Graph provider. | Product |
+| `backend/src/handlers/governance/<entity>.rs` | Custom method implementations; delegate to services. | Product |
+| `backend/src/routes/`, `backend/src/schemas/`, `backend/src/handlers/**/generated.rs`, `backend/src/operations/` | Generated from the model. | Generated — do not hand-edit |
+| `backend/src/platform/` | Thin product-side wiring over `appfw_runtime`. | Product |
+| `frontend/src/features/**` | Product screens. | Product |
+| `frontend/src/generated/` | Generated UI contract. | Generated — do not hand-edit |
+| `frontend/src/ui/` | Self-owned component kit (`kit.tsx` + `kit.css`). | Product |
 
 ## Topology
 
-- Product schema: `governance` on a single PostgreSQL (`pg_primary`)
-- Frontend: `scaffold` UI mode; product screens under `frontend/src/features/**`
-- MCP server: off · Kafka: off · single-tenant (`180000`)
+- Single PostgreSQL data source (`pg_primary`) hosting the `governance` product
+  schema and the framework `system` schema.
+- Frontend: `scaffold` UI mode; built into the backend image and served at `/`
+  when `APP_PRODUCT_UI_ENABLED=true` (single-image deployment).
+- MCP server: off. Kafka: off. Single-tenant.
 
-## Layout
+## Framework dependency
 
-| Path | What |
-|---|---|
-| `.appfw/model/` | config source of truth (24 entities, 9 enum types, 41 governance RBAC policies + 1 framework `system`, seeds) — edit here, then regenerate |
-| `.appfw/specs/` | four specs + `000-INDEX.md` reconciliation and the five open decisions |
-| `backend/src/services/` | hand-owned M8 gate/workflow engine + M9 governed MS Graph provider |
-| `backend/src/handlers/governance/<entity>.rs` | hand-owned `*_impl` fns (delegate to services) |
-| `frontend/src/{lib,app,components,features}/` | product-owned SPA (M11) |
-| `frontend/src/generated/`, `backend/src/{routes,schemas}/` | generated — do not hand-edit |
-| `docs/evidence/` | retained gate output |
+The framework is **not** vendored into this repository. It is consumed as a
+sibling git checkout:
 
-## Running the gates
+```
+<parent>/
+├── app-framework/       # Alamaticz-Solutions/app-framework, pinned
+└── governance-appfw/    # this repository
+```
 
-Frontend needs no framework (vendored components):
+`appfw.lock` records the exact framework commit this checkout builds against.
+Clone `Alamaticz-Solutions/app-framework` as a sibling and check out the tag
+named in `appfw.lock` (currently `pinned/local-patch-1`). See
+`app-framework/PATCHES.md` for local patches carried ahead of PDS upstream.
+
+## Build and test
 
 ```bash
+# backend (framework must be present as ../app-framework)
+cargo check --workspace --all-targets
+cargo test --workspace
+
+# model validation and codegen drift — the framework CLI is a bash wrapper;
+# on Windows run it in a Linux container (see the note below)
+scripts/appfw product validate --json
+scripts/appfw product generate --check --json
+scripts/appfw product boundary-check --json
+
+# frontend
 cd frontend && npm install
-npm run typecheck && npm run build && npm run appfw:check
+npm run typecheck && npm run test && npm run build
 ```
 
-Backend gates no longer need the App Framework at all (backend framework
-replacement phase 7, complete 2026-09-07); `scripts/appfw` and the framework
-checkout are both gone. Run everything directly with `cargo`, no Docker/Linux
-container required:
+On Windows, `scripts/appfw` (an `appfw-cli` bash wrapper) is run inside a Linux
+container:
 
 ```bash
-cd product_gen
-cargo run --bin product_cli -- generate --check --json
-cargo run --bin product_cli -- boundary-check --json
-cargo run --bin product_cli -- validate --json
-cd .. && cargo check --workspace --all-targets && cargo test -p backend --bin backend
+docker run --rm -v <parent>:/work -w /work/governance-appfw \
+  rust-appfw:latest ./scripts/appfw product validate --json
 ```
 
-## Current state
+where `rust-appfw:latest` is `rust:1` with `rustfmt` and `rsync` added.
 
-- `appfw_runtime` is no longer a dependency of `backend` at all -- removed
-  from `backend/Cargo.toml`, and the local framework reference copy deleted
-  from disk (2026-09-07). `cargo check --workspace --all-targets` and the
-  full backend test suite (311 tests) both pass with the framework genuinely
-  absent from disk.
-- Backend generate / validate / boundary-check / `generate --check`: green at
-  HEAD, verified directly (no framework needed to run them any more).
-- Frontend typecheck / build / appfw:check: green at HEAD.
-- Independent 11-section + file-12 review: **still owed** — see HANDOFF §10.
+## Run locally
+
+```bash
+# 1. database
+docker compose -f podman-compose.yml up -d postgres
+
+# 2. backend on http://127.0.0.1:8080  (GraphQL at /governance and /system)
+cargo run -p backend
+
+# 3. end-to-end smoke test (see scripts/smoke/README.md for prerequisites)
+python scripts/smoke/smoke_test.py
+```
+
+## Documentation
+
+- `docs/architecture/` — architecture notes, including the governed Microsoft
+  Graph write stack and the register of open decisions.
+- `docs/research/` — options papers (e.g. SharePoint document storage).
+- `.appfw/specs/` — the feature specifications and their reconciliation index.
+- Component READMEs under `backend/`, `frontend/`, `database/`, `api_tests/`,
+  `rego_test/`.

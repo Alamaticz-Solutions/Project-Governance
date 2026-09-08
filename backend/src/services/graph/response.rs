@@ -1,10 +1,6 @@
 //! Rate-limit / error classification, redacted payloads, result caps.
 //!
-//! `parse_retry_after`, `redact`, and their helpers below are product-owned
-//! (backend framework replacement phase 2 --
-//! docs/architecture/self-owned-backend-plan.md). Previously
-//! `appfw_saas_core::rate_limit::parse_retry_after_seconds` /
-//! `appfw_saas_core::redaction::redact_json_value`.
+//! `parse_retry_after`, `redact`, and their helpers below are product-owned.
 
 use std::sync::LazyLock;
 use std::time::Duration;

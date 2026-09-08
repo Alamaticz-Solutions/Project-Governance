@@ -323,22 +323,6 @@ pub(crate) fn runtime_data_type(data_type: DataType) -> RuntimeDataType {
 mod tests {
     use super::*;
 
-    // The four `user_auth_serializes_identically_to_the_framework_type_*`
-    // cases and `user_auth_bridges_to_the_framework_type_without_losing_any_field`
-    // that used to live here (backend framework replacement phases 5-7)
-    // named `appfw_runtime` directly and were pre-authorized by their own
-    // doc comments for deletion "once the dependency is removed in a
-    // later phase" -- this is that phase (slice 8's final cutover,
-    // docs/architecture/self-owned-backend-plan.md). Deleted rather than
-    // frozen into golden-value assertions: `cargo test`'s link step is
-    // unrunnable on this machine for the whole session (low-memory linker
-    // guard, see the plan doc's own session notes), so there was no way to
-    // safely capture verified golden JSON/hash values before the
-    // framework went away. `UserAuth`'s JSON shape has not changed since
-    // these tests last passed; there is no substitute regression coverage
-    // for that shape today. Flagged here and in this slice's final report
-    // rather than left silently unported.
-
     fn test_entity(is_table: bool, props: Vec<PropertyType>) -> EntityType {
         EntityType {
             id: "governance.Record".to_string(),

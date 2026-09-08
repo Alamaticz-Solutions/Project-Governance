@@ -10,11 +10,6 @@ description = "Project Governance product backend"
 # product-intake scaffold omitted it (finding K).
 default = ["http", "provider-postgres"]
 http = [
-    # Framework re-adoption slice 1 (docs/architecture/framework-readopt-plan.md):
-    # appfw_runtime is re-declared below but not yet consumed -- the platform::runtime
-    # facade still re-exports self-owned code. This feature line is restored now so the
-    # dependency's own `http` surface is gated the same way it was pre-removal; slice 2
-    # flips the facade to actually use it.
     "appfw_runtime/http",
     "dep:async-graphql-axum",
     "dep:axum",
@@ -23,14 +18,9 @@ http = [
     "dep:tower",
     "dep:tower-http",
 ]
-# mcp/kafka/sync stay deleted (backend framework replacement phase 7, 2026-09-07;
-# confirmed still out of scope for re-adoption -- framework-readopt-plan.md §3):
-# none were in `default`, none were ever enabled by any Dockerfile/compose/CI in
-# this repo, and this product never runs a worker-mode process.
-# The Postgres SQL-generation/execution layer (backend/src/data/clients/postgres)
-# is currently product-owned code (backend framework replacement phase 3);
-# framework re-adoption slice 2 replaces it with appfw-provider-postgres.
-# This feature now only gates route registration in backend/src/routes/mod.rs.
+# mcp / kafka / sync are intentionally not enabled: this product runs a single
+# HTTP process against one PostgreSQL data source and never a worker.
+# `provider-postgres` gates provider route registration in backend/src/routes/mod.rs.
 provider-postgres = []
 mcp = []
 
@@ -46,9 +36,8 @@ non_camel_case_types = "allow"
 
 [dependencies]
 anyhow = "1.0"
-# Framework re-adoption (docs/architecture/framework-readopt-plan.md). Resolved from
-# the pinned sibling checkout ../app-framework (mirror of Alamaticz-Solutions/app-framework,
-# tag pinned/archive-893829ad0e30).
+# PDS App Framework runtime, from the pinned sibling checkout ../app-framework
+# (see appfw.lock and the repository root README).
 appfw_runtime = { package = "appfw-runtime", path = "../../app-framework/appfw_runtime", default-features = false }
 appfw-provider-postgres = { package = "appfw-provider-postgres", path = "../../app-framework/appfw_provider_postgres" }
 async-graphql = { version = "6", features = ["bson", "chrono", "dynamic-schema"] }
@@ -56,9 +45,6 @@ async-graphql-value = "6"
 async-graphql-axum = { version = "6", optional = true }
 async-trait = "0.1"
 axum = { version = "0.6", features = ["macros"], optional = true }
-# Product-owned: keyset pagination cursor signing (backend/src/data/keyset_cursor.rs,
-# backend framework replacement phase 5). Versions matched to what the framework's
-# provider crate already resolves, to avoid a duplicate dependency tree.
 base64 = "0.22"
 bson = "2.0"
 # AI intake/gate-form document extraction (services::ai_extraction): pure-Rust
@@ -86,20 +72,13 @@ opentelemetry_sdk = { version = "0.32", features = ["metrics", "rt-tokio", "trac
 postgres-types = { version = "0.2", features = ["derive", "with-chrono-0_4"] }
 regorus = "0.2"
 regex = "1"
-# Product-owned: outbound HTTP for the governed Microsoft Graph provider
-# (backend/src/services/graph, spec 003). Version pinned to the one already in
-# the workspace lock (pulled transitively via opentelemetry-otlp).
+# Outbound HTTP for the governed Microsoft Graph provider (backend/src/services/graph).
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
-# Product-owned: Postgres TLS connector (backend/src/data/clients/postgres/
-# connection.rs, backend framework replacement phase 3e). Versions matched to
-# what was already resolved transitively via the framework's provider crate.
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "logging", "tls12"] }
 rustls-native-certs = "0.8"
 rustls-pki-types = "1"
 tokio-postgres-rustls = "0.13"
 webpki-roots = "1"
-# Product-owned: bearer-token verification for the GraphQL ingress
-# (backend/src/platform/auth.rs, backend framework replacement phase 4b-4).
 okta-jwt-verifier = "0.9.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

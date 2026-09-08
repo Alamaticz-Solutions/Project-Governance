@@ -35,8 +35,6 @@ writable_paths:
     ownership: product_source
   - path: rego_test
     ownership: product_source
-  - path: docs/evidence
-    ownership: product_evidence
   - path: target/appfw
     ownership: product_evidence
 network_policy: disabled

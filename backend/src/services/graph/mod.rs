@@ -20,7 +20,7 @@
 //! (`schedule_teams_meeting`, `cancel_calendar_event`) execute behind the
 //! full G1 stack as of M10 but are likewise not `live_certified` until a
 //! retained live write run has passed (see
-//! `docs/architecture/m10-g1-governed-write-plan.md` §7).
+//! `docs/architecture/governed-write-microsoft-graph.md` §7).
 
 pub mod auth;
 pub mod client;

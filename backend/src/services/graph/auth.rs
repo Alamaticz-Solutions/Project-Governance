@@ -15,9 +15,6 @@ use tokio::sync::RwLock;
 /// the one call site that actually needs to send it (the token request
 /// below).
 ///
-/// Product-owned (backend framework replacement phase 2 --
-/// docs/architecture/self-owned-backend-plan.md). Previously
-/// `appfw_saas_core::oauth::SecretString`.
 #[derive(Clone, Deserialize)]
 pub struct SecretString(String);
 

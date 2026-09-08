@@ -30,7 +30,7 @@
   # cancel_via_graph deletes the calendar event it created. payload carries
   # the bound parameters (subject/start/end/attendees; graph_event_id for
   # cancel). Fail-closed until the Azure app holds the write application
-  # permissions -- see docs/architecture/m10-g1-governed-write-plan.md.
+  # permissions -- see docs/architecture/governed-write-microsoft-graph.md.
   - name: schedule_via_graph
     kind: Mutation
     mcp_enabled: false

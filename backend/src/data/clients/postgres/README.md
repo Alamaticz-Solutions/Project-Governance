@@ -1,35 +1,16 @@
-# PostgreSQL Client Notes
+# PostgreSQL client adapters
 
-This directory contains the PostgreSQL provider implementation used by the
-generated backend.
+Thin product-side adapters over `appfw-provider-postgres`. The framework crate
+owns SQL generation, parameter binding, connection pooling, execution, and error
+normalisation; the files here adapt the product's query/filter/policy types onto
+that provider surface.
 
-## Responsibilities
+| File | Purpose |
+|---|---|
+| `postgres_client.rs` | Product `DatabaseClient` implementation delegating to the framework provider. |
+| `cte.rs` | Product-side relationship / many-to-many CTE assembly. |
+| `filter.rs` | Maps the product filter AST onto the provider's filter model, preserving access-control filters. |
+| `mod.rs` | Module wiring. |
 
-- Compile the shared query/filter/sort model into PostgreSQL SQL.
-- Preserve access-control filters when combining user filters with policy
-  filters.
-- Map generated schema metadata into SQL selection, mutation, relationship, and
-  pagination behavior.
-- Keep behavior aligned with the other providers unless a limitation is
-  documented.
-
-## Key Files
-
-```text
-postgres_client.rs
-cte.rs
-filter.rs
-literal.rs
-sort.rs
-```
-
-Provider behavior should be verified through focused unit tests where possible,
-then through the full backend suite (no framework dependency as of backend
-framework replacement phase 7):
-
-```bash
-cargo test -p backend --bin backend
-```
-
-Historical scratch notes for this provider are archived in
-`docs/archive/POSTGRES_CLIENT_SCRATCH_NOTES.md`.
+Verified through `cargo test --workspace` and the live smoke test
+(`scripts/smoke/smoke_test.py`).

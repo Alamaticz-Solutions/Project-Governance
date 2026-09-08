@@ -1,6 +1,6 @@
 # 001 — Auth, RBAC, Tenancy
 
-> **Status (M12): `accepted-pending-decisions`.** Implemented via the M3 `.appfw/model` + `rbac/` policies. Open decisions Q7, A, B(Q5) touch this spec — see `000-INDEX.md` and `../../HANDOFF.md` §8.
+> **Status : `accepted-pending-decisions`.** Implemented via the M3 `.appfw/model` + `rbac/` policies. Open decisions Q7, A, B(Q5) touch this spec — see `000-INDEX.md` and `../../docs/architecture/open-decisions.md`.
 
 Full spec (rulebook file 07 §7.2 — this touches authentication, authorization, tenant isolation, audit, PHI/PII). Product: `governance`. Schema: `governance` (product) + `system` (framework). Data source: `pg_primary` (single PostgreSQL). Branch: `governance-restructure`.
 

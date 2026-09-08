@@ -1,6 +1,6 @@
 # Spec 002 — Gate / Workflow Engine
 
-> **Status (M12): `accepted-pending-decisions`.** Implemented as the M8 engine in `backend/src/services/` (`approval_state_machine`, `gate_eligibility`, `gate_review`, `transition`, `workspace`, `audit`). Open decisions P5 (gate matrix), Q7, A, B(Q5) block full fidelity — see `000-INDEX.md` and `../../HANDOFF.md` §8.
+> **Status : `accepted-pending-decisions`.** Implemented as the M8 engine in `backend/src/services/` (`approval_state_machine`, `gate_eligibility`, `gate_review`, `transition`, `workspace`, `audit`). Open decisions P5 (gate matrix), Q7, A, B(Q5) block full fidelity — see `000-INDEX.md` and `../../docs/architecture/open-decisions.md`.
 
 - Spec type: **Full** (file 07 §7.2 — product workflow, business rules, generated boundary, audit).
 - Schema: `governance` (product) on data source `pg_primary`. Framework schema `system`. Single-tenant.

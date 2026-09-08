@@ -101,7 +101,7 @@ impl GraphqlClient {
 /// (backend framework replacement phase 7, slice 7): generated backends
 /// mount schemas at `/{schema-name-kebab}` (see
 /// `platform::routing::runtime_graphql_schema_routes` and
-/// `product_gen::routes_rs`), so this test client must derive the same
+/// the generated route layer), so this test client must derive the same
 /// path from a schema name.
 fn schema_route_segment(schema_name: &str) -> String {
     use inflector::cases::kebabcase::{is_kebab_case, to_kebab_case};

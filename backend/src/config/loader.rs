@@ -139,13 +139,8 @@ fn add_secrets(mut data_source: DataSource) -> Result<DataSource, AppError> {
                     .map_err(map_secret_error)?,
             );
         }
-        // Not a supported data source for this product (Postgres-only --
-        // see docs/architecture/self-owned-backend-plan.md phase 1). This
-        // previously routed through the framework's `appfw_mssql_auth`
-        // crate to resolve MS SQL / Fabric auth secrets; that crate has
-        // been dropped since no configured data source ever exercised it
-        // (`backend/config/generated/data_sources.yaml` only ever lists
-        // `pg_primary`, a PostgreSQL source). If MS SQL support is ever
+        // Not a supported data source for this product (Postgres-only:
+        // the only configured data source is `pg_primary`). If MS SQL support is ever
         // needed, this arm needs a real (product-owned) implementation,
         // not a framework dependency restored.
         DataSourceType::MsSqlServer | DataSourceType::FabricSqlAnalytics => {
