@@ -14,7 +14,7 @@ in-app notifications. Rulebook file 01 §1.4 puts external integrations and dura
 `backend/src/services` (human-owned, preserved across regeneration); file 07 §7.3 names "governed
 AI/tool egress" as an explicit spec trigger. This spec records each one as a deliberate decision plus
 its conformance gap so none of them re-enter the rebuild ad hoc, and so the AI-egress and secret-
-hygiene findings against the current repo are visible to the M3 architecture checkpoint.
+hygiene findings against the current repo are visible at the architecture review.
 
 ## Scope
 
@@ -142,9 +142,9 @@ that call site.
 
 | # | Decision | Recommendation | Who decides |
 |---|---|---|---|
-| Q3 | pgvector KB: (a) drop `embedding`, model as normal entities, defer RAG; (b) `code_only` schema outside generated CRUD, hand-written vector migrations/queries; (c) generated table minus `embedding`, reach the vector column only via a vetted `provider_routine`. | (a) — zero-cost, matches current unwired runtime behavior. | Human architect, M3 checkpoint |
-| — | Document storage backing store (it is net-new — `s3_service.rs` is dead, real storage is ephemeral local disk). Options: config-driven `document_storage` service with an S3 default + filesystem-for-dev, vs SharePoint (Graph write, G1-gated, cross-ref spec 003 D1). | Build the `document_storage` abstraction with S3 as the default backing store and a proper config/secrets surface now; defer SharePoint. | Human architect, M3 checkpoint |
-| — | Analytics / reporting screen timing. Backend aggregation already exists (`dashboard_service.rs` computes status/priority/risk breakdowns in Rust); only the *screen* is a placeholder route, and the "analytical report" frontend archetype has no real example anywhere (file 05 §5.6, file 11 #5). | Keep deferred until the document/workflow archetype (workspace / gate-review UI) is proven. This is a frontend-archetype decision, not a missing-backend one. | Human architect, M3 checkpoint |
+| Q3 | pgvector KB: (a) drop `embedding`, model as normal entities, defer RAG; (b) `code_only` schema outside generated CRUD, hand-written vector migrations/queries; (c) generated table minus `embedding`, reach the vector column only via a vetted `provider_routine`. | (a) — zero-cost, matches current unwired runtime behavior. | Human architect, at the architecture review |
+| — | Document storage backing store (it is net-new — `s3_service.rs` is dead, real storage is ephemeral local disk). Options: config-driven `document_storage` service with an S3 default + filesystem-for-dev, vs SharePoint (Graph write, G1-gated, cross-ref spec 003 D1). | Build the `document_storage` abstraction with S3 as the default backing store and a proper config/secrets surface now; defer SharePoint. | Human architect, at the architecture review |
+| — | Analytics / reporting screen timing. Backend aggregation already exists (`dashboard_service.rs` computes status/priority/risk breakdowns in Rust); only the *screen* is a placeholder route, and the "analytical report" frontend archetype has no real example anywhere (file 05 §5.6, file 11 #5). | Keep deferred until the document/workflow archetype (workspace / gate-review UI) is proven. This is a frontend-archetype decision, not a missing-backend one. | Human architect, at the architecture review |
 
 ## Status
 

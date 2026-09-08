@@ -66,7 +66,7 @@ wired/unwired split, all routes/services/enums/FKs/sensitive fields, and the enu
    filesystem for dev); SharePoint is a Graph write → G1-gated → deferred (003 D1).
 
 6. **Entity renames.** `poc_meetings` → `Meeting`; `audit_history` → `AuditEvent`; `email_queue` →
-   `EmailQueueItem`. Final entity names are settled at M5 from `backend/src/entities/*.rs`; the specs
+   `EmailQueueItem`. Final entity names are settled from the generated entity layer; the specs
    use these consistently now.
 
 7. **Enum casing.** SCREAMING_SNAKE is authoritative for entity/DB enum values (`project_status` = the
@@ -74,7 +74,7 @@ wired/unwired split, all routes/services/enums/FKs/sensitive fields, and the enu
    examples). `WorkflowStageStatus` specifically is owned by 002 Q7 (its legacy base and entity label
    sets are *disjoint*, not merely cased differently — see the inventory's `lookup_values` notes).
 
-## Consolidated open decisions for the M3 human checkpoint
+## Consolidated open decisions
 
 | ID | Decision | Recommendation | Spec(s) |
 |---|---|---|---|
