@@ -41,7 +41,7 @@ to `origin`. Commits so far:
 | `8efc7c1` | this doc §6a (teammate setup) + §9 (Windows caveat) |
 | `9e90b94` | **slice 2** — facade flipped, 19 platform + 12 sql files deleted, `appfw-provider-postgres` adopted |
 | `87bec07` | **slice 2b** — dead code cleanup (183→0 warnings), live GraphQL audit-hash-chain smoke passed against Postgres |
-| `624664f` | **slice 3** — swap generator (product_gen deleted, app_gen adopted, workspace 0 warnings/0 errors) |
+| `b6ef392` | **slice 3** — swap generator (product_gen deleted, app_gen adopted, workspace 0 warnings/0 errors) |
 
 **Framework checkout:** `Alamaticz-Solutions/app-framework` @ tag
 `pinned/archive-893829ad0e30` must be cloned as a sibling of this repo (see §6a
