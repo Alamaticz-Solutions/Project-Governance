@@ -93,9 +93,9 @@ python scripts/smoke/smoke_test.py
 
 ## Documentation
 
-- `docs/architecture/` — architecture notes, including the governed Microsoft
-  Graph write stack and the register of open decisions.
-- `docs/research/` — options papers (e.g. SharePoint document storage).
-- `.appfw/specs/` — the feature specifications and their reconciliation index.
+- `.appfw/specs/` — the four feature specifications and their reconciliation
+  index (`000-INDEX.md`).
+- `docs/architecture/open-decisions.md` — product decisions still pending
+  client sign-off.
 - Component READMEs under `backend/`, `frontend/`, `database/`, `api_tests/`,
   `rego_test/`.
