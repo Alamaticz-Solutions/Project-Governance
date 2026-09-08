@@ -4,7 +4,7 @@
 // schema (async-graphql's default enum rename) exposes them as PascalCase —
 // confirmed against the live schema via introspection (`__type(name: "...")
 // { enumValues { name } }`). These option lists use the wire values, not the
-// model's authoring casing. This resolves open decision Q7 empirically.
+// model's authoring casing.
 export type Option = { value: string; label: string };
 
 export const PROJECT_STATUS: Option[] = [

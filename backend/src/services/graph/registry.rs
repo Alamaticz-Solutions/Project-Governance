@@ -1,9 +1,7 @@
 //! The allow-listed named READ operations. Callers select an operation and
 //! supply bound value parameters — they cannot choose endpoints or fields.
 //!
-//! Derived 1:1 from the legacy handlers (`teams_poc.rs`, `graph_meeting_service.rs`).
-//! Nothing is invented. Every write equivalent lives in `writes.rs` and is
-//! write_gated.
+//! Every write equivalent lives in `writes.rs` and is write_gated.
 
 use super::request::{odata_string_literal, path_segment, RequestPlan};
 

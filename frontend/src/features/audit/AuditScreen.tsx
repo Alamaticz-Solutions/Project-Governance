@@ -15,6 +15,12 @@ import { entityByType } from '../../lib/entities';
 import type { AppfwRecord } from '../../lib/appfwClient';
 import { AsyncSection, humanizeEnum, formatDateTime } from '../../components/ui';
 
+/**
+ * Audit log. A paged, filterable table of AuditEvent rows (when / action /
+ * entity type / entity id / project), read through the App Framework client
+ * with server-side paging and an entity-type contains filter.
+ */
+
 const PAGE_SIZE = 50;
 const auditEntity = entityByType('AuditEvent');
 

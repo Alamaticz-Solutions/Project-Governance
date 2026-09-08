@@ -1,6 +1,6 @@
 # 004 — AI, Storage, and Other Non-Primitive Integrations
 
-> **Status : `accepted-pending-decisions` — largely deferred.** The AI-egress boundary + pre-egress PHI gate and the document-storage service are **not built**; `meeting_agent.process_transcript` stops at "transcript captured, ai_status: pending". Open decision Q3 (pgvector/RAG) is unresolved. See `../../docs/architecture/open-decisions.md`.
+> **Status : `accepted-pending-decisions` — largely deferred.** The AI-egress boundary + pre-egress PHI gate are built (`services::ai_extraction`, live OpenAI call); `Meeting.process_transcript` runs the full pipeline (transcript → PHI gate → summary/decisions/action items/agenda). The document-storage service is not built and open decision Q3 (pgvector/RAG) is unresolved. See `../../docs/architecture/open-decisions.md`.
 
 Lightweight spec (file 07 §7.2). Sibling specs referenced but not assumed to exist/be accepted:
 `002-*` (workflow engine + notifications call site), `003-msgraph-saas-provider.md` (MS Graph SaaS provider).
@@ -148,4 +148,5 @@ that call site.
 
 ## Status
 
-`draft`
+`accepted-pending-decisions` — largely deferred; see the status block at the top
+of this file and `000-INDEX.md`.

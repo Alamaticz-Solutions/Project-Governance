@@ -3,14 +3,11 @@
 //! existence, uniqueness), and the audit-attempt/audit-mutation append
 //! helper family built on top of `crate::data::audit_event::AuditEvent`.
 //!
-//! This is a from-scratch, product-owned reimplementation of the
-//! mutation-path orchestration previously supplied by
-//! `appfw_runtime::data_access`. It does not delegate to or wrap that
-//! framework module's logic. See the phase 5 sub-slice 4b port spec for the
-//! rationale behind routing through `&dyn DatabaseClient` directly instead
-//! of a new generic trait, and for why the two validation functions that
-//! forward into `provider_find_item_json`/`provider_query_items_plan_json`
-//! reuse those read-path dispatch wrappers as-is.
+//! This orchestration is owned by this crate and dispatches through
+//! `&dyn DatabaseClient` directly rather than a dedicated generic trait. The
+//! two validation functions that check foreign-key existence and uniqueness
+//! forward into `provider_find_item_json` / `provider_query_items_plan_json`,
+//! reusing the read-path dispatch wrappers as-is.
 
 #![allow(dead_code)]
 

@@ -4,13 +4,11 @@ import { useApp } from '../../app/providers';
 
 /**
  * Drag/drop-or-click document upload that pre-fills a form via AI
- * extraction. Ported from origin/Dev's `AIPopulationDropzone.tsx` (mounted
- * at the top of the intake screen and every bespoke gate form there) --
- * same placement/UX, wired to this branch's `extractIntake`/
- * `extractTeamFields` GraphQL mutations (`services::ai_extraction`)
- * instead of Dev's REST endpoints. Every call goes through a pre-egress
- * PHI/PII gate server-side before anything reaches OpenAI; a blocked
- * document surfaces as a warning here, not a generic error.
+ * extraction. Mounted at the top of the intake screen and every bespoke gate
+ * form, wired to the `extractIntake` / `extractTeamFields` GraphQL mutations
+ * (`services::ai_extraction`). Every call goes through a pre-egress PHI/PII
+ * gate server-side before anything reaches OpenAI; a blocked document
+ * surfaces as a warning here, not a generic error.
  */
 
 export type ExtractionOutcome =

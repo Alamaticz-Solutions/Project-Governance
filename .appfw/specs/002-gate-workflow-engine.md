@@ -5,7 +5,7 @@
 - Spec type: **Full** (file 07 §7.2 — product workflow, business rules, generated boundary, audit).
 - Schema: `governance` (product) on data source `pg_primary`. Framework schema `system`. Single-tenant.
 - Depends on: Spec 001 (model + scaffold baseline). Blocks: Spec 003 (Teams meetings), Spec 004 (AI autofill).
-- Related legacy source (READ-ONLY reference, not code to port): `Project-Governance/backend/src/services/{project_service.rs, workflow_engine.rs, gate_review_service.rs, workspace_service.rs, dashboard_service.rs}`, `backend/src/domain/workflow_conditions.rs`, `backend/src/graphql/{query.rs, mutation.rs, workflow_types.rs}`, `backend/src/routes.rs`, `governance_workflow_design.md`, `skill.md`.
+- Related legacy source (READ-ONLY reference in the legacy Governance backend, not code to port): `services/{project_service.rs, workflow_engine.rs, gate_review_service.rs, workspace_service.rs, dashboard_service.rs}`, `domain/workflow_conditions.rs`, `graphql/{query.rs, mutation.rs, workflow_types.rs}`, `routes.rs`, `governance_workflow_design.md`, `skill.md`.
 
 ---
 
@@ -153,7 +153,7 @@ Authorization split (state explicitly so a file-12 reviewer does not assume Rego
 
 ## Acceptance evidence
 
-Docs-only golden path; the framework CLI cannot run now. These are the commands that **will** prove the change when the CLI is available (file 07 §7.4):
+Commands that prove the change (file 07 §7.4; on Windows run via the `rust-appfw` container against the sibling `../app-framework` checkout):
 
 - `scripts/appfw product validate --json` — clean; no `custom_method` / enum / relationship / rego lints (file 02 §9).
 - `scripts/appfw product generate` then `git diff` — each `_impl` stub appears **once**, in `backend/src/handlers/governance/<entity>.rs` (one file per entity, not per method).
@@ -185,4 +185,5 @@ Behavioral checklist (must all hold):
 
 ## Status
 
-`draft`
+`accepted-pending-decisions` — see the status block at the top of this file and
+`000-INDEX.md`.

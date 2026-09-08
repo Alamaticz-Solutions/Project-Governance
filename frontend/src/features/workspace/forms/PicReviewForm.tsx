@@ -4,9 +4,8 @@ import { FieldGrid, GateWizard, WizardSectionHeading, YesNo, type WizardSection 
 import { AIPopulationDropzone } from '../../shared/AIPopulationDropzone';
 
 /**
- * PIC (Project Investment Committee) Review gate form — ported from
- * origin/Dev's `PicReviewForm.tsx` (7-section wizard, Dev's "Prepare for
- * PIC" stage). Field names/validation match Dev exactly.
+ * PIC (Project Investment Committee) Review gate form — a 7-section wizard for
+ * the "Prepare for PIC" stage.
  */
 
 export type PicFormData = {

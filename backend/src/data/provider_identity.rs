@@ -1,16 +1,17 @@
 //! Product-owned provider identity and operation-contract types.
 //!
-//! This module ports the load-bearing pieces of provider identity that
-//! `DatabaseClient` and `data_access.rs` depend on today, without pulling in
-//! the App Framework's provider client/orchestration internals. See the
-//! phase 5 sub-slice 2 port spec for the rationale behind what is and isn't
-//! included here.
+//! Covers the pieces of provider identity that `DatabaseClient` and
+//! `data_access.rs` depend on -- the operation contract, the provider
+//! descriptor, and the pool-stats shape -- without pulling in the framework's
+//! provider client/orchestration internals.
 
+/// How strongly a provider must support an operation for it to be usable:
+/// `Required` (fail closed if absent), `Optional`, or `LegacyCompatibility`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProviderOperationRequirement {
     Required,
     Optional,
-    #[allow(dead_code)] // no DATABASE_CLIENT entry uses this tier today; see ::legacy's doc comment
+    #[allow(dead_code)] // no DATABASE_CLIENT entry uses this tier today; only `legacy()` constructs it
     LegacyCompatibility,
 }
 
@@ -25,6 +26,8 @@ impl ProviderOperationRequirement {
     }
 }
 
+/// Which code path services a provider operation: the framework's native
+/// implementation, this crate's plan adapter, or this crate's legacy adapter.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProviderOperationSurface {
     RuntimeNative,
@@ -43,6 +46,8 @@ impl ProviderOperationSurface {
     }
 }
 
+/// One row of a provider's operation contract: an operation, how strongly it
+/// is required, and which surface implements it.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ProviderOperationContract {
     pub operation: crate::platform::runtime::RuntimeProviderOperation,
@@ -73,10 +78,10 @@ impl ProviderOperationContract {
         }
     }
 
-    // legacy/requirement_key/surface_key: no `DATABASE_CLIENT` entry (below)
-    // is `Legacy`-classified today -- tested (round-trip tests further
-    // down) but no production caller. Ported as part of this contract
-    // type's full classification vocabulary; see the module doc comment.
+    // No `DATABASE_CLIENT` entry below is `Legacy`-classified today, so this
+    // constructor has no production caller -- it is exercised only by the
+    // round-trip tests further down and kept for completeness of the
+    // classification vocabulary.
     #[allow(dead_code)]
     pub const fn legacy(
         operation: crate::platform::runtime::RuntimeProviderOperation,
@@ -153,6 +158,8 @@ impl ProviderOperationContract {
     ];
 }
 
+/// Identifies a live provider: which `FrameworkProvider` it is and the name
+/// of the data source it is bound to. Used for pool-stats and diagnostics.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProviderDescriptor {
     pub provider: crate::platform::runtime::provider_keys::FrameworkProvider,
@@ -192,6 +199,10 @@ impl ProviderDescriptor {
     }
 }
 
+/// Provider self-description: its framework provider kind, data source name,
+/// and the set of operations it declares support for (defaulting to the
+/// `DATABASE_CLIENT` contract). Callers use `provider_declares_operation` to
+/// fail closed on unsupported operations.
 pub trait ProviderIdentity {
     fn data_source_name(&self) -> &str;
 
@@ -219,6 +230,8 @@ pub trait ProviderIdentity {
     }
 }
 
+/// Marker for a `Send + Sync` provider identity; the supertrait
+/// `DatabaseClient` builds on. Blanket-implemented for every eligible type.
 pub trait ProviderClient: Send + Sync + ProviderIdentity {}
 
 impl<T> ProviderClient for T where T: Send + Sync + ProviderIdentity {}

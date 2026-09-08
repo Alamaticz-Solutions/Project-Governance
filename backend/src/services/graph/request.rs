@@ -1,8 +1,7 @@
 //! Safe request-plan construction. Path templates and `$select` / `$filter`
 //! field lists are FIXED per named operation; callers pass only bound value
 //! parameters. Values are parameter-escaped, never string-concatenated into
-//! query text (closes the legacy `$filter=JoinWebUrl eq '…'` / `$search`
-//! string-interpolation).
+//! query text such as `$filter=JoinWebUrl eq '…'` or `$search`.
 
 #[derive(Debug, Clone)]
 pub struct RequestPlan {

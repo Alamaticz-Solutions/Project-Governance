@@ -1,7 +1,6 @@
-//! Project workspace assembly (spec 002) — re-expression of the legacy
-//! `workspace_service::get_workspace`: one payload with the project, its gate
-//! submissions, its approval chain, a recent audit slice, and the derived
-//! gate eligibility.
+//! Project workspace assembly (spec 002): builds one payload with the
+//! project, its gate submissions, its approval chain, a recent window of
+//! audit events, and the derived gate eligibility.
 
 use std::sync::Arc;
 

@@ -8,14 +8,10 @@ import { AttendeePicker } from './AttendeePicker';
 import { fmtDateTime, isCancellable, sourceLabel, statusLabel, statusStyle, type MeetingRow } from './shared';
 
 /**
- * Meeting Center — card-grid dashboard matching origin/Dev's
- * `MeetingCenterPage.tsx` exactly (stat tiles that double as a status
- * filter, an inline expanding schedule form, a hover-actions card grid).
- * Data and writes are this branch's own: `Meeting` rows over GraphQL, and
- * "Schedule Meeting" now actually creates a live Teams meeting through the
- * M10/G1 governed-write stack (`scheduleViaGraph`) instead of only
- * registering a manual row — that stack shipped and was live-tested this
- * session, so the earlier "still gated" copy here was stale.
+ * Meeting Center — card-grid dashboard: stat tiles that double as a status
+ * filter, an inline expanding schedule form, and a hover-actions card grid.
+ * `Meeting` rows are read over GraphQL; "Schedule Meeting" creates a live
+ * Teams meeting through the governed-write stack (`scheduleViaGraph`).
  */
 
 const meetingEntity = entityByType('Meeting');
@@ -99,7 +95,7 @@ export function MeetingCenterScreen() {
     [meetings, statusFilter]
   );
 
-  // poll while any meeting is being scheduled (mirrors Dev's "processing" poll)
+  // poll while any meeting is being scheduled
   useEffect(() => {
     if (!createMeeting.pending && !scheduleOnGraph.pending) return;
     pollRef.current = setTimeout(() => state.reload(), 2000);

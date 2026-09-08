@@ -5,12 +5,17 @@ This directory contains the end-to-end live smoke test verifying the backend's G
 ## Prerequisites
 
 1. **PostgreSQL Database:**
-   Running container `governance-postgres` with database `governance` and user `governance_svc`.
+   Running container `governance-postgres` (the `postgres` service's
+   `container_name`) with database `governance`.
    ```bash
    # If not already running:
-   podman-compose up -d postgres
-   # or docker compose
+   docker compose -f podman-compose.yml up -d postgres   # or: podman-compose up -d postgres
    ```
+   The test runs `psql` as role `governance_svc` (matching `backend/.env`'s
+   `PG_SERVICE_ACCOUNT_NAME`). The compose image only creates the `postgres`
+   superuser, so either create that role once
+   (`CREATE ROLE governance_svc LOGIN SUPERUSER PASSWORD '...';`) or run the
+   backend and the test against `PG_SERVICE_ACCOUNT_NAME=postgres`.
 
 2. **Backend Server:**
    Running on port 8080.

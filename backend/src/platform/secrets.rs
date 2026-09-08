@@ -1,10 +1,10 @@
 //! Secret loading abstraction (env-var backed today; the trait lets the
 //! product swap in a real secret manager later without touching callers).
-//!
-//! Product-owned wiring over the framework's secret contract.
 
 use std::{env, error::Error, fmt};
 
+/// Why a secret could not be resolved: absent/empty (`Missing`) or the
+/// backing store errored while reading it (`Read`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SecretError {
     Missing { name: String },
@@ -26,9 +26,13 @@ impl fmt::Display for SecretError {
 
 impl Error for SecretError {}
 
+/// Source of named secrets. Implementors provide `get_secret`; `require_secret`
+/// is derived and turns an absent secret into `SecretError::Missing`.
 pub trait SecretProvider {
+    /// Look up `name`, returning `Ok(None)` if it is absent or empty.
     fn get_secret(&self, name: &str) -> Result<Option<String>, SecretError>;
 
+    /// Like `get_secret` but treats an absent/empty value as an error.
     fn require_secret(&self, name: &str) -> Result<String, SecretError> {
         self.get_secret(name)?.ok_or_else(|| SecretError::Missing {
             name: name.to_string(),
@@ -36,6 +40,7 @@ pub trait SecretProvider {
     }
 }
 
+/// `SecretProvider` that reads process environment variables.
 #[derive(Clone, Default)]
 pub struct EnvSecretProvider;
 

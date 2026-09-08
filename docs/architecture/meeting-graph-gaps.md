@@ -1,7 +1,8 @@
-# Microsoft Graph meeting integration — gaps and fix plan
+# Microsoft Graph meeting integration — state and remaining work
 
-Diagnosis of the reported meeting bugs (not on calendar, no invites, transcript
-never processed) and the plan to reach Dev-branch parity.
+Diagnosis of the reported meeting bugs (meeting not on the organizer's calendar,
+attendees not invited, transcript never auto-processed) and the plan to close
+them.
 
 ## Root causes
 
@@ -10,31 +11,27 @@ never processed) and the plan to reach Dev-branch parity.
 | Meeting not on the organizer's calendar | `schedule_via_graph` called `POST /users/{organizer}/onlineMeetings` — a join link only, no calendar entry. |
 | Attendees got no invite | Same call. `/onlineMeetings` `participants` only pre-authorises join; only a calendar `/events` with `attendees[]` emails invites. Attendees were also never persisted. |
 | Meeting shows "live" past its end time | `/onlineMeetings` links have no hard end; `endDateTime` is metadata. Teams keeps the room joinable. The real fix is auto-processing the transcript when the meeting actually ends, not forcing the room shut. |
-| Transcript never auto-processed | No trigger exists. `process_transcript` is only reachable via the manual `processTranscript` GraphQL mutation. Dev had a tenant-wide Graph subscription + a `/graph-notifications` webhook + a renewer task; none of that is here. `graph_subscriptions` is empty, no `tokio::spawn` anywhere, `graph/auth.rs` says "webhook ingress isn't built". |
+| Transcript never auto-processed | No trigger exists. `process_transcript` is only reachable via the manual `processTranscript` GraphQL mutation. There is no tenant-wide Graph subscription, no `/graph-notifications` webhook, and no renewer task: `graph_subscriptions` is empty, there is no `tokio::spawn` anywhere, and `graph/auth.rs` records that "webhook ingress isn't built". |
 
-## Dev-branch reference
-
-`origin/Dev` — `backend/src/services/{graph_meeting_service,graph_subscription_service,meeting_agent_service,poc_meeting_service}.rs` and `backend/src/handlers/teams_poc.rs`. Same language (Rust), different framework.
-
-## Phase 1 — calendar-backed scheduling ✅ DONE (`a774f76`)
+## Current behaviour — calendar-backed scheduling
 
 `WriteOperation::ScheduleCalendarEvent` → `POST /users/{organizer}/events`
 (`isOnlineMeeting: true`, `onlineMeetingProvider: "teamsForBusiness"`,
 `attendees[]` as `{emailAddress:{address}, type:"required"}`). `schedule_via_graph`
 persists `graph_event_id`, resolves + persists `graph_online_meeting_id` from the
 join URL, persists `attendees` / `graph_organizer_user_id` / start+end. Cancel
-already prefers `CancelCalendarEvent` (`DELETE /events/{id}` → sends
-cancellations) when `graph_event_id` is set.
+prefers `CancelCalendarEvent` (`DELETE /events/{id}` → sends cancellations) when
+`graph_event_id` is set.
 
-**Live-verified** against the lventur.com tenant: real calendar event created,
-online-meeting id resolved, self-invite attendee persisted, cancel sent.
+Live-verified against a real tenant: calendar event created, online-meeting id
+resolved, self-invite attendee persisted, cancel sent.
 
-## Phase 3a — directory search ✅ ALREADY WIRED
+## Current behaviour — directory search
 
 `User.search_directory` → `services::directory` → `ReadOperation::SearchDirectoryUsers`
 (`GET /users?$search`). Live-verified: returns real org-directory users.
 
-## Phase 3b — organizer availability (getSchedule) — TODO
+## Remaining work — organizer availability (getSchedule)
 
 `ReadOperation::CheckOrganizerAvailability` already exists (`#[allow(dead_code)]`,
 `POST /users/{organizer}/calendar/getSchedule`). To wire it:
@@ -54,24 +51,23 @@ online-meeting id resolved, self-invite attendee persisted, cancel sent.
 Frontend: call it from the schedule dialog and show a soft "organizer is busy
 then" warning.
 
-## Phase 2 — automatic transcript processing on meeting end — TODO
+## Remaining work — automatic transcript processing on meeting end
 
-The trigger Dev used: a **tenant-wide** Graph change-notification subscription on
+The trigger: a **tenant-wide** Graph change-notification subscription on
 `communications/onlineMeetings/getAllTranscripts`, kept alive by a renewer, with
 a public webhook receiver that fetches the VTT and runs the existing
-`meeting_agent::process_transcript`.
+`meeting_transcript::process_transcript`.
 
 ### Config (already in `backend/.env`)
 
 ```
 GRAPH_NOTIFICATION_BASE_URL=https://pdsgovernance.onrender.com
-GRAPH_NOTIFICATION_CLIENT_STATE=77o4FqMcZ79ditn4qnv8PAfb6KdWKhRWM6SbSvlgdVU
+GRAPH_NOTIFICATION_CLIENT_STATE=<redacted — rotate and store as a deployment secret>
 GRAPH_SUBSCRIPTION_MINUTES=4230
 ```
 
-`https://pdsgovernance.onrender.com` is live. **For Graph to validate the
-subscription callback, this exact backend (framework-readopt) must be deployed
-there** — Graph POSTs `?validationToken=…` to
+For Graph to validate the subscription callback, the backend must be deployed at
+`GRAPH_NOTIFICATION_BASE_URL` — Graph POSTs `?validationToken=…` to
 `{BASE}/internal/graph/notifications` and needs a 200 echo within 10s at
 subscription-creation time. `backend/Dockerfile` exists; the deploy is a
 separate step.
@@ -116,7 +112,7 @@ separate step.
      - fetch VTT via `ReadOperation::GetOnlineMeetingTranscript` (already exists;
        retry 404/429/5xx with linear backoff — the `/content` body lags the
        notification by minutes).
-     - call `meeting_agent::process_transcript` with the VTT as the payload
+     - call `meeting_transcript::process_transcript` with the VTT as the payload
        (`{ transcript_vtt: <text> }` — check its payload contract); on success
        persist `graph_transcript_id`; on fetch failure mark the row `failed`
        with the reason (re-ingestable via the manual paste path).
@@ -140,7 +136,7 @@ separate step.
    return one from it, or build a second handle in `main.rs` the same way
    `create_data_access_for_schema` does.
 
-4. **`meeting_agent::process_transcript`** — confirm it accepts a
+4. **`meeting_transcript::process_transcript`** — confirm it accepts a
    webhook-supplied VTT (not only a Graph read or a paste). Its step 1 is
    "obtain the transcript — a governed Graph READ … OR a manually pasted VTT".
    The webhook path passes the already-fetched text; make sure that shape is
@@ -152,23 +148,23 @@ separate step.
    has `subscription_id`, `resource`, `notification_url`, `client_state`,
    `expiration_date_time`.
 
-### Testing Phase 2
+### Testing
 
 - **Webhook ingest path (local):** POST a synthetic notification body to
   `http://127.0.0.1:8080/internal/graph/notifications` with a real
   `online_meeting_id` from a scheduled meeting and a real `transcript_id` (grab
   one from a meeting that actually ran + was transcribed), verify the row goes
   `graph_scheduled → transcript_captured` with `summary`/`decisions` populated.
-- **Subscription creation:** requires the framework-readopt backend deployed at
-  `pdsgovernance.onrender.com`. After deploy, hit an admin/startup path that
+- **Subscription creation:** requires the backend deployed at
+  `GRAPH_NOTIFICATION_BASE_URL`. After deploy, hit an admin/startup path that
   calls `ensure_subscription`, confirm a `graph_subscriptions` row and a live
   subscription (`GET /subscriptions`).
 - **Full E2E:** schedule a meeting, run it in Teams with transcription on, end
   it, wait for the notification, confirm the transcript is processed with no
   manual step.
 
-## Not carried from Dev (out of scope)
+## Intentionally not ported
 
-Power Automate path, `mock_docs`, the 5 bespoke gate review forms, committee
-panels, BPMN viewer, blockchain-audit widget — the frontend README already
-records these as intentionally not ported.
+The following legacy meeting-adjacent features are intentionally out of scope
+for the rebuild: the Power Automate path, `mock_docs`, the 5 bespoke gate-review
+forms, committee panels, the BPMN viewer, and the blockchain-audit widget.

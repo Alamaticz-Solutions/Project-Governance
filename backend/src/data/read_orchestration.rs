@@ -2,11 +2,8 @@
 //! evaluate → trace" pipeline for find/get/query/batch/aggregate reads,
 //! routed through the product's own `DatabaseClient` trait object.
 //!
-//! This is a from-scratch, product-owned reimplementation of the read-path
-//! orchestration previously supplied by `appfw_runtime::data_access`. It does
-//! not delegate to or wrap that framework module's logic. See the phase 5
-//! sub-slice 3b port spec for the rationale behind routing through
-//! `&dyn DatabaseClient` directly instead of a new generic trait.
+//! This orchestration is owned by this crate and dispatches through
+//! `&dyn DatabaseClient` directly rather than a dedicated generic trait.
 
 #![allow(dead_code)]
 
@@ -72,14 +69,13 @@ pub fn pagination_diagnostic(
     }
 }
 
-// Bridges into `platform::admin_runtime`'s `RuntimeQueryPlanDiagnostic`/
-// `RuntimePaginationDiagnostic` (self-owned as of backend framework
-// replacement phase 7 slice 6.3), needed only by `admin_ui.rs`'s
-// `AdminQueryDiagnoseProvider` impl -- a trait whose return type this
-// product's own `DataAccess::diagnose_query` (returning this self-owned
-// type) doesn't satisfy directly. Identical field shapes, genuinely
-// distinct types: this one is built during the read path with no admin
-// dependency at all, the other is purely an admin-response DTO.
+// Bridges into `platform::admin_runtime`'s `RuntimeQueryPlanDiagnostic` /
+// `RuntimePaginationDiagnostic`, needed only by `admin_ui.rs`'s
+// `AdminQueryDiagnoseProvider` impl -- a trait whose return type
+// `DataAccess::diagnose_query` (which returns the type in this module)
+// doesn't satisfy directly. Identical field shapes, genuinely distinct
+// types: this one is built during the read path with no admin dependency at
+// all, the other is purely an admin-response DTO.
 // `platform::admin_runtime` is `http`-gated (it's axum route/handler code),
 // so these two bridges -- which exist solely for its
 // `AdminQueryDiagnoseProvider` boundary -- must be gated the same way.

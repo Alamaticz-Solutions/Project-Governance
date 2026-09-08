@@ -1,9 +1,9 @@
 //! Microsoft Graph SaaS / external-API provider (spec 003 reads, spec 003
 //! §Non-goal-1 writes).
 //!
-//! Replaces the legacy ungoverned `graph_client.rs` (generic `get(path)` /
-//! `post_json(path)` against `graph.microsoft.com`). Structure mirrors
-//! `appfw_provider_salesforce`'s module shape:
+//! There is no generic `get(path)` / `post_json(path)` surface: every call
+//! goes through an allow-listed named operation. Module shape mirrors
+//! `appfw_provider_salesforce`:
 //!
 //!   identity          the pinned Graph API base URL
 //!   auth              env-var auth contract + redaction constants + token acquisition

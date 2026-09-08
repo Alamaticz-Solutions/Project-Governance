@@ -1,3 +1,8 @@
+//! Resolved, validated provider-plan value types shared between the query IR
+//! and the `DatabaseClient` dispatch layer: the pagination window and
+//! strategy (with its env-driven bounds policy), and the fully-resolved
+//! `ProviderMutationPlan` / `MutationKind` describing a create/update/delete.
+
 use crate::routes::app_error::AppError;
 
 /// The pagination strategy in effect for a query.

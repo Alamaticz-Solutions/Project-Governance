@@ -8,11 +8,10 @@ import { AsyncSection, canonicalEnumKey, humanizeEnum, formatDate, formatDateTim
 import { hasAnyRole } from '../../lib/authContext';
 
 /**
- * Project record. Dark "read-only dossier" presentation mirrors the Dev-branch
- * project detail — header card, stage-gate pipeline ribbon, tabbed body. Tab
- * content is this branch's relational data (approvals / gate submissions /
- * risks / stakeholders) rather than Dev's form-payload dump, and the workflow
- * actions (cancel / fast-track) are retained.
+ * Project record. Dark "read-only dossier" presentation — header card,
+ * stage-gate pipeline ribbon, tabbed body. Tab content is the project's
+ * relational data (approvals / gate submissions / risks / stakeholders), plus
+ * the workflow actions (cancel / fast-track).
  */
 
 const projectEntity = entityByType('Project');

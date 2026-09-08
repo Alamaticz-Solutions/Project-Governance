@@ -10,9 +10,8 @@ import { GOVERNANCE_ROLES, ROLE_CAPTIONS } from '../../lib/authContext';
  * pre-gate actions into sessionStorage. It is the public landing route — every
  * other route is behind <RequireAuth>.
  *
- * The split-panel presentation mirrors the Dev-branch portal login. The form
- * itself keeps this branch's token-based session model (there is no
- * email/password backend on this branch).
+ * The presentation is a split panel. The form uses a token-based session
+ * model — there is no email/password backend.
  */
 
 const FEATURES = [

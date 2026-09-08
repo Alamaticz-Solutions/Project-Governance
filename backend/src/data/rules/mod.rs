@@ -1,3 +1,8 @@
+//! Per-record rules applied on create/update: evaluate computed properties,
+//! stamp record-version (optimistic concurrency) fields, apply timezone
+//! normalization, and run field validation. `evaluate` is the single entry
+//! point called from the mutation path.
+
 use appfw_runtime::{
     extension::UserAuth,
     record_computed::{self as runtime_computed, RuntimeComputedKind},
@@ -15,6 +20,11 @@ use crate::product_api::{
 use crate::routes::app_error::AppError;
 use crate::schemas::system::{Computed, EntityType, PropertyType};
 
+/// Apply the per-record rules for `action` to `record` and return the
+/// updated record. On create/update: fill computed properties and stamp a
+/// fresh record-version on the concurrency-control property. On any
+/// non-delete action: apply timezone adjustment to datetime properties.
+/// Finally validate the record against the entity metadata.
 pub fn evaluate(
     entity_type: Arc<EntityType>,
     mut record: Map<String, Value>,

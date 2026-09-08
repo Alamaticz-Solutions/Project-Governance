@@ -12,15 +12,19 @@ use crate::{
 /// Product schema name — every `get_entity_type` call in this crate uses it.
 pub const SCHEMA: &str = "governance";
 
+/// Unwrap the optional authenticated actor, erroring if the request is
+/// unauthenticated.
 pub fn require_user(user: &Option<UserAuth>) -> HandlerResult<UserAuth> {
     user.clone()
         .ok_or_else(|| anyhow::anyhow!("authentication is required"))
 }
 
+/// Whether the actor carries `role` (case-insensitive).
 pub fn has_role(user: &UserAuth, role: &str) -> bool {
     user.roles.iter().any(|r| r.eq_ignore_ascii_case(role))
 }
 
+/// Whether the actor carries any of `roles` (case-insensitive).
 pub fn has_any_role(user: &UserAuth, roles: &[&str]) -> bool {
     roles.iter().any(|r| has_role(user, r))
 }
@@ -34,6 +38,7 @@ pub fn primary_role(user: &UserAuth) -> String {
         .unwrap_or_default()
 }
 
+/// Look up an `EntityType` in the governance schema by its type name.
 pub fn entity(data_access: &Arc<DataAccess>, type_name: &str) -> HandlerResult<Arc<EntityType>> {
     data_access
         .app_config
@@ -43,15 +48,18 @@ pub fn entity(data_access: &Arc<DataAccess>, type_name: &str) -> HandlerResult<A
 
 // --- GraphQL selection-set JSON builders (same shape the framework expects) ---
 
+/// A leaf selection: a scalar field with no sub-selection.
 pub fn field(name: &str) -> JsonValue {
     json!({ "name": name, "selection_set": [] })
 }
 
+/// A named selection with a sub-selection (for nested/navigation reads).
 #[allow(dead_code)] // selection helper for nested reads
 pub fn nested(name: &str, fields: &[JsonValue]) -> JsonValue {
     json!({ "name": name, "selection_set": fields })
 }
 
+/// A top-level selection over `name` with the given field sub-selection.
 pub fn selection(name: &str, fields: &[JsonValue]) -> JsonValue {
     json!({ "name": name, "selection_set": fields })
 }

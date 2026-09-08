@@ -3,7 +3,7 @@
 # Q5 audit: facets: [audited, concurrency].
 # DELIBERATELY STANDALONE — NO relationship to Project (none exists in legacy). No FKs.
 # Column set is the union across migrations 000003 + 000006 + 000007 (000004's
-# drop/rename of graph_organizer_id is NOT applied here — see report).
+# drop/rename of graph_organizer_id is NOT applied here — see the legacy migration analysis).
 # transcript_text / transcript_vtt / summary are PHI-risk free text (inventory).
 
 - name: Meeting
@@ -25,7 +25,7 @@
       arg_type: serde_json::Value
     return_type: serde_json::Value
 
-  # M10 / G1 governed-write. schedule_via_graph creates a Teams meeting via
+  # G1 governed-write. schedule_via_graph creates a Teams meeting via
   # Microsoft Graph behind the full 8-item G1 gate (services::graph::writes);
   # cancel_via_graph deletes the calendar event it created. payload carries
   # the bound parameters (subject/start/end/attendees; graph_event_id for

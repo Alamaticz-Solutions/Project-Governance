@@ -2,11 +2,11 @@
 
 > **Status : `accepted-pending-decisions`.** Implemented via the `.appfw/model` + `rbac/` policies. Open decisions Q7, A, B(Q5) touch this spec — see `000-INDEX.md` and `../../docs/architecture/open-decisions.md`.
 
-Full spec (rulebook file 07 §7.2 — this touches authentication, authorization, tenant isolation, audit, PHI/PII). Product: `governance`. Schema: `governance` (product) + `system` (framework). Data source: `pg_primary` (single PostgreSQL). Branch: `governance-restructure`.
+Full spec (rulebook file 07 §7.2 — this touches authentication, authorization, tenant isolation, audit, PHI/PII). Product: `governance`. Schema: `governance` (product) + `system` (framework). Data source: `pg_primary` (single PostgreSQL).
 
 **Related specs.** This is the foundational spec; 002 / 003 / 004 build on it. `002-gate-workflow-engine.md` owns the workflow `custom_methods`, the `WorkflowStageStatus` enum, the `AuditEvent` entity design, and the service-layer authorization split. `003-msgraph-saas-provider.md` owns the `Meeting` entity (legacy table `poc_meetings`) and its `.rego`. `004-ai-storage-and-nonprimitives.md` owns the AI-egress boundary and the document-storage / KB decisions. The authoritative wired-vs-unwired classification of every legacy table is `.appfw/legacy-modernization.yaml` → `data_discovery.tables_views_and_row_counts` (three-tier: REST-wired / seeded-only / GraphQL-only / fully unwired); the `*` marks in the checklist below are indicative only.
 
-Golden path is docs-only right now: the framework CLI cannot run on this Windows host, so `## Acceptance evidence` lists the commands that *will* prove conformance (file 07 §7.4), not commands runnable today.
+`## Acceptance evidence` lists the `scripts/appfw` commands that prove conformance (file 07 §7.4); on Windows they run inside the `rust-appfw` container against the sibling `../app-framework` checkout (see the repository root README).
 
 ---
 
@@ -179,7 +179,7 @@ Plus `<entity>_audit.rego` for each entity that ends up with `facets: [audited]`
 
 ## Acceptance evidence
 
-Commands that *will* prove conformance once the framework CLI can run (file 07 §7.4):
+Commands that prove conformance (file 07 §7.4):
 
 - `scripts/appfw product validate --json` — **0 RBAC lints**; every `governance` table entity resolves to a hand-authored `rbac/*.rego`; no `primary_schema`/`primary_data_source`, no credentials in config.
 - `scripts/appfw product policy-test` — all `rego_test` fixtures pass; positive fixtures confirm each role reaches its intended rows; **negative fixtures fail closed** — denied read for out-of-scope role returns `{"allow": false}`; a `project_manager` querying a project they do not manage gets a filter that excludes it; a non-assigned reviewer's gate decision is denied; any `viewer` write is denied.
@@ -204,4 +204,5 @@ Expectation stated for the reviewer: the `rego_test` negative fixtures are the l
 
 ## Status
 
-`draft`
+`accepted-pending-decisions` — see the status block at the top of this file and
+`000-INDEX.md`.

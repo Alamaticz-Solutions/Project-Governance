@@ -17,6 +17,14 @@ import { AuditScreen } from '../features/audit/AuditScreen';
 import { EntityBrowserScreen } from '../features/entities/EntityBrowserScreen';
 import type { GovernanceRole } from '../lib/authContext';
 
+/**
+ * SPA route table. `/sign-in` (and the legacy `/login` alias) are public;
+ * everything else renders inside `AppShell` behind the `RequireAuth` guard.
+ * The gate workspace and team inbox routes are further restricted to operator
+ * roles. `/scaffold` is the UI-kit reference screen; unknown paths fall
+ * through to `NotFound`.
+ */
+
 // Roles that can operate the gate workflow (matches the backend Rego actor set
 // for gate transitions / decisions). Everyone signed in can read the portfolio.
 const OPERATOR_ROLES: readonly GovernanceRole[] = [
@@ -38,7 +46,7 @@ export function AppRoot({ scaffoldReference }: { scaffoldReference: ReactNode })
     <Routes>
       {/* public */}
       <Route path="/sign-in" element={<SignInScreen />} />
-      {/* Dev-branch alias */}
+      {/* Legacy /login path redirects to the canonical /sign-in route. */}
       <Route path="/login" element={<Navigate to="/sign-in" replace />} />
 
       {/* everything else is behind the shell + auth guard */}
@@ -61,7 +69,7 @@ export function AppRoot({ scaffoldReference }: { scaffoldReference: ReactNode })
             </RequireAuth>
           }
         />
-        {/* Dev-branch alias — notifications / inbox rows link here. */}
+        {/* Alias path — notification / inbox rows link to the workspace here. */}
         <Route
           path="team-inbox/:projectId/workspace"
           element={

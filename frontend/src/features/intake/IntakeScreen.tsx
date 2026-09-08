@@ -8,9 +8,8 @@ import { PROJECT_PRIORITY, PROJECT_RISK } from '../shared/enums';
 import { AIPopulationDropzone } from '../shared/AIPopulationDropzone';
 
 /**
- * New-request intake. Dark glass, sectioned presentation mirrors the
- * Dev-branch "New Proposal Intake" (three sections + "what happens next" rail +
- * success screen). The create flow is this branch's: a Draft assembled into a
+ * New-request intake. Dark glass presentation: three sections, a "what happens
+ * next" rail, and a success screen. The create flow assembles a Draft into a
  * Project row through the App Framework client, with the manager FK resolved
  * from the seeded users. Document AI pre-fill goes through `extractIntake`
  * (services::ai_extraction) — pasted/uploaded text, PHI-gated before any

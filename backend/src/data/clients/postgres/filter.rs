@@ -1,3 +1,7 @@
+//! Lowers the query IR filter AST (`data::query_ir::FilterAst`) into
+//! parameterized Postgres predicates, including relation-exists subqueries
+//! for filtering on navigation and foreign-key relationships.
+
 use appfw_provider_postgres::{
     create_criterion as provider_create_criterion,
     relation_exists_from_source_fk as provider_relation_exists_from_source_fk,

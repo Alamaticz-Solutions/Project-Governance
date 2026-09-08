@@ -44,9 +44,9 @@ function iconFor(row: AppfwRecord): string {
 }
 
 /**
- * Full notification history. Presentation mirrors the Dev-branch portal
- * (card list, unread accent, mark-all-read); reads/writes go through the App
- * Framework client, recipient-scoped to the session user.
+ * Full notification history: card list, unread accent, mark-all-read.
+ * Reads/writes go through the App Framework client, recipient-scoped to the
+ * session user.
  */
 export function NotificationsScreen() {
   const { auth } = useApp();

@@ -4,9 +4,7 @@
 
 - **Depth:** Full spec (file 07 §7.2 — "SaaS/provider integration", auth/tenant/PHI/PII, ingress surface).
 - **Owner:** Governance platform team. **Decides:** human architect + governance review.
-- **Scaffold:** `C:\Users\ManojRajakumar\Governance-Restructure\governance-appfw\`
-- **Branch:** `governance-restructure` (every push needs explicit human approval).
-- **Supersedes (as governed pattern):** the legacy direct-HTTP `graph_client.rs` approach in `Project-Governance/backend/src/services/`.
+- **Supersedes (as governed pattern):** the legacy direct-HTTP `graph_client.rs` approach in the legacy Governance backend's `backend/src/services/`.
 - **Related:** spec 004 (VTT/OpenAI pipeline + S3-vs-SharePoint document storage). File 09 release gates out of scope now. MCP + Kafka disabled.
 
 ---
@@ -162,7 +160,7 @@ Transcript **ingestion** (reading a transcript for a meeting someone else create
 
 ## Acceptance evidence
 
-The framework CLI cannot run now (docs-only golden path). These are the commands that **will** prove the change when the golden path is live (file 07 §7.4):
+Commands that prove the change (file 07 §7.4; on Windows run via the `rust-appfw` container against the sibling `../app-framework` checkout):
 
 - **Hermetic connection/auth tests pass** — token acquisition, `.default` scope handshake, reconnect/lifecycle — recorded as auth-proven, distinct from semantic parity (ADR 0018).
 - `scripts/appfw product validate --json` — model + config valid; `poc_meetings` / `graph_subscriptions` entities present; no Graph-backed CRUD schema; `client_state` carries `meta.audit.redact: true`.
@@ -189,4 +187,5 @@ The framework CLI cannot run now (docs-only golden path). These are the commands
 
 ## Status
 
-`draft`
+`accepted-pending-decisions` — see the status block at the top of this file and
+`000-INDEX.md`.

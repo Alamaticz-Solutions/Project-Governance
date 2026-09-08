@@ -1,3 +1,7 @@
+//! Backend binary entry point: builds the tokio multi-thread runtime by hand
+//! (see [`main`]), loads configuration and secrets, assembles the router, and
+//! serves it via `appfw_runtime`.
+
 use dotenv::dotenv;
 #[cfg(feature = "http")]
 use std::sync::Arc;
@@ -43,19 +47,15 @@ fn worker_stack_bytes() -> usize {
     mib * 1024 * 1024
 }
 
-/// Entry point. Deliberately NOT `#[tokio::main]`: the self-owned
-/// `platform::host` that replaced `appfw_runtime` (backend framework
-/// replacement phase 7 final cutover) never re-established the larger
-/// worker-thread stack the old framework host ran with, so worker threads
-/// got tokio's 2 MiB default. The phase-7-ported self-owned read path
+/// Entry point. Deliberately NOT `#[tokio::main]`: the read path
 /// (read-orchestration -> projection resolvers -> filter-IR -> regorus
-/// eval) recurses deeply enough on a real query to overflow 2 MiB and
-/// abort the whole process (`thread 'tokio-rt-worker' has overflowed its
-/// stack`) -- deep, not infinite, recursion (it completes with
-/// `RUST_MIN_STACK=128MiB`). Until that recursion is flattened this builds
-/// the multi-thread runtime by hand with a generous, env-overridable
-/// worker stack. `thread_stack_size` is reserved address space committed
-/// lazily by the OS, not resident memory, so a large value is cheap.
+/// eval) recurses deeply enough on a real query to overflow tokio's default
+/// 2 MiB worker stack and abort the whole process (`thread
+/// 'tokio-rt-worker' has overflowed its stack`) -- deep, not infinite,
+/// recursion (it completes with `RUST_MIN_STACK=128MiB`). This builds the
+/// multi-thread runtime by hand with a generous, env-overridable worker
+/// stack. `thread_stack_size` is reserved address space committed lazily by
+/// the OS, not resident memory, so a large value is cheap.
 fn main() {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

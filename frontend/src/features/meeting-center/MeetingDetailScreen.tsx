@@ -7,10 +7,9 @@ import type { AppfwRecord } from '../../lib/appfwClient';
 import { AsyncSection, asText, humanizeEnum, formatDateTime } from '../../components/ui';
 
 /**
- * Meeting detail. Dark card presentation mirrors the Dev-branch meeting
- * workspace (AI summary / action items / details). Functionality is this
- * branch's: fetch the Meeting row, run `processTranscript` against a governed
- * Graph transcript or a pasted VTT, and show whatever content came back.
+ * Meeting detail. Dark card presentation: AI summary / action items / details.
+ * Fetches the Meeting row, runs `processTranscript` against a governed Graph
+ * transcript or a pasted VTT, and shows whatever content came back.
  */
 
 const meetingEntity = entityByType('Meeting');

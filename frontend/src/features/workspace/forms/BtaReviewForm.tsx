@@ -4,12 +4,10 @@ import { FieldGrid, GateWizard, WizardSectionHeading, YesNo, type WizardSection 
 import { AIPopulationDropzone } from '../../shared/AIPopulationDropzone';
 
 /**
- * BTA (Business Technology Analyst) Review gate form — ported from
- * origin/Dev's `BtaReviewForm.tsx` (9-section wizard). Field names and
- * validation match Dev exactly; several field names shadow `Project`
- * columns (e.g. `projectName`) but, matching Dev's own behavior, are stored
- * as a parallel copy inside `GateSubmission.data`, not written back onto
- * the `Project` row.
+ * BTA (Business Technology Analyst) Review gate form — a 9-section wizard.
+ * Several field names shadow `Project` columns (e.g. `projectName`) but are
+ * stored as a parallel copy inside `GateSubmission.data`, not written back
+ * onto the `Project` row.
  */
 
 export type BtaFormData = {

@@ -1,8 +1,6 @@
 /*
- * Product-owned design tokens + component styles.
- * Replaces the vendored @appfw/pds-health-components stylesheet. Written
- * from scratch for this product -- no vendor CSS, class names, or tokens
- * were copied.
+ * Product-owned design tokens + component styles for the UI kit
+ * (src/ui/kit.tsx).
  */
 
 :root {
@@ -81,9 +79,9 @@ h6 {
 }
 
 /* Design-language helpers ------------------------------------------------- *
- * Product-owned re-expression of the Dev-branch visual vocabulary (brand
- * gradient, glassmorphism, premium form controls, fade-in, thin scrollbar).
- * Screens use these instead of a utility framework. */
+ * Shared visual vocabulary (brand gradient, glassmorphism, premium form
+ * controls, fade-in, thin scrollbar). Screens use these instead of a utility
+ * framework. */
 
 .brand-gradient {
   background: var(--gov-gradient-brand);

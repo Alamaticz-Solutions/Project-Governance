@@ -1,3 +1,7 @@
+//! Builds the common-table-expression SQL that assembles nested selections
+//! -- navigation joins, many-to-many junctions, and `json_agg` projection --
+//! for a Postgres read, wrapping the primitives from `appfw_provider_postgres`.
+
 use std::sync::Arc;
 use std::time::Instant;
 

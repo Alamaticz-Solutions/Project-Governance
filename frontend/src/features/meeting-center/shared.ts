@@ -1,16 +1,11 @@
 import type { AppfwRecord } from '../../lib/appfwClient';
 
 /**
- * Shared display helpers for the Meeting Center screens — ported from
- * origin/Dev's `features/meeting-center/shared.ts`. Dev's `status`/`source`
- * are typed enums straight off its own POC pipeline (`scheduled|processing|
- * completed|failed|cancelled`, `local_stub|graph_scheduled|graph_ingest|...`);
- * this branch's `Meeting.status`/`Meeting.source` are plain strings with a
- * different, real vocabulary driven by `services::meeting_scheduling` /
- * `services::meeting_agent` (`scheduled` -> `graph_scheduled` once a live
- * Teams meeting is created, `transcript_captured` once a VTT is attached,
- * `cancelled`; source is `manual` or `local_stub`). Adapted to that
- * vocabulary rather than reproducing Dev's fictional one.
+ * Shared display helpers for the Meeting Center screens. `Meeting.status` /
+ * `Meeting.source` are plain strings driven by `services::meeting_scheduling` /
+ * `services::meeting_transcript`: status runs `scheduled` -> `graph_scheduled` once
+ * a live Teams meeting is created, `transcript_captured` once a VTT is
+ * attached, then `cancelled`; source is `manual` or `local_stub`.
  */
 
 export type MeetingRow = AppfwRecord & { id: string };

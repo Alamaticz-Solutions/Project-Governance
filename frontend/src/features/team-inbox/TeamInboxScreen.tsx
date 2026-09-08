@@ -8,10 +8,9 @@ import { humanizeEnum, formatDate } from '../../components/ui';
 import { ROLE_CAPTIONS, type GovernanceRole } from '../../lib/authContext';
 
 /**
- * Team inbox. Dark glass "Task Queue" presentation mirrors the Dev-branch
- * Pending Reviews screen. Rows are the pending ProjectApproval + open
- * GateReview items routed to the session roles, read through the App
- * Framework client.
+ * Team inbox. Dark glass "Task Queue" presentation. Rows are the pending
+ * ProjectApproval + open GateReview items routed to the session roles, read
+ * through the App Framework client.
  */
 
 const approvalEntity = entityByType('ProjectApproval');

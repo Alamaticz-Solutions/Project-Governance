@@ -1,7 +1,6 @@
-//! Single chokepoint for the framework runtime crate (backend framework
-//! runtime crate.
-//!
-//! Re-exports the framework runtime crate `appfw_runtime` directly.
+//! Glob re-export of the framework runtime crate `appfw_runtime`, giving the
+//! rest of this crate a `crate::platform::runtime` path to the same types
+//! and submodules.
 
 #![allow(unused_imports)]
 #![allow(ambiguous_glob_reexports)]

@@ -4,14 +4,10 @@ import { FieldGrid, GateWizard, WizardSectionHeading, YesNo, type WizardSection 
 import { AIPopulationDropzone } from '../../shared/AIPopulationDropzone';
 
 /**
- * EAC (Enterprise Architecture Committee) Review gate form — ported from
- * origin/Dev's `EacReviewForm.tsx` (10-section wizard). Matches Dev's own
- * state exactly, including that sections 5-9 have no real inputs there
- * either (Dev itself only wires 1-4 and 10; the rest render an
- * "attach docs elsewhere" placeholder) — reproduced faithfully rather than
- * "finished" on Dev's behalf. Dev's `stakeholders` array is tracked in Dev
- * but never merged into the submitted payload (a real gap in Dev itself);
- * kept as local-only state here too rather than silently fixing Dev's bug.
+ * EAC (Enterprise Architecture Committee) Review gate form — a 10-section
+ * wizard. Only sections 1-4 and 10 have inputs; sections 5-9 render an
+ * "attach docs elsewhere" placeholder. The `stakeholders` array is held as
+ * local-only state and is not merged into the submitted payload.
  */
 
 export type EacFormData = {
@@ -138,7 +134,7 @@ export function EacReviewForm({
       )}
       {sectionId === 'stakeholders' && (
         <>
-          <WizardSectionHeading title="Key Stakeholders" hint="Tracked locally; matches Dev, which does not submit this list either." />
+          <WizardSectionHeading title="Key Stakeholders" hint="Tracked locally; not part of the submitted payload." />
           <div style={{ display: 'grid', gap: 12 }}>
             {stakeholders.map((s, i) => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr) auto', gap: 8, alignItems: 'center' }}>
@@ -188,7 +184,7 @@ export function EacReviewForm({
       {UNWIRED_SECTIONS.has(sectionId) && (
         <>
           <WizardSectionHeading title={SECTIONS.find((s) => s.id === sectionId)?.label ?? ''} />
-          <p style={{ color: '#64748B', fontSize: 13 }}>Attach supporting documentation elsewhere for this section (unwired in Dev itself).</p>
+          <p style={{ color: '#64748B', fontSize: 13 }}>Attach supporting documentation for this section separately; it is not captured in this form.</p>
         </>
       )}
       {sectionId === 'checklist' && (

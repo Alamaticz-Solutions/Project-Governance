@@ -7,10 +7,10 @@ import type { AppfwRecord } from '../../lib/appfwClient';
 import { canonicalEnumKey, humanizeEnum, toEnumFilterValue } from '../../components/ui';
 
 /**
- * Portfolio list. Dark "command console" presentation mirrors the Dev-branch
- * All Projects screen (gradient canvas, glass filter bar, wide status table).
- * Rows come from the App Framework Project connection with server-side
- * filtering; progress is a status-derived indicator, as on Dev.
+ * Portfolio list. Dark "command console" presentation: gradient canvas, glass
+ * filter bar, wide status table. Rows come from the App Framework Project
+ * connection with server-side filtering; progress is a status-derived
+ * indicator.
  */
 
 const projectEntity = entityByType('Project');

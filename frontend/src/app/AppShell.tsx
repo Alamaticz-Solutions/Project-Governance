@@ -39,9 +39,8 @@ async function countPendingReviews(client: AppfwClient, roles: readonly string[]
 
 /**
  * Application chrome: a fixed navigation rail, a sticky top bar, and a
- * scrolling content region — the Dev-branch portal layout, re-expressed with
- * product-owned components. The local-session dialog (paste a bearer token
- * for local exploration) is retained from this branch's auth model.
+ * scrolling content region. The local-session dialog (paste a bearer token
+ * for local exploration) is part of the local auth model.
  */
 export function AppShell() {
   const navigate = useNavigate();

@@ -1,3 +1,11 @@
+//! Internal API surface shared by the generated handlers and operations.
+//!
+//! Re-exports the common request types (`UserAuth`, `PolicyAccess`,
+//! `DataAccess`, `AppError`, `EntityType`, and the runtime metadata types)
+//! under one path, and converts this crate's config/schema types
+//! (`schemas::system`) into the `appfw_runtime` model-metadata types the
+//! runtime consumes.
+
 use std::sync::Arc;
 
 #[allow(unused_imports)]
@@ -35,9 +43,9 @@ pub use crate::platform::runtime::{
 
 #[cfg(feature = "http")]
 pub(crate) fn user_from_context(ctx: &async_graphql::Context<'_>) -> Option<UserAuth> {
-    // `user_from_graphql_context` is self-owned as of phase 7's slice 3
-    // remainder and already returns this crate's own `UserAuth` directly
-    // -- no bridge conversion needed here any more.
+    // `user_from_graphql_context` already yields the `UserAuth` this crate
+    // uses (re-exported through `platform::user_auth`), so it is returned
+    // as-is with no conversion.
     crate::platform::runtime::user_from_graphql_context(ctx)
 }
 
@@ -80,9 +88,8 @@ pub(crate) fn runtime_data_source_metadata(data_source: &DataSource) -> RuntimeD
     RuntimeDataSourceMetadata {
         name: data_source.name.clone(),
         description: data_source.description.clone(),
-        // `RuntimeDataSourceMetadata` is self-owned (`platform::
-        // model_metadata`, phase 7 slice 8), and `runtime_provider` already
-        // returns this crate's own `FrameworkProvider` -- no bridge needed.
+        // `runtime_provider` returns the `FrameworkProvider` this field
+        // expects, so it is assigned directly with no conversion.
         provider: runtime_provider(data_source.data_source_type),
         is_system_schema_host: data_source.is_system_schema_host.unwrap_or(false),
         environments: data_source

@@ -33,7 +33,7 @@ wired/unwired split, all routes/services/enums/FKs/sensitive fields, and the enu
       └── 004 (AI / storage)       depends on 001; owns the AI-egress boundary 003 calls; owns document-storage + KB decisions
 ```
 
-## Reconciled cross-spec points (previously inconsistent between the parallel drafts — now aligned)
+## Reconciled cross-spec points
 
 1. **Audit (= plan Q5).** Two mechanisms, both used, stated identically in 001 §Open-decision-B and 002 §Risks:
    - `audited` **facet** (ADR 0004, per-entity 21-field hash-chained companion, record-level diffs) on the
@@ -100,12 +100,12 @@ wired/unwired split, all routes/services/enums/FKs/sensitive fields, and the enu
 - `audit_history.project_id` is `ON DELETE CASCADE` — a hard project delete would destroy its audit trail
   (mitigated only because delete is a soft cancel today).
 - `generate_project_number` = `count()+1` — not concurrency-safe against the `UNIQUE` constraint.
-- `backend/README.md` is stale (claims `attachments` / workflow tables unwired; they aren't).
 - The manual SQL `2026-08-31_align_enum_types_to_rust.sql` pushes enum casing the opposite way from the
   entity layer and migration 0902 — stale, unsafe to run, do not carry forward.
 
-## Not done here (needs the framework tooling, which is unavailable on this machine)
+## Running the framework tooling
 
-`scripts/appfw product validate` / `generate` / `test` — every spec's "Acceptance evidence" section lists
-the commands that *will* prove conformance. Steps 3+ of the plan (author `.appfw/model`, generate, custom
-methods, provider crate, frontend) resume once the framework is available in a Linux environment.
+`scripts/appfw product validate` / `generate` / `test` require the sibling
+`../app-framework` checkout. On Windows the wrapper is run inside the
+`rust-appfw` Linux container (see the repository root README). Each spec's
+"Acceptance evidence" section lists the commands that prove conformance.

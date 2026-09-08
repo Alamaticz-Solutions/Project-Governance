@@ -22,6 +22,13 @@ import {
 } from '../lib/tenantContext';
 import { createAppfwClient, AppfwClientError, type AppfwClient } from '../lib/appfwClient';
 
+/**
+ * App-wide context: the current session (auth + tenant), a memoized App
+ * Framework client bound to them, and setters that persist to sessionStorage.
+ * `useApp` exposes the context; `useAsync` / `useAction` are the shared
+ * hooks screens use to run client reads and mutations with loading / error
+ * state.
+ */
 type AppContextValue = {
   auth: GovernanceAuthContext;
   tenant: GovernanceTenantContext;

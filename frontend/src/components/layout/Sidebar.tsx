@@ -5,10 +5,9 @@ import { useApp } from '../../app/providers';
 import { ROLE_CAPTIONS, type GovernanceRole } from '../../lib/authContext';
 
 /**
- * Primary navigation rail. Visual language (dark gradient canvas, ambient
- * glow, gradient brand lockup, pill nav items) mirrors the Dev-branch
- * governance portal; the identity footer and the "Pending Reviews" badge are
- * wired to the live session / inbox rather than placeholder values.
+ * Primary navigation rail: dark gradient canvas, ambient glow, gradient brand
+ * lockup, and pill nav items. The identity footer and the "Pending Reviews"
+ * badge are wired to the live session / inbox.
  */
 
 type NavItem = { label: string; icon: string; route: string; badge?: number };

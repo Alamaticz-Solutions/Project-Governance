@@ -1,7 +1,6 @@
-//! Gate-review decisions (spec 002). Re-expression of the legacy
-//! `gate_review_service::submit_gate_decision`. Per-record ownership
-//! (`assigned_role == actor role`, admin override) is enforced here — not
-//! expressible as a single-row Rego filter.
+//! Gate-review decisions (spec 002): submitting a gate decision. Per-record
+//! ownership (`assigned_role == actor role`, admin override) is enforced
+//! here — not expressible as a single-row Rego filter.
 
 use std::sync::Arc;
 

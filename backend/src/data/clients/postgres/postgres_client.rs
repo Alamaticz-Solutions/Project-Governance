@@ -1,3 +1,9 @@
+//! `PostgresClient`: the `DatabaseClient` implementation backed by a
+//! `deadpool_postgres` connection pool. Translates resolved query/mutation
+//! plans into SQL (via the `cte` and `filter` helpers and
+//! `appfw_provider_postgres`), executes them, and maps driver errors to
+//! `AppError`.
+
 use anyhow::Result;
 use async_trait::async_trait;
 use deadpool_postgres::Client;
@@ -765,12 +771,10 @@ fn postgres_app_error(error: tokio_postgres::Error) -> AppError {
     AppError::from(postgres_runtime_error(error))
 }
 
-// Product-owned (backend framework replacement phase 5 sub-slice 2). Mirrors
-// the framework impl above so `DatabaseClient: ProviderClient` (product) is
-// satisfied alongside the still-required `DatabaseClient: RuntimeProviderClient`
-// (framework) bound. Both stay in place until the framework orchestration
-// functions that require the latter are ported and `DatabaseClientRuntimeAdapter`
-// is deleted.
+// Implements this crate's `ProviderIdentity`, which (via the blanket
+// `ProviderClient` impl) is the supertrait `DatabaseClient` requires. The
+// framework-facing side is handled separately by
+// `DatabaseClientRuntimeAdapter` in `database_client.rs`.
 impl crate::data::provider_identity::ProviderIdentity for PostgresClient {
     fn data_source_name(&self) -> &str {
         &self.data_source_name

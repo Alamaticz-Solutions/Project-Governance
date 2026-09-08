@@ -1,11 +1,9 @@
 //! Decode an uploaded document into plain text, before the PHI gate ever
 //! sees it. Supports `.txt` (direct UTF-8) and `.pdf` (via `pdf-extract`,
-//! pure Rust, no system dependency). `.docx` is NOT supported yet -- Dev's
-//! own upload UI advertised "PDF, DOCX, TXT"; DOCX was dropped from this
-//! port's initial scope rather than adding a heavier dependency
-//! mid-session. A caller can still paste text directly (`payload.text`),
-//! which every gate form and the intake screen already support as the
-//! primary path.
+//! pure Rust, no system dependency). `.docx` is NOT supported: a caller
+//! uploading one must instead paste text directly (`payload.text`), which
+//! every gate form and the intake screen already support as the primary
+//! path.
 
 use base64::Engine as _;
 

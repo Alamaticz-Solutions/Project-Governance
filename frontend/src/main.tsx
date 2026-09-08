@@ -107,7 +107,7 @@ export function ScaffoldReference() {
       <div className="app-kpi-grid" id="components">
         <KpiTile
           label="Design system"
-          value="Self-owned"
+          value="In-repo kit"
           detail="src/ui/kit.tsx"
           tone="accent"
           trend={<MetricTrend value="Ready" label="in-repo" tone="positive" direction="up" />}

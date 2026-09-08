@@ -8,14 +8,11 @@ type DirectoryUser = { id: string; name: string; email: string };
 type SearchDirectoryResult = { configured: boolean; users: DirectoryUser[] };
 
 /**
- * Attendee entry: chips + a typeahead. Ported from origin/Dev's
- * `AttendeePicker.tsx` (org directory via Graph `User.Read.All`) — searches
- * the real Microsoft 365 directory live via `User.searchDirectory`
- * (`services::directory`, `ReadOperation::SearchDirectoryUsers`), not this
- * app's own seeded `User` table, so results match the org's actual people
- * rather than whichever accounts happen to be seeded locally. Any other
- * address can still be free-added as an external attendee by typing it and
- * pressing Enter/comma.
+ * Attendee entry: chips + a typeahead. Searches the Microsoft 365 directory
+ * live via `User.searchDirectory` (`services::directory`,
+ * `ReadOperation::SearchDirectoryUsers`) rather than the app's seeded `User`
+ * table, so results match the org's actual people. Any other address can be
+ * free-added as an external attendee by typing it and pressing Enter/comma.
  */
 export function AttendeePicker({ value, onChange }: { value: string[]; onChange: (emails: string[]) => void }) {
   const { client } = useApp();

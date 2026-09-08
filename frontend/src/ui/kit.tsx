@@ -1,12 +1,8 @@
 /**
- * Product-owned UI kit.
- *
- * Replaces the vendored `@appfw/pds-health-components` design system with a
- * small set of components built from scratch for this product, so the app
- * carries no client-owned frontend code and can be reused/pitched
- * standalone. Prop shapes intentionally mirror the subset of the vendor
- * library the app actually used (so call sites didn't need rewriting), but
- * every implementation and CSS class below is original.
+ * Product-owned UI kit: a small set of components (primitives, layout,
+ * data-grid, chart chrome, overlays) used across every screen. Consumed via
+ * the `@ui-kit` / `@appfw/pds-health-components` import aliases so screen code
+ * imports from one place.
  */
 import {
   useEffect,

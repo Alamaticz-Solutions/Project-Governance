@@ -1,5 +1,6 @@
-//! Product-owned tenant scoping for policy decisions, ported off
-//! `appfw_runtime` (backend framework replacement phase 5).
+//! Tenant scoping for policy decisions: detecting whether an entity is
+//! tenant-scoped and deriving the tenant predicate applied to its reads and
+//! writes.
 
 use crate::platform::runtime::model_metadata::{RuntimeDataType, RuntimeEntityMetadata};
 

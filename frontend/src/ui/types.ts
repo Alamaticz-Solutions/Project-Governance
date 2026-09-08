@@ -1,10 +1,7 @@
 /**
- * Shared primitive types for the product's own UI kit (src/ui/kit.tsx).
- *
- * This kit replaces the vendor `@appfw/pds-health-components` design system.
- * It is written from scratch for this product -- no vendor markup, class
- * names, or CSS were copied -- so the product carries no dependency on
- * client-owned component code and can be reused for other clients.
+ * Shared primitive types (tones, sizes, density, option and data-grid column
+ * shapes) plus the `cx` class-name helper for the product UI kit
+ * (src/ui/kit.tsx).
  */
 import type { ReactNode } from 'react';
 

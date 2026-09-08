@@ -6,7 +6,7 @@ React/TypeScript single-page app (Vite). UI mode `scaffold`.
 
 Fixed navigation rail, sticky glass top bar, dark "console" screens for the
 portfolio/workspace flows, light screens for sign-in and notifications. Built
-from the in-repo, self-owned component kit (`src/ui/kit.tsx` + `kit.css`) — no
+from the in-repo component kit (`src/ui/kit.tsx` + `kit.css`) — no
 Tailwind, no client-proprietary design-system dependency.
 
 Every screen's data and auth calls go through the App Framework client
@@ -25,10 +25,14 @@ Every screen's data and auth calls go through the App Framework client
 ```bash
 npm install
 npm run appfw:check
+npm run phi:check
 npm run typecheck
 npm run test
 npm run build
 ```
+
+`npm run test:frontend` runs all of the above (`appfw:check → phi:check →
+typecheck → test → build`) in sequence.
 
 `npm run dev` starts the Vite dev server on `:5173` and proxies `/governance`,
 `/system`, and `/admin` to a backend on `127.0.0.1:8080`.

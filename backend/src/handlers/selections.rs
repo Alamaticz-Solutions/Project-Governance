@@ -1,3 +1,8 @@
+//! Translates an `async_graphql` selection set into the JSON selection-tree
+//! shape the data-access layer expects, resolving navigation and
+//! many-to-many properties to their target entities and ensuring the
+//! foreign-key field needed to stitch a relationship is always selected.
+
 use serde_json::{json, Value};
 use std::sync::Arc;
 
@@ -8,8 +13,8 @@ use crate::{
     schemas::system::{DataType, EntityType},
 };
 
-// Purpose: translate async_graphql selection set into json
-
+/// Build the JSON selection tree for a top-level list/query field, unwrapping
+/// a paginated `items` wrapper when present.
 #[allow(unused)]
 pub fn get_query_selections(
     app_config: Arc<AppConfig>,
@@ -24,6 +29,8 @@ pub fn get_query_selections(
     get_entity_selections(app_config.clone(), entity_type.clone(), parent)
 }
 
+/// Recursively build the JSON selection tree for `entity_type` from a GraphQL
+/// selection set, descending into navigation and many-to-many properties.
 pub fn get_entity_selections(
     app_config: Arc<AppConfig>,
     entity_type: Arc<EntityType>,

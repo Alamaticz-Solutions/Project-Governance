@@ -1,4 +1,4 @@
-# M10 / G1.6 IdempotencyAndReplayProtection + part of G1.8 WriteAuditAndEvidence.
+# G1.6 IdempotencyAndReplayProtection + part of G1.8 WriteAuditAndEvidence.
 # Append-only ledger of every governed Microsoft Graph WRITE attempt. A retry
 # with the same `idempotency_key` returns the recorded outcome instead of
 # re-issuing the Graph call (prevents a double calendar event). Standalone --

@@ -1,3 +1,8 @@
+//! Wiring for the framework's admin runtime: implements the `Admin*Provider`
+//! traits (model, schema summary, policy explain, query diagnose, audit
+//! timeline) against this crate's `AppConfig` and `DataAccess`, and mounts
+//! the resulting admin routes. `http`-feature only.
+
 use crate::platform::runtime::{
     admin::{
         admin_audit_timeline_for_subject, admin_filter_capabilities_for_provider,
@@ -267,12 +272,10 @@ impl AdminQueryDiagnoseProvider for ProductAdminQueryDiagnoseProvider<'_> {
             ));
         };
 
-        // `diagnose_query` returns the self-owned
-        // `read_orchestration::QueryPlanDiagnostic`; this trait's return
-        // type is now the self-owned `RuntimeQueryPlanDiagnostic` too --
-        // same field shapes, so `.into()` is a plain field-for-field
-        // conversion rather than a framework bridge (see
-        // `read_orchestration.rs`'s own comment at its `From` impls).
+        // `diagnose_query` returns `read_orchestration::QueryPlanDiagnostic`;
+        // this trait wants `RuntimeQueryPlanDiagnostic`. The field shapes are
+        // identical, so `.into()` is a plain field-for-field conversion (see
+        // the comment at `read_orchestration.rs`'s `From` impls).
         data_access
             .diagnose_query(entity_type, filter, sort, skip, limit, after, user)
             .await

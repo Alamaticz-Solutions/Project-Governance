@@ -1,7 +1,8 @@
-//! Independent reimplementation of a handful of pure leaf validators/parsers
-//! that historically lived in `appfw_runtime::query_ir`. This module does
-//! **not** cover pagination or the signed keyset-cursor subsystem — those
-//! remain framework-owned. See phase 5 slice 4b for scope.
+//! Pure leaf validators/parsers for aggregate functions and sort directions
+//! in the query IR, plus `From` conversions to the framework's
+//! `appfw_runtime::query_ir` equivalents. Pagination and the signed
+//! keyset-cursor subsystem are not handled here — those are framework-owned.
+
 #![allow(dead_code)]
 
 use crate::product_api::{RuntimeDataType, RuntimePropertyMetadata};

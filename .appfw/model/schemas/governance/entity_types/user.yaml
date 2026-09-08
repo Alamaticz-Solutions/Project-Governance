@@ -16,7 +16,7 @@
   execution:
     prepared_statements: true
 
-  # Live Microsoft Graph directory search (M9 read registry,
+  # Live Microsoft Graph directory search (spec 003 read registry,
   # ReadOperation::SearchDirectoryUsers) -- registered and live-verified by
   # graph::client's own connection test since spec 003, but no handler ever
   # called it. Backs the Meeting Center attendee picker. No provider_routine

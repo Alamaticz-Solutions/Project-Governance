@@ -1,9 +1,8 @@
-//! Approval state machine (spec 002). Re-expression of the legacy
-//! `project_service::submit_decision` / `fast_track_complete` / soft-cancel
-//! against the framework Query IR (`DataAccess`), NOT a port of the 980-line
-//! original. Per-record stage-ownership (`assigned_role == actor role`) is
-//! enforced here — it is not expressible as a single-row Rego filter
-//! (spec 001 / spec 002 authorization split).
+//! Approval state machine (spec 002): decision submission, fast-track
+//! completion, and soft-cancel, expressed against the framework Query IR
+//! (`DataAccess`). Per-record stage-ownership (`assigned_role == actor
+//! role`) is enforced here — it is not expressible as a single-row Rego
+//! filter (spec 001 / spec 002 authorization split).
 
 use std::sync::Arc;
 

@@ -24,7 +24,7 @@ pub async fn process_transcript_impl(
     meeting_id: String,
     payload: serde_json::Value,
 ) -> HandlerResult<serde_json::Value> {
-    crate::services::meeting_agent::process_transcript(data_access, &user, meeting_id, payload)
+    crate::services::meeting_transcript::process_transcript(data_access, &user, meeting_id, payload)
         .await
 }
 

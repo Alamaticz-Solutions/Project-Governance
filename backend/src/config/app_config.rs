@@ -1,3 +1,8 @@
+//! `AppConfig`: the resolved, in-memory view of the application's schemas,
+//! entity types, data sources, and security config. Built once at startup by
+//! `config::loader` and shared (via `Arc`) as the authority every handler and
+//! service consults for entity metadata, primary keys, and access rules.
+
 #![allow(dead_code)]
 
 use crate::platform::runtime::security::SecurityConfig;

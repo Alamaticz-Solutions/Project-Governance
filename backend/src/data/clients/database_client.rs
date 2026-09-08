@@ -1,3 +1,9 @@
+//! The `DatabaseClient` trait: the provider-agnostic contract the data-access
+//! layer dispatches through (find/query/aggregate/mutate/explain, audit
+//! append/read, custom-method execution), plus `DatabaseClientRuntimeAdapter`
+//! which wraps a `DatabaseClient` and implements the framework's
+//! `RuntimeProviderIdentity` / `RuntimeProviderDataClient` over it.
+
 #![allow(dead_code)]
 
 use std::sync::Arc;
@@ -75,6 +81,8 @@ pub struct ProviderRoutineName {
     pub name: &'static str,
 }
 
+/// A resolved call to a database stored routine (function/procedure) for a
+/// custom method, with the per-dialect routine name to invoke.
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct ProviderRoutineCall {
@@ -87,6 +95,9 @@ pub struct ProviderRoutineCall {
     pub snowflake: Option<ProviderRoutineName>,
 }
 
+/// Wraps a `&dyn DatabaseClient` and implements the framework's provider
+/// traits over it, so framework code that expects a `RuntimeProvider*` can be
+/// handed this crate's `DatabaseClient`.
 pub struct DatabaseClientRuntimeAdapter<'a> {
     client: &'a (dyn DatabaseClient + Send + Sync),
 }
@@ -312,6 +323,10 @@ impl appfw_runtime::RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'
     }
 }
 
+/// The provider-agnostic database contract the data-access layer dispatches
+/// through: readiness, plan-based find/query/aggregate/mutate, query-plan
+/// explain, append-only audit write/read, and custom-method (stored routine)
+/// execution. `PostgresClient` is the production implementation.
 #[async_trait]
 pub trait DatabaseClient: ProviderClient {
     async fn health_check(&self) -> Result<(), AppError>;

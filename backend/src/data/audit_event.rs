@@ -1,27 +1,21 @@
 //! Tamper-evident, hash-chained audit event record: 21-field shape,
 //! construction helpers, redaction, diffing, and SHA-256 hash-chain
-//! finalization. Ported off `appfw_runtime`'s `RuntimeAuditEvent` as an
-//! independent reimplementation (backend framework replacement phase 5,
-//! sub-slice 4a).
+//! finalization.
+//!
+//! `AuditEvent` and `AuditQuery` are this crate's own types. They convert to
+//! and from the framework's `appfw_runtime::RuntimeAuditEvent` /
+//! `RuntimeAuditQuery` via the `From` impls below, so the framework's
+//! data-access layer and this crate's orchestration code can exchange audit
+//! records without either side depending on the other's field layout.
 //!
 //! Every audit event this system writes is chained to the previous one via a
 //! SHA-256 hash of its own canonicalized JSON representation (`event_hash`,
 //! chained forward via `prev_hash`), and that hash is already persisted for
-//! historical events.
-//!
-//! This module used to carry an `oracle_test` comparing its output
-//! byte-for-byte against the live `appfw_runtime::RuntimeAuditEvent` (JSON
-//! shape and `event_hash`, given identical input). That test named
-//! `appfw_runtime` directly, so it could not survive backend framework
-//! replacement phase 7 slice 8's final cutover (the dependency's removal
-//! from `backend/Cargo.toml`). Before removing it, the oracle test was run
-//! one last time against the framework (still linked at that point) to
-//! capture its actual golden JSON/hash output, and `golden_test` below
-//! freezes that captured output as a standalone regression test -- no
-//! framework dependency, but the same drift it used to catch (a field
-//! rename/retype/presence change silently breaking the persisted hash
-//! chain) is still caught. See `golden_test`'s own doc comment for exactly
-//! how the values were captured.
+//! historical events. The serialization shape and hash are therefore a
+//! persisted-data contract: `golden_test` below freezes a known-good JSON
+//! body and `event_hash` for a fixed input and asserts them verbatim, so a
+//! field rename, retype, or presence change that would silently break the
+//! hash chain fails the build instead.
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AuditQuery {
@@ -800,27 +794,18 @@ mod tests {
     }
 }
 
-/// Frozen replacement for the `oracle_test` this module used to carry,
-/// which compared `AuditEvent::entity_mutation`'s output byte-for-byte
-/// against the live `appfw_runtime::RuntimeAuditEvent` (backend framework
-/// replacement phase 7 slice 8's final cutover -- `appfw_runtime` is gone
-/// from this workspace, so that comparison can no longer be made at all).
+/// Regression guard for the audit-event serialization contract.
 ///
-/// The golden JSON and `event_hash` below were captured by actually running
-/// the original oracle test one last time, at the exact commit before the
-/// framework dependency was removed (`cargo test -p backend --bin backend
-/// -- audit_event::oracle_test`, with the framework still linked) -- not
-/// invented or assumed. `audit_id`/`occurred_at` are excluded from the
-/// comparison because the original oracle test excluded them too (they're
-/// random/wall-clock, not serialization-shape-relevant); every other field,
-/// and the resulting `event_hash`, is asserted verbatim against what the
-/// framework's own implementation actually produced for this exact input.
-/// This guards the same regression the old test did -- a field rename,
-/// retype, or presence change silently breaking the persisted hash chain --
-/// just against a frozen value instead of a live comparison. It does NOT
-/// re-verify that this crate still matches the framework (the framework is
-/// gone), only that this crate does not drift from where it stood at the
-/// moment of cutover.
+/// `AuditEvent::entity_mutation`'s JSON body and resulting `event_hash` are a
+/// persisted-data contract: existing rows on disk were hash-chained with this
+/// exact shape, so any field rename, retype, or presence change silently
+/// breaks verification of the historical chain. This test builds an event
+/// from a fixed entity shape and input and asserts the serialized body and
+/// `event_hash` against frozen golden values.
+///
+/// `audit_id` and `occurred_at` are excluded from the comparison because they
+/// are random / wall-clock and not part of the serialization shape; every
+/// other field, and the hash, is asserted verbatim.
 #[cfg(test)]
 mod golden_test {
     use super::*;
@@ -829,10 +814,9 @@ mod golden_test {
     use crate::product_api::{RuntimeDataType, RuntimeEntityMetadata, RuntimePropertyMetadata};
     use serde_json::json;
 
-    // Deliberately the same two-property entity shape the deleted
-    // `oracle_test` used -- not the four-property `entity()` in `mod tests`
-    // above -- since the captured golden values below were produced against
-    // this exact shape.
+    // A fixed two-property entity shape -- not the four-property `entity()`
+    // in `mod tests` above -- since the frozen golden values below were
+    // computed against this exact shape.
     fn entity() -> RuntimeEntityMetadata {
         RuntimeEntityMetadata {
             id: "entity-1".to_string(),
@@ -915,9 +899,8 @@ mod golden_test {
             &access,
         );
 
-        // Non-deterministic fields, excluded the same way the original
-        // oracle test excluded them (it copied the framework's values onto
-        // the product side before comparing).
+        // Pin the non-deterministic fields (random id, wall-clock time) to
+        // fixed values so the serialized body can be compared verbatim.
         event.audit_id = "4a79a529-3032-41d9-8089-1f665d580732".to_string();
         event.occurred_at = chrono::DateTime::parse_from_rfc3339("2026-09-07T08:55:42.623929600Z")
             .unwrap()

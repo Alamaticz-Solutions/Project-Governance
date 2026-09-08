@@ -1,3 +1,8 @@
+//! The query intermediate representation: the filter AST, sort spec,
+//! selection tree, and query-cost inputs that a read request is parsed into
+//! before it is handed to a provider. Provider-agnostic -- Postgres SQL
+//! generation lives in `data::clients::postgres`.
+
 #![allow(dead_code)]
 
 use std::sync::Arc;

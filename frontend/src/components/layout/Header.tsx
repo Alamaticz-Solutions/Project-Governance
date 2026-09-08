@@ -7,10 +7,10 @@ import type { AppfwClient, AppfwRecord } from '../../lib/appfwClient';
 import { ROLE_CAPTIONS, type GovernanceRole } from '../../lib/authContext';
 
 /**
- * Top bar. Visual language mirrors the Dev-branch portal header (glass bar,
- * gradient wordmark, notification bell + dropdown, user menu). Notifications
- * are read through the App Framework client; sign-out clears the local
- * session; the "Local session" item opens the token dialog owned by AppShell.
+ * Top bar: glass bar, gradient wordmark, notification bell + dropdown, and a
+ * user menu. Notifications are read through the App Framework client; sign-out
+ * clears the local session; the "Local session" item opens the token dialog
+ * owned by AppShell.
  */
 
 const notificationEntity = entityByType('Notification');

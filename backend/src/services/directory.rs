@@ -1,10 +1,7 @@
 //! `User.search_directory` -- live Microsoft Graph org-directory search
-//! (read registry, `ReadOperation::SearchDirectoryUsers`). That
-//! operation was registered and live-verified by
-//! `graph::client::live::token_acquisition_and_one_directory_read` since
-//! spec 003, but no handler ever called it -- the Meeting Center attendee
-//! picker fell back to listing this app's own seeded `User` rows instead of
-//! the real org directory. This is that handler.
+//! (read registry, `ReadOperation::SearchDirectoryUsers`), backing the
+//! Meeting Center attendee picker. The Graph read operation is exercised by
+//! `graph::client::live::token_acquisition_and_one_directory_read`.
 
 use std::{sync::Arc, time::Duration};
 

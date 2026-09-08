@@ -4,13 +4,10 @@ import { FieldGrid, GateWizard, WizardSectionHeading, YesNo, type WizardSection 
 import { AIPopulationDropzone } from '../../shared/AIPopulationDropzone';
 
 /**
- * Finance Review gate form — ported from origin/Dev's `FinanceReviewForm.tsx`
- * (3-section wizard + a dynamic per-fiscal-year cost-items table). No
- * `Finance` stage exists in this branch's real seeded 19-stage workflow
- * (unlike Dev's simplified 6-step pipeline, which has one) — built to spec
- * regardless so the component exists; `ProjectWorkspaceScreen` does not
- * currently render it from any live stage (see workspace screen's stage
- * switch comment).
+ * Finance Review gate form — a 3-section wizard plus a dynamic
+ * per-fiscal-year cost-items table. No `Finance` stage exists in the seeded
+ * 19-stage workflow, so `ProjectWorkspaceScreen` does not currently render
+ * this form from any live stage (see that screen's stage switch comment).
  */
 
 export type CostItem = {

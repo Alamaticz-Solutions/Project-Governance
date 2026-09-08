@@ -4,10 +4,8 @@ import { YesNo } from './GateWizard';
 import { AIPopulationDropzone } from '../../shared/AIPopulationDropzone';
 
 /**
- * EPMO Review gate form — ported from origin/Dev's `EpmoReviewForm.tsx`
- * (single-screen 4-question checklist, no stepper). Fields/validation match
- * Dev exactly; storage is this branch's `GateSubmission.data` JSON (Dev's
- * own contract already matches, no backend change needed).
+ * EPMO Review gate form — a single-screen 4-question checklist, no stepper.
+ * Answers are stored as `GateSubmission.data` JSON.
  */
 
 export type EpmoFormData = {

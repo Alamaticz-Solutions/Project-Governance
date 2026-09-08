@@ -13,20 +13,18 @@ import { EacReviewForm } from './forms/EacReviewForm';
 import { PicReviewForm } from './forms/PicReviewForm';
 
 /**
- * Gate workspace. Dark glass presentation mirrors the Dev-branch project
- * workspace — header card with a current-stage badge, a tabbed body, and a
- * bottom row of decision / timeline widgets. Every transition is this branch's
- * real workflow surface (start / submit / skip / save_stage / submit_decision
- * against WorkflowStage + ProjectApproval).
+ * Gate workspace. Dark glass presentation — header card with a current-stage
+ * badge, a tabbed body, and a bottom row of decision / timeline widgets. Every
+ * transition drives the real workflow surface (start / submit / skip /
+ * save_stage / submit_decision against WorkflowStage + ProjectApproval).
  *
- * The Dev per-gate review forms ARE ported (`./forms/*ReviewForm.tsx`),
- * mapped onto this branch's real 19-stage seeded workflow by stage_code --
- * not Dev's own simplified 6-stage pipeline, which doesn't exist here (see
- * `GATE_FORM_BY_STAGE_CODE`). A stage with no bespoke form (most of the 19 --
+ * The per-gate review forms (`./forms/*ReviewForm.tsx`) are mapped onto the
+ * seeded 19-stage workflow by stage_code (see `GATE_FORM_BY_STAGE_CODE`). A
+ * stage with no bespoke form (most of the 19 --
  * VCR/VRA/TRC/SRA/APM/ST-Runbook/TechRB/Vendor-ST/CAB-CT/CAB-ER/PM/BTA-Meeting)
- * falls back to the generic Notes form. Dev's Finance form exists
- * (`./forms/FinanceReviewForm.tsx`) but isn't wired here -- no Finance stage
- * exists in this branch's real workflow to attach it to.
+ * falls back to the generic Notes form. `./forms/FinanceReviewForm.tsx` exists
+ * but is not wired here -- no Finance stage exists in the workflow to attach it
+ * to.
  */
 
 const GATE_FORM_BY_STAGE_CODE: Record<string, 'epmo' | 'bta' | 'eac' | 'pic'> = {
@@ -143,8 +141,8 @@ export function ProjectWorkspaceScreen() {
   const [gateDrawer, setGateDrawer] = useState<string | null>(null);
   const [gateNotes, setGateNotes] = useState('');
   // Bespoke gate forms hold their own local state and only report it up via
-  // onChange (matches Dev's activeFormDataRef pattern) -- a ref, not state,
-  // so keystrokes in the form don't re-render the whole workspace screen.
+  // onChange, into a ref rather than state, so keystrokes in the form don't
+  // re-render the whole workspace screen.
   const gateFormDataRef = useRef<Record<string, unknown>>({});
   const [gateFormValid, setGateFormValid] = useState(false);
   const [skipFor, setSkipFor] = useState<string | null>(null);
@@ -475,8 +473,8 @@ export function ProjectWorkspaceScreen() {
                       title={`Gate form · ${gateDrawer ?? ''}`}
                       description={
                         isBespoke
-                          ? 'Ported from the Dev-branch bespoke review form. Saved to the matching GateSubmission via save_stage.'
-                          : 'Generic gate form (no bespoke Dev form maps to this stage). Saved to the matching GateSubmission via save_stage.'
+                          ? 'Structured review form for this gate. Saved to the matching GateSubmission via save_stage.'
+                          : 'Generic gate form (no structured form is defined for this stage). Saved to the matching GateSubmission via save_stage.'
                       }
                       size={isBespoke ? 'lg' : 'md'}
                       onClose={() => setGateDrawer(null)}

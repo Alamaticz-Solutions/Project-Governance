@@ -2,13 +2,10 @@ import { type ReactNode, type CSSProperties } from 'react';
 import { Button, ProcessStepper, type ProcessStepItem } from '@ui-kit';
 
 /**
- * Shared shell for the Dev-branch bespoke gate review forms (BTA/EAC/Finance/
- * PIC use it; EPMO is a single screen and doesn't). Mirrors Dev's left
- * vertical stepper + right content-card layout
- * (`workspace/forms/*ReviewForm.tsx` on origin/Dev) on this branch's own
- * dark-glass visual language and `@ui-kit` primitives (`ProcessStepper`,
- * `Button`) rather than Tailwind — no new UI toolchain, per the "current
- * framework only" constraint.
+ * Shared shell for the multi-section gate review forms (BTA/EAC/Finance/PIC use
+ * it; EPMO is a single screen and doesn't). Left vertical stepper + right
+ * content-card layout, built on the dark-glass visual language and `@ui-kit`
+ * primitives (`ProcessStepper`, `Button`).
  */
 
 export type WizardSection = { id: string; label: string };
@@ -88,7 +85,7 @@ export function FieldGrid({ columns = 2, children }: { columns?: 1 | 2; children
   );
 }
 
-/** Dev's `YesNoToggle` — two-way radio rendered as a segmented pair. */
+/** Yes/No toggle — a two-way radio rendered as a segmented pair. */
 export function YesNo({
   label,
   value,

@@ -1,3 +1,6 @@
+//! Health and readiness endpoints: per-data-source readiness probes and
+//! provider pool-stats reporting, mounted under the framework's info routes.
+
 use std::{sync::Arc, time::Instant};
 
 use crate::platform::runtime::{
@@ -69,9 +72,8 @@ impl RuntimeReadinessProbe for ProviderReadinessCheck {
     }
 
     fn record_pool_stats(&self, metrics: &MetricsRegistry) {
-        // `record_provider_pool_stats` (`platform::metrics`) and
-        // `pool_stats()`'s `ProviderPoolStats` return type are both
-        // self-owned (phase 7 slice 8) -- no bridge needed.
+        // `pool_stats()` returns the `ProviderPoolStats` that
+        // `record_provider_pool_stats` expects, so it is forwarded directly.
         metrics.record_provider_pool_stats(self.data_access.pool_stats());
     }
 }

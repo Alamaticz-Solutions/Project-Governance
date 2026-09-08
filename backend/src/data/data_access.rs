@@ -1,3 +1,9 @@
+//! `DataAccess`: the crate-facing entry point for reads and writes. Holds the
+//! `AppConfig`, the `DatabaseClient` trait object, and the metrics registry,
+//! and exposes find/get/query/batch/aggregate reads, create/update/delete
+//! mutations, custom-method dispatch, audit-trail reads, and query diagnosis
+//! -- delegating to the read/mutation orchestration modules.
+
 use std::{env, sync::Arc, time::Instant};
 
 use anyhow::Result;
@@ -72,14 +78,12 @@ impl DataAccess {
         }
     }
 
-    /// Product-owned reimplementation of
-    /// `appfw_runtime::data_access::execute_audit_events_read` (backend
-    /// framework replacement phase 7, slice 5): the tenant-isolation and
-    /// access-filter checks below are copied verbatim from that function,
-    /// not just approximated, since this is exactly the kind of
-    /// security-relevant check finding Q's audit trail depends on. Calls
-    /// `self.client` (self-owned `DatabaseClient`) directly instead of
-    /// routing through `DatabaseClientRuntimeAdapter`.
+    /// Read the audit-event trail for a single record, enforcing tenant
+    /// isolation and the caller's access filter before any provider call.
+    /// The tenant check rejects a query whose tenant does not match the
+    /// authenticated tenant; a disallowed `access` yields an empty result.
+    /// Dispatches on `self.client` (`DatabaseClient`) directly rather than
+    /// through `DatabaseClientRuntimeAdapter`.
     pub async fn query_audit_events(
         &self,
         entity_type: Arc<EntityType>,
@@ -113,11 +117,9 @@ impl DataAccess {
         }
 
         ensure_provider_operation(self.client.as_ref(), RuntimeProviderOperation::FindItem)?;
-        // `DatabaseClient::find_item_json`'s `user` parameter is this
-        // crate's own self-owned `UserAuth` (`platform::user_auth`, via the
-        // `extension::UserAuth` facade path) -- `RuntimeJwtExtractor`'s
-        // slice 3 remainder made this self-owned end-to-end, same as
-        // `access`'s `PolicyAccess`, so no bridge conversion is needed here.
+        // `DatabaseClient::find_item_json` takes `platform::user_auth`'s
+        // `UserAuth` and `PolicyAccess` directly, so `user` and `access` are
+        // passed through without any bridge conversion.
         let visible = self
             .client
             .find_item_json(
@@ -254,10 +256,9 @@ impl DataAccess {
         let pagination = read_orchestration::pagination_diagnostic(&plan.pagination);
         let provider_descriptor = self.provider_descriptor();
         let provider_plan = plan.clone().into_runtime_provider_plan();
-        // Calls `self.client` (self-owned `DatabaseClient`) directly --
-        // `explain_query_plan` is a default method on that trait already,
-        // using the self-owned `RuntimeProviderPlanInput` wrapper (ported
-        // slice 5 part 1). No adapter, no framework free function.
+        // `explain_query_plan` is a default method on the `DatabaseClient`
+        // trait, taking a `RuntimeProviderPlanInput` wrapper -- called on
+        // `self.client` directly, with no adapter.
         ensure_provider_operation(
             self.client.as_ref(),
             RuntimeProviderOperation::ExplainQueryPlan,

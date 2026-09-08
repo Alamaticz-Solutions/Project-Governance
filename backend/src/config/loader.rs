@@ -1,3 +1,8 @@
+//! Loads the application config from disk (the generated schema/data-source
+//! JSON), resolves per-data-source credentials through
+//! `platform::secrets`, applies connection-security settings, and produces
+//! the `AppConfig` consumed by the rest of the crate.
+
 use std::{
     collections::HashMap,
     env,
@@ -137,10 +142,9 @@ fn add_secrets(mut data_source: DataSource) -> Result<DataSource, AppError> {
                     .map_err(map_secret_error)?,
             );
         }
-        // Not a supported data source for this product (Postgres-only:
-        // the only configured data source is `pg_primary`). If MS SQL support is ever
-        // needed, this arm needs a real (product-owned) implementation,
-        // not a framework dependency restored.
+        // Not a supported data source for this product (Postgres-only: the
+        // only configured data source is `pg_primary`). Supporting MS SQL
+        // would require a real implementation of this arm.
         DataSourceType::MsSqlServer | DataSourceType::FabricSqlAnalytics => {
             return Err(ConfigError::Load(format!(
                 "data source `{}` is of type {:?}, which this product does not support (Postgres-only)",

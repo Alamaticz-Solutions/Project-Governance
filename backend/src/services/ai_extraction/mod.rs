@@ -1,11 +1,9 @@
-//! AI document extraction (Dev's `AIPopulationDropzone` / intake auto-fill,
-//! spec 004). Was previously an honest inert stub -- `IntakeScreen.tsx`'s own
-//! doc comment said "the extraction egress boundary does not exist on this
-//! branch yet." This module is that boundary: [`extract_intake`],
-//! [`extract_team_fields`], and [`extract_meeting_insights`] are the only
-//! places in this crate that ever reach [`openai_client::extract_structured`],
-//! and all three refuse to call it at all once [`phi_gate::scan`] finds
-//! anything.
+//! AI document extraction backing the intake auto-fill / population dropzone
+//! in the frontend. This module is the extraction egress boundary:
+//! `extract_intake`, `extract_team_fields`, and `extract_meeting_insights`
+//! are the only places in this crate that ever reach
+//! `openai_client::extract_structured`, and all three refuse to call it at
+//! all once `phi_gate::scan` finds anything.
 //!
 //! Pipeline: `phi_gate::scan` (refuse if PHI/PII indicators found) ->
 //! `openai_client::extract_structured` (the one OpenAI call site) ->
@@ -13,7 +11,7 @@
 //! [`extract_intake`]/[`extract_team_fields`] additionally run
 //! `text_extract::extract_text` first to decode an uploaded/pasted document
 //! into text; `extract_meeting_insights` skips that step because its caller
-//! (`services::meeting_agent::process_transcript`) already has plain text
+//! (`services::meeting_transcript::process_transcript`) already has plain text
 //! from the parsed VTT.
 
 pub mod openai_client;
@@ -290,7 +288,7 @@ pub async fn extract_team_fields(
     Ok(outcome_json(result))
 }
 
-/// Called from `services::meeting_agent::process_transcript` once a
+/// Called from `services::meeting_transcript::process_transcript` once a
 /// transcript's VTT has been parsed to plain text -- summarizes it into
 /// `summary`/`decisions`/`action_items`/`agenda_items`/
 /// `contains_process_flow`/`process_name` for the `Meeting` row. Returns the

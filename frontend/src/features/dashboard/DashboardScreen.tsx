@@ -6,10 +6,10 @@ import type { AppfwClient, AppfwRecord } from '../../lib/appfwClient';
 import { canonicalEnumKey, humanizeEnum } from '../../components/ui';
 
 /**
- * Executive dashboard. Dark "portfolio analytics" presentation mirrors the
- * Dev-branch dashboard (KPI row, portfolio status table, my-tasks column,
- * risk summary, meetings). There is no aggregate endpoint on this branch — the
- * figures are composed from App Framework entity queries.
+ * Executive dashboard. Dark "portfolio analytics" presentation: KPI row,
+ * portfolio status table, my-tasks column, risk summary, meetings. There is no
+ * aggregate endpoint — the figures are composed from App Framework entity
+ * queries.
  */
 
 const projectEntity = entityByType('Project');
@@ -52,11 +52,10 @@ async function loadDashboard(client: AppfwClient, roles: readonly string[]) {
       .queryList(meetingEntity, {
         limit: 3,
         sort: { created_at: 'desc' },
-        // `meeting_type` doesn't exist on this branch's `Meeting` entity
-        // (it has `source` instead) -- selecting it is a hard GraphQL
-        // validation error that silently emptied this column via the
-        // .catch below on every load. Dropped; the render below already
-        // falls back to `status` when `meeting_type` is absent.
+        // `meeting_type` doesn't exist on the `Meeting` entity (it has
+        // `source` instead) -- selecting it is a hard GraphQL validation
+        // error, so it is not requested here. The render below falls back to
+        // `status` when `meeting_type` is absent.
         selection: ['id', 'subject', 'status', 'created_at']
       })
       .catch(() => ({ rows: [] as AppfwRecord[] }))

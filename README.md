@@ -7,7 +7,8 @@ Framework.
 ## Architecture
 
 The backend is generated and run on the **PDS App Framework** (`appfw_runtime`
-plus `appfw-provider-postgres`), consumed as a pinned dependency. The
+plus `appfw-provider-postgres`), consumed as a pinned path dependency on a
+sibling `../app-framework` checkout. The
 application model lives in `.appfw/model/**`; the framework's `app_gen`
 generator turns that model into the GraphQL schema, routes, handler scaffolds,
 database DDL, and the frontend contract. Durable business logic is hand-owned
@@ -24,7 +25,7 @@ and lives outside the generated surface.
 | `backend/src/platform/` | Thin product-side wiring over `appfw_runtime`. | Product |
 | `frontend/src/features/**` | Product screens. | Product |
 | `frontend/src/generated/` | Generated UI contract. | Generated — do not hand-edit |
-| `frontend/src/ui/` | Self-owned component kit (`kit.tsx` + `kit.css`). | Product |
+| `frontend/src/ui/` | In-repo component kit (`kit.tsx` + `kit.css`) — no third-party design-system dependency. | Product |
 
 ## Topology
 
@@ -41,13 +42,13 @@ sibling git checkout:
 
 ```
 <parent>/
-├── app-framework/       # Alamaticz-Solutions/app-framework, pinned
-└── governance-appfw/    # this repository
+├── app-framework/         # Alamaticz-Solutions/app-framework, pinned
+└── project-governance/    # this repository
 ```
 
-`appfw.lock` records the exact framework commit this checkout builds against.
-Clone `Alamaticz-Solutions/app-framework` as a sibling and check out the tag
-named in `appfw.lock` (currently `pinned/local-patch-1`). See
+`appfw.lock` records the exact framework revision this checkout builds against
+(`framework_git_sha` on `framework_git_branch`). Clone
+`Alamaticz-Solutions/app-framework` as a sibling and check out that commit. See
 `app-framework/PATCHES.md` for local patches carried ahead of PDS upstream.
 
 ## Build and test
@@ -72,7 +73,7 @@ On Windows, `scripts/appfw` (an `appfw-cli` bash wrapper) is run inside a Linux
 container:
 
 ```bash
-docker run --rm -v <parent>:/work -w /work/governance-appfw \
+docker run --rm -v <parent>:/work -w /work/project-governance \
   rust-appfw:latest ./scripts/appfw product validate --json
 ```
 
@@ -97,5 +98,7 @@ python scripts/smoke/smoke_test.py
   index (`000-INDEX.md`).
 - `docs/architecture/open-decisions.md` — product decisions still pending
   client sign-off.
+- `docs/architecture/deployment-pds.md` — the PDS (Bitbucket Pipelines / ECR /
+  ArgoCD / EKS) deployment contract and what this repo still needs to meet it.
 - Component READMEs under `backend/`, `frontend/`, `database/`, `api_tests/`,
   `rego_test/`.

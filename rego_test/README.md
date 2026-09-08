@@ -1,6 +1,26 @@
-# Project Governance Policy Tests
+# Project Governance — Policy Tests
 
-Policy fixtures should be created from the product users, roles, workflows, and
-data classifications discovered in the legacy application analysis.
+Rego access-policy coverage for the product's generated `governance` policies,
+exercised through the framework's `appfw-test` policy verifier
+(`appfw_test::policy::{evaluate_access, evaluate_access_rule}`).
 
-Keep deny-by-default behavior explicit and add row-scope fixtures before release.
+`tests/policy_contract.rs` runs the checked-in policy fixtures against
+`backend/config/generated/schemas/governance/comment.rego`; the other entity
+policies are not covered yet (see Coverage goals).
+
+```bash
+# needs the sibling ../app-framework checkout (appfw-test is a path dependency)
+cargo test -p rego_test
+```
+
+## Coverage goals
+
+- Deny-by-default is explicit: an entity with no matching allow rule is
+  inaccessible, not open.
+- Positive and negative fixtures per entity, built from the product users,
+  roles, workflows, and data classifications in the legacy application
+  analysis — including out-of-scope-role denials and IDOR-style attempts.
+- Row-scope fixtures for every single-row owner filter before release. The
+  author-ownership branch that reads `input.user.id` is blocked on
+  `docs/architecture/open-decisions.md` decision A and is intentionally not
+  covered yet.
