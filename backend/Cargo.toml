@@ -35,6 +35,13 @@ provider-postgres = []
 mcp = []
 
 [lints.rust]
+# app_gen emits SCREAMING_SNAKE_CASE variants for multiple GraphQL enums in schemas/governance.rs
+# (e.g. ApprovalDecision::NEEDS_INFO, NotificationType::{PROJECT_CREATED, TASK_ASSIGNED, TASK_COMPLETED,
+# APPROVAL_REQUIRED, STAGE_ADVANCED, COMMENT_ADDED}, RiskPriority::VERY_HIGH, ProjectStatus::{ON_HOLD,
+# IN_DELIVERY}, GateState::IN_PROGRESS, ProjectRole::{PROJECT_MANAGER, VENDOR_SCREENING, ANALYSIS_TEAM},
+# GateReviewStatus::{IN_PROGRESS, PENDING_APPROVAL, CHANGES_REQUESTED}).
+# The framework generator does not emit per-enum #[allow(non_camel_case_types)], so this lint suppression
+# is required to keep a 0-warning build.
 non_camel_case_types = "allow"
 
 [dependencies]

@@ -543,20 +543,30 @@ Add a "Framework dependency" section:
 
 ## 9. Open decisions
 
-- **`scripts/appfw` on native Windows** (found during slice 1): `appfw-cli`
-  fails with `os error 193` invoking its bash compatibility wrapper. The
-  self-owned `product_cli` was a pure Rust binary with no such issue. Options
-  for slice 3: run the framework CLI only under WSL/CI (Linux), invoke
-  `appfw-cli` directly without the wrapper, or ask PDS whether a
-  wrapper-free entrypoint exists. Does not block slices 1–2.
+- **`scripts/appfw` on native Windows (resolved in slice 3):** `appfw-cli`
+  fails with `os error 193` invoking its bash compatibility wrapper. Additionally,
+  `app_gen`'s output safety checks rely on Unix inode/hard-link metadata (`st_nlink`),
+  and `generate --check` invokes `check_app_gen_backend_equivalence.sh` which requires
+  `rsync` and `rustfmt`. The proven, reproducible solution on Windows with Docker Desktop:
+  ```bash
+  # 1. One-time setup: build or tag the container (rust:1 base + rustfmt + rsync)
+  docker run --name rust-setup rust:1 bash -c "rustup component add rustfmt && apt-get update && apt-get install -y rsync"
+  docker commit rust-setup rust-appfw:latest
+  docker rm rust-setup
+
+  # 2. Run any scripts/appfw command (mounting the parent directory so both siblings sit side-by-side):
+  docker run --rm -v C:\Users\ManojRajakumar\Governance-Restructure:/work -w /work/governance-appfw rust-appfw:latest ./scripts/appfw product validate --json
+  docker run --rm -v C:\Users\ManojRajakumar\Governance-Restructure:/work -w /work/governance-appfw rust-appfw:latest ./scripts/appfw product generate
+  docker run --rm -v C:\Users\ManojRajakumar\Governance-Restructure:/work -w /work/governance-appfw rust-appfw:latest ./scripts/appfw product generate --check --json
+  ```
+  Alternatively, use a local wrapper script `scripts/appfw-docker.bat`.
 - **Frontend kit (slice 6):** revert to vendored PDS components, or keep the
   self-owned `kit.tsx`? Decouple from the backend decision.
-- **`rego_test` / `api_tests` workspace membership:** they were restructured
-  around `product_gen::policy` / a self-owned harness in phase 7 slice 7 —
-  re-adoption may move them back onto `appfw-test`.
-- **Delete vs. keep dormant** the self-owned modules — recommend delete (they
-  cannot be maintained against a moving framework and would rot), but the git
-  history preserves them if ever needed.
+- **`rego_test` / `api_tests` workspace membership (resolved in slice 3):**
+  `rego_test` repointed to `appfw-test` path dependency (`../../app-framework/appfw_test`)
+  and restored to root `Cargo.toml` `members`. All 4 policy tests pass against the adopted harness.
+- **Delete vs. keep dormant:** resolved in slice 2b and slice 3 — dead platform and
+  sql modules and `product_gen/` were deleted cleanly (0 dead code warnings, -10k net lines).
 
 ---
 
