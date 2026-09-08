@@ -16,8 +16,6 @@ pub(crate) mod provider_plan;
 
 pub(crate) mod rules;
 
-pub(crate) mod keyset_cursor;
-
 pub(crate) mod read_orchestration;
 
 pub(crate) mod mutation_orchestration;

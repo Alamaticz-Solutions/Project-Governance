@@ -123,7 +123,7 @@ fn clamp_to_nonzero(value: u64) -> NonZeroU32 {
 /// CI-test-auth gate, phase 4b-4) don't need to change their import path --
 /// the real definition moved to `platform::security_config` (slice 3),
 /// which needs it too and isn't `http`-gated.
-pub(crate) use crate::platform::security_config::is_dev_workstation_env;
+pub(crate) use appfw_runtime::security::is_dev_workstation_env;
 
 #[cfg(test)]
 mod tests {

@@ -7,13 +7,13 @@ use crate::platform::runtime::{
         AdminMigration, AdminModelProvider, AdminPolicyDecision as PolicyDecision,
         AdminPolicyExplainProvider, AdminPolicyExplainResult, AdminQueryDiagnoseProvider,
         AdminRuntimeState, AdminSchema, AdminSchemaSummaryInput, AdminServiceError,
-        RuntimeQueryPlanDiagnostic,
     },
+    data_access::RuntimeQueryPlanDiagnostic,
     extension::UserAuth,
+    observability::RequestContext,
     security::SecurityConfig,
-    RuntimeFilterCapabilities,
+    RuntimeAuthState, RuntimeFilterCapabilities,
 };
-use crate::platform::request_context::RequestContext;
 use async_trait::async_trait;
 use axum::Router;
 use serde_json::Value;
@@ -85,8 +85,12 @@ impl AdminRuntimeState for AdminState {
         env!("CARGO_PKG_VERSION")
     }
 
-    fn auth_state(&self) -> JwtAuthConfig {
-        self.jwt_auth.clone()
+    fn auth_state(&self) -> RuntimeAuthState {
+        RuntimeAuthState {
+            jwt_issuer: self.jwt_auth.issuer.clone(),
+            jwt_audience: self.jwt_auth.audience.clone(),
+            okta_client_id: self.jwt_auth.client_id.clone(),
+        }
     }
 
     fn troubleshooting_enabled(&self) -> bool {

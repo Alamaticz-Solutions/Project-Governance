@@ -5,7 +5,7 @@
 //! not a distinct type -- so, like `RuntimeJsonObj` itself in slice 5,
 //! only these two functions actually need porting.
 
-pub type JsonObj = crate::platform::provider_result::RuntimeJsonObj;
+pub type JsonObj = appfw_runtime::RuntimeJsonObj;
 
 pub fn t_to_json_obj<T>(value: T) -> JsonObj
 where

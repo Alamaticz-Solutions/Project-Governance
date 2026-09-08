@@ -86,7 +86,7 @@ pub fn pagination_diagnostic(
 // Without this, a `--no-default-features --features provider-postgres`
 // build (no `http`) fails to resolve `crate::platform::admin_runtime` here.
 #[cfg(feature = "http")]
-impl From<PaginationDiagnostic> for crate::platform::admin_runtime::RuntimePaginationDiagnostic {
+impl From<PaginationDiagnostic> for crate::platform::runtime::data_access::RuntimePaginationDiagnostic {
     fn from(diagnostic: PaginationDiagnostic) -> Self {
         Self {
             strategy: diagnostic.strategy,
@@ -98,7 +98,7 @@ impl From<PaginationDiagnostic> for crate::platform::admin_runtime::RuntimePagin
 }
 
 #[cfg(feature = "http")]
-impl From<QueryPlanDiagnostic> for crate::platform::admin_runtime::RuntimeQueryPlanDiagnostic {
+impl From<QueryPlanDiagnostic> for crate::platform::runtime::data_access::RuntimeQueryPlanDiagnostic {
     fn from(diagnostic: QueryPlanDiagnostic) -> Self {
         Self {
             schema_name: diagnostic.schema_name,
@@ -163,7 +163,9 @@ pub fn next_keyset_cursor_from_items(
     let Some(value) = items.last().and_then(|item| item.get(sort_field)).cloned() else {
         return Ok(None);
     };
-    crate::data::keyset_cursor::encode_keyset_cursor(sort_field, sort_direction, value).map(Some)
+    appfw_runtime::query_ir::encode_keyset_cursor(sort_field, sort_direction.into(), value)
+        .map(Some)
+        .map_err(crate::routes::app_error::AppError::from)
 }
 
 /// Compute the previous/next cursor pair for a page of items.

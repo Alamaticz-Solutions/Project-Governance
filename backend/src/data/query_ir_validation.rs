@@ -50,6 +50,19 @@ impl AggregateFunction {
     }
 }
 
+impl From<AggregateFunction> for appfw_runtime::query_ir::RuntimeAggregateFunction {
+    fn from(func: AggregateFunction) -> Self {
+        match func {
+            AggregateFunction::Count => appfw_runtime::query_ir::RuntimeAggregateFunction::Count,
+            AggregateFunction::CountDistinct => appfw_runtime::query_ir::RuntimeAggregateFunction::CountDistinct,
+            AggregateFunction::Sum => appfw_runtime::query_ir::RuntimeAggregateFunction::Sum,
+            AggregateFunction::Avg => appfw_runtime::query_ir::RuntimeAggregateFunction::Avg,
+            AggregateFunction::Min => appfw_runtime::query_ir::RuntimeAggregateFunction::Min,
+            AggregateFunction::Max => appfw_runtime::query_ir::RuntimeAggregateFunction::Max,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct AggregateFieldDescriptor {
     pub name: String,
@@ -93,6 +106,15 @@ impl SortDirection {
         match self {
             Self::Asc => "asc",
             Self::Desc => "desc",
+        }
+    }
+}
+
+impl From<SortDirection> for appfw_runtime::query_ir::RuntimeSortDirection {
+    fn from(direction: SortDirection) -> Self {
+        match direction {
+            SortDirection::Asc => appfw_runtime::query_ir::RuntimeSortDirection::Asc,
+            SortDirection::Desc => appfw_runtime::query_ir::RuntimeSortDirection::Desc,
         }
     }
 }

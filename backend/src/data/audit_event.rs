@@ -78,6 +78,32 @@ fn audit_query_limit(limit: i64) -> i64 {
     limit.clamp(1, 100)
 }
 
+impl From<appfw_runtime::RuntimeAuditQuery> for AuditQuery {
+    fn from(q: appfw_runtime::RuntimeAuditQuery) -> Self {
+        Self {
+            schema_name: q.schema_name,
+            entity_name: q.entity_name,
+            audit_table_name: q.audit_table_name,
+            tenant_id: q.tenant_id,
+            record_id: q.record_id,
+            limit: q.limit,
+        }
+    }
+}
+
+impl From<AuditQuery> for appfw_runtime::RuntimeAuditQuery {
+    fn from(q: AuditQuery) -> Self {
+        Self {
+            schema_name: q.schema_name,
+            entity_name: q.entity_name,
+            audit_table_name: q.audit_table_name,
+            tenant_id: q.tenant_id,
+            record_id: q.record_id,
+            limit: q.limit,
+        }
+    }
+}
+
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct AuditEvent {
     pub audit_id: String,
@@ -215,6 +241,62 @@ impl AuditEvent {
     #[allow(dead_code)]
     pub fn continue_record_chain(self, last_event: Option<&serde_json::Value>) -> Self {
         continue_record_chain(self, last_event)
+    }
+}
+
+impl From<appfw_runtime::RuntimeAuditEvent> for AuditEvent {
+    fn from(e: appfw_runtime::RuntimeAuditEvent) -> Self {
+        Self {
+            audit_id: e.audit_id,
+            occurred_at: e.occurred_at,
+            tenant_id: e.tenant_id,
+            actor_user_name: e.actor_user_name,
+            actor_roles: e.actor_roles,
+            action: e.action,
+            outcome: e.outcome,
+            schema_name: e.schema_name,
+            entity_name: e.entity_name,
+            table_name: e.table_name,
+            audit_table_name: e.audit_table_name,
+            record_id: e.record_id,
+            diff_json: e.diff_json,
+            before_json: e.before_json,
+            after_json: e.after_json,
+            policy_json: e.policy_json,
+            redactions_json: e.redactions_json,
+            chain_scope: e.chain_scope,
+            prev_hash: e.prev_hash,
+            event_hash: e.event_hash,
+            signature: e.signature,
+        }
+    }
+}
+
+impl From<AuditEvent> for appfw_runtime::RuntimeAuditEvent {
+    fn from(e: AuditEvent) -> Self {
+        Self {
+            audit_id: e.audit_id,
+            occurred_at: e.occurred_at,
+            tenant_id: e.tenant_id,
+            actor_user_name: e.actor_user_name,
+            actor_roles: e.actor_roles,
+            action: e.action,
+            outcome: e.outcome,
+            schema_name: e.schema_name,
+            entity_name: e.entity_name,
+            table_name: e.table_name,
+            audit_table_name: e.audit_table_name,
+            record_id: e.record_id,
+            diff_json: e.diff_json,
+            before_json: e.before_json,
+            after_json: e.after_json,
+            policy_json: e.policy_json,
+            redactions_json: e.redactions_json,
+            chain_scope: e.chain_scope,
+            prev_hash: e.prev_hash,
+            event_hash: e.event_hash,
+            signature: e.signature,
+        }
     }
 }
 

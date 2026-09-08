@@ -76,9 +76,9 @@ use tracing::warn;
 use crate::data::provider_plan::PaginationPolicy;
 use crate::platform::auth::{resolve_user, JwtAuthConfig};
 use crate::platform::policy::{AccessAction, PolicyAccess};
-use crate::platform::provider_keys::FrameworkProvider;
-use crate::platform::query_cost::{QueryCost, QueryCostBudget};
-use crate::platform::query_filter::{
+use crate::platform::runtime::provider_keys::FrameworkProvider;
+use crate::platform::runtime::query_cost::{QueryCost, QueryCostBudget};
+use crate::platform::runtime::query_filter::{
     runtime_filter_capabilities_for_provider, RuntimeFilterCapabilities,
     RuntimeFilterDataTypeCapability,
 };

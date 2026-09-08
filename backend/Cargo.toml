@@ -37,10 +37,9 @@ provider-postgres = []
 anyhow = "1.0"
 # Framework re-adoption (docs/architecture/framework-readopt-plan.md). Resolved from
 # the pinned sibling checkout ../app-framework (mirror of Alamaticz-Solutions/app-framework,
-# tag pinned/archive-893829ad0e30). SLICE 1: declared but not yet consumed -- the
-# platform::runtime facade still points at crate::platform::*; slice 2 flips it to
-# `pub use appfw_runtime::*`.
+# tag pinned/archive-893829ad0e30).
 appfw_runtime = { package = "appfw-runtime", path = "../../app-framework/appfw_runtime", default-features = false }
+appfw-provider-postgres = { package = "appfw-provider-postgres", path = "../../app-framework/appfw_provider_postgres" }
 async-graphql = { version = "6", features = ["bson", "chrono", "dynamic-schema"] }
 async-graphql-value = "6"
 async-graphql-axum = { version = "6", optional = true }

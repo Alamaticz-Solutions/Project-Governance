@@ -1196,7 +1196,7 @@ fn ensure_keyset_sort(
     } else {
         String::new()
     };
-    crate::data::keyset_cursor::ensure_keyset_sort(&primary_key_name, sort)
+    appfw_runtime::query_ir::ensure_keyset_sort(&primary_key_name, sort).map_err(AppError::from)
 }
 
 fn apply_keyset_cursor_filter(
@@ -1204,7 +1204,7 @@ fn apply_keyset_cursor_filter(
     sort: &Value,
     after: Option<&str>,
 ) -> Result<Option<Value>, AppError> {
-    crate::data::keyset_cursor::apply_keyset_cursor_filter(filter, sort, after)
+    appfw_runtime::query_ir::apply_keyset_cursor_filter(filter, sort, after).map_err(AppError::from)
 }
 
 fn value_kind(v: &Value) -> &'static str {

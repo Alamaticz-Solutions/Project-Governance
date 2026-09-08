@@ -1,7 +1,7 @@
 # Re-adopting the PDS App Framework: execution plan
 
-**Status:** IN PROGRESS — slices 0 and 1 done and pushed (`origin/framework-readopt`).
-Slice 2 (facade flip) is next and not started. Supersedes the "what path"
+**Status:** IN PROGRESS — slices 0, 1, and 2 done (`origin/framework-readopt`).
+Slice 3 (swap generator) is next. Supersedes the "what path"
 discussion in `framework-readoption-analysis.md`; that doc holds the decision
 rationale, this one holds the how.
 
@@ -39,6 +39,7 @@ to `origin`. Commits so far:
 | `ba14bff` | this doc + `framework-readoption-analysis.md` |
 | `4c88c55` | **slice 1** — wiring restored, `cargo check -p backend` green |
 | `8efc7c1` | this doc §6a (teammate setup) + §9 (Windows caveat) |
+| `a6cad92` | **slice 2** — facade flipped, 19 platform + 12 sql files deleted, `appfw-provider-postgres` adopted, `cargo check -p backend --all-targets` green |
 
 **Framework checkout:** `Alamaticz-Solutions/app-framework` @ tag
 `pinned/archive-893829ad0e30` must be cloned as a sibling of this repo (see §6a
@@ -54,9 +55,7 @@ sibling path).
 cargo check -p backend --all-targets      # must be 0 errors
 ```
 
-**Next action:** Slice 2 (§4). Everything through slice 1 is a no-op wiring
-checkpoint — `appfw_runtime` compiles into the workspace but nothing uses it
-yet. Slice 2 is the first behavioural change and the first hard-to-revert step.
+**Next action:** Slice 3 (§4). Delete `product_gen/` and regenerate via `app_gen`.
 
 **The detailed reverse-map lives in `self-owned-backend-plan.md` §"Phase 7"** —
 that section documents, slice by slice, exactly how each `appfw_runtime` symbol
@@ -272,45 +271,35 @@ discipline, in reverse.
 - Facade untouched: `platform/runtime.rs` still `pub use crate::platform::*`;
   `appfw_runtime` compiles into the workspace but nothing consumes it.
 
-### Slice 2 — flip the facade  ⬅ NEXT, not started
+### Slice 2 — flip the facade ✅ DONE
 
-The first behavioural change. Run `self-owned-backend-plan.md` §Phase 7 in
-reverse. Sub-steps, each ending green:
-
-1. **Read Phase 7's progress notes first.** They give: the 45-file / 295-ref
-   surface, the heaviest 8 files (`data/read_orchestration.rs` 59,
-   `product_api.rs` 46, `data/mutation_orchestration.rs` 39, `data/data_access.rs`
-   36, `data/provider_identity.rs` 25, `data/query_ir_validation.rs` 12,
-   `data/clients/database_client.rs` 9, `platform/policy.rs` 7 — 79% of refs),
-   and the symbol-surface command:
-   `grep -rhoE "appfw_runtime::[A-Za-z0-9_]+(::[A-Za-z0-9_]+)*" backend/src | sort -u`
-   (run it against the framework checkout to get the ~30 symbols to map).
-2. **Flip `platform/runtime.rs`** to `pub use appfw_runtime::*`, then re-add the
-   submodule-path shadows Phase 7 documented as load-bearing — a crate-root
-   override alone compiles but is **silently inert**; real call sites reach e.g.
-   `runtime::security::SecurityConfig`, not `runtime::SecurityConfig`. Phase 7
-   slice 3's note ("caught by dead-code warnings on fields that are very much
-   used") is the symptom to watch for.
-3. **Delete the self-owned `platform/*` reimplementations** — the delete list in
-   §3, filtered against `platform/runtime.rs`'s own slice-by-slice override
-   comments and a `grep` per file. Do the pre-phase-7 modules (`identifier.rs`,
-   `cors.rs`, `secrets.rs`, `host.rs`, …) last and only if the framework exposes
-   an equivalent.
-4. **Add `appfw-provider-postgres`** to `backend/Cargo.toml`; delete
-   `backend/src/data/clients/postgres/**` and `data/keyset_cursor.rs`; repoint
-   `data/clients/database_client.rs` and `data/mod.rs`.
-5. **Re-introduce `DatabaseClientRuntimeAdapter`** + the 8 `From` bridges removed
-   at `c9e971e`. Phase 7's key pattern (from memory `[[backend-framework-replacement-status]]`):
-   *alias the framework type + bidirectional `From` bridge* wherever a self-owned
-   type would otherwise collide with a still-fixed `RuntimeProviderIdentity` /
-   `RuntimeProviderDataClient` trait signature — `PostgresClient` implements the
-   framework trait directly, not only via the adapter.
-6. Compiler drives the ~37 leaf files (single `use` line each).
-7. Gate: `cargo check -p backend --all-targets` = 0 errors, plus a live GraphQL
-   audit-hash-chain smoke (§5) since this touches every request path.
-
-Expect this slice to be the single biggest one — Phase 7 slice 5 (its mirror)
-was "bigger than every other slice combined."
+- **Facade flipped:** `backend/src/platform/runtime.rs` repointed to `pub use appfw_runtime::*;`.
+- **19 self-owned platform files deleted:** `errors.rs`, `graphiql.rs`, `graphql_context.rs`,
+  `model_metadata.rs`, `policy.rs`, `provider_error.rs`, `provider_keys.rs`, `provider_operation.rs`,
+  `provider_pool_stats.rs`, `provider_registry.rs`, `provider_request.rs`, `provider_result.rs`,
+  `provider_time_period.rs`, `query_cost.rs`, `query_filter.rs`, `query_pagination.rs`,
+  `record_locator.rs`, `security_config.rs`, `user_auth.rs`.
+- **Pre-phase-7 platform modules preserved:** `auth`, `admin_runtime`, `connection_security`,
+  `cors`, `host`, `identifier`, `json_utils`, `metrics`, `observability`, `product_ui`, `readiness`,
+  `request_context`, `routing`, `secrets`, `security`, `tenant_isolation` kept with re-exports.
+- **Provider adoption:** `appfw-provider-postgres` added to `backend/Cargo.toml`.
+  `DatabaseClientRuntimeAdapter` restored in `backend/src/data/clients/database_client.rs`
+  implementing `RuntimeProviderIdentity` and `RuntimeProviderDataClient`.
+- **AuditEvent bridges:** Bidirectional `From` implementations for `AuditEvent` <-> `RuntimeAuditEvent`
+  and `AuditQuery` <-> `RuntimeAuditQuery` added in `backend/src/data/audit_event.rs`.
+- **SQL layer streamlined:** Deleted 12 redundant SQL generation and execution files from
+  `backend/src/data/clients/postgres/**` (`param.rs`, `pg_error.rs`, `mutation.rs`, `aggregate.rs`,
+  `sort.rs`, `cte_sql.rs`, `many_to_many_config.rs`, `filter_sql.rs`, `routine_sql.rs`,
+  `audit_sql.rs`, `execution.rs`, `connection.rs`). Kept `postgres_client.rs`, `cte.rs`, `filter.rs`,
+  and `mod.rs` integrated with `appfw_provider_postgres`.
+- **Keyset cursor & Query IR:** Deleted `backend/src/data/keyset_cursor.rs`, repointed keyset
+  logic in `query_ir.rs` and `read_orchestration.rs` to `appfw_runtime::query_ir`. Added `From`
+  bridges for `SortDirection` and `AggregateFunction` in `query_ir_validation.rs`.
+- **Diagnostics:** Bridges for `QueryPlanDiagnostic` and `PaginationDiagnostic` in
+  `read_orchestration.rs` repointed to `appfw_runtime::data_access`.
+- **Admin UI:** Repointed `backend/src/admin_ui.rs` to `appfw_runtime::admin` and
+  `appfw_runtime::observability::RequestContext`.
+- **Acceptance gate met:** `cargo check -p backend --all-targets` = 0 errors (clean build).
 
 ### Slice 3 — swap the generator
 

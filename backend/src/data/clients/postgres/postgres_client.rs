@@ -10,43 +10,30 @@ use std::vec;
 use time::OffsetDateTime;
 use tracing::{debug, error, info};
 
-// Product-owned (backend framework replacement phases 3a-3e -- previously
-// the framework's `type_param`/`SqlParam`/`postgres_runtime_error`,
-// `mutation`/junction-table statement building, aggregate/sort query
-// building, CTE/filter leaf SQL rendering, and connection/execution/routine
-// handling). This crate no longer depends on the framework's Postgres
-// provider at all.
-use super::aggregate::{
+use appfw_provider_postgres::{
     aggregate_group_by as provider_aggregate_group_by,
-    aggregate_having as provider_aggregate_having, aggregate_query as provider_aggregate_query_sql,
-    aggregate_select_list as provider_aggregate_select_list, PostgresAggregateGroup,
-    PostgresAggregateHaving, PostgresAggregateHavingPredicate, PostgresAggregateMetric,
-    PostgresAggregateQuery,
-};
-use super::connection::{
+    aggregate_having as provider_aggregate_having,
+    aggregate_order_by as provider_aggregate_order_by,
+    aggregate_query_sql as provider_aggregate_query_sql,
+    aggregate_select_list as provider_aggregate_select_list,
+    cte_page_query_sql as provider_cte_page_query_sql,
+    mutation_delete_statement as provider_mutation_delete_statement,
+    mutation_insert_statement as provider_mutation_insert_statement,
+    mutation_junction_delete_statement as provider_mutation_junction_delete_statement,
+    mutation_junction_insert_statement as provider_mutation_junction_insert_statement,
+    mutation_junction_related_entity_id as provider_mutation_junction_related_entity_id,
+    mutation_update_parts as provider_mutation_update_parts,
+    mutation_update_statement as provider_mutation_update_statement,
     postgres_execution_client as provider_postgres_execution_client,
+    postgres_physical_table_name as provider_physical_table_name, postgres_runtime_error,
+    type_param as provider_type_param,
     validate_postgres_connection_security as provider_validate_postgres_connection_security,
-    PostgresConnectionConfig,
+    PostgresAggregateGroup, PostgresAggregateHaving, PostgresAggregateHavingPredicate,
+    PostgresAggregateMetric, PostgresAggregateQuery, PostgresConnectionConfig,
+    PostgresCtePageQuery, PostgresExecutionClient, PostgresFunctionCall, PostgresJunctionTable,
+    PostgresMutationEntity, PostgresMutationField, PostgresSortField, PostgresStoredProcedureCall,
+    SqlParam,
 };
-use super::cte_sql::{
-    page_query_sql as provider_cte_page_query_sql,
-    physical_table_name as provider_physical_table_name, PostgresCtePageQuery,
-};
-use super::execution::PostgresExecutionClient;
-use super::mutation::{
-    delete_statement as provider_mutation_delete_statement,
-    insert_statement as provider_mutation_insert_statement,
-    junction_delete_statement as provider_mutation_junction_delete_statement,
-    junction_insert_statement as provider_mutation_junction_insert_statement,
-    junction_related_entity_id as provider_mutation_junction_related_entity_id,
-    update_parts as provider_mutation_update_parts,
-    update_statement as provider_mutation_update_statement, PostgresJunctionTable,
-    PostgresMutationEntity, PostgresMutationField,
-};
-use super::param::{type_param as provider_type_param, SqlParam};
-use super::pg_error::postgres_runtime_error;
-use super::routine_sql::{PostgresFunctionCall, PostgresStoredProcedureCall};
-use super::sort::{aggregate_order_by as provider_aggregate_order_by, PostgresSortField};
 use crate::platform::runtime::{
     extension::UserAuth, provider_keys::FrameworkProvider, RuntimeProviderPlanInput,
 };
@@ -738,7 +725,7 @@ fn postgres_aggregate_metrics(plan: &ProviderAggregatePlan) -> Vec<PostgresAggre
     plan.metrics
         .iter()
         .map(|metric| PostgresAggregateMetric {
-            function: metric.function,
+            function: metric.function.into(),
             field_name: metric.prop.as_ref().map(|prop| prop.name.clone()),
             alias: metric.alias.clone(),
             value_data_type: runtime_data_type(metric.value_data_type()),
@@ -769,7 +756,7 @@ fn postgres_aggregate_order_by(plan: &ProviderAggregatePlan) -> String {
         .iter()
         .map(|spec| PostgresSortField {
             name: spec.alias.clone(),
-            direction: spec.direction,
+            direction: spec.direction.into(),
         })
         .collect::<Vec<_>>();
     provider_aggregate_order_by(&fields)
@@ -816,14 +803,14 @@ impl DatabaseClient for PostgresClient {
 
     async fn append_audit_event(&self, event: AuditEvent) -> Result<(), AppError> {
         self.execution
-            .append_audit_event(event)
+            .append_audit_event(event.into())
             .await
             .map_err(AppError::from)
     }
 
     async fn query_audit_events(&self, query: AuditQuery) -> Result<Vec<Value>, AppError> {
         self.execution
-            .query_audit_events(query)
+            .query_audit_events(query.into())
             .await
             .map_err(AppError::from)
     }

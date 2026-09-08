@@ -87,6 +87,231 @@ pub struct ProviderRoutineCall {
     pub snowflake: Option<ProviderRoutineName>,
 }
 
+pub struct DatabaseClientRuntimeAdapter<'a> {
+    client: &'a (dyn DatabaseClient + Send + Sync),
+}
+
+impl<'a> DatabaseClientRuntimeAdapter<'a> {
+    pub fn new(client: &'a (dyn DatabaseClient + Send + Sync)) -> Self {
+        Self { client }
+    }
+}
+
+impl dyn DatabaseClient + Send + Sync {
+    pub fn as_runtime_provider(&self) -> DatabaseClientRuntimeAdapter<'_> {
+        DatabaseClientRuntimeAdapter::new(self)
+    }
+}
+
+impl appfw_runtime::RuntimeProviderIdentity for DatabaseClientRuntimeAdapter<'_> {
+    fn data_source_name(&self) -> &str {
+        ProviderIdentity::data_source_name(self.client)
+    }
+
+    fn framework_provider(&self) -> appfw_runtime::provider_keys::FrameworkProvider {
+        ProviderIdentity::framework_provider(self.client)
+    }
+
+    fn pool_stats(&self) -> appfw_runtime::ProviderPoolStats {
+        ProviderIdentity::pool_stats(self.client)
+    }
+}
+
+#[async_trait]
+impl appfw_runtime::RuntimeProviderDataClient for DatabaseClientRuntimeAdapter<'_> {
+    type Error = AppError;
+    type Entity = Arc<EntityType>;
+    type QueryPlan = ProviderQueryPlan;
+    type AggregatePlan = ProviderAggregatePlan;
+    type MutationPlan = ProviderMutationPlan;
+
+    async fn health_check(&self) -> Result<(), Self::Error> {
+        self.client.health_check().await
+    }
+
+    async fn create_item_plan_json(
+        &self,
+        input: appfw_runtime::RuntimeProviderPlanInput<'_, Self::MutationPlan>,
+    ) -> Result<appfw_runtime::RuntimeJsonObj, Self::Error> {
+        let (plan, user, access) = input.into_parts();
+        self.client
+            .create_item_plan_json(RuntimeProviderPlanInput::new(plan, user, access))
+            .await
+    }
+
+    async fn update_item_plan_json(
+        &self,
+        input: appfw_runtime::RuntimeProviderPlanInput<'_, Self::MutationPlan>,
+    ) -> Result<appfw_runtime::RuntimeJsonObj, Self::Error> {
+        let (plan, user, access) = input.into_parts();
+        self.client
+            .update_item_plan_json(RuntimeProviderPlanInput::new(plan, user, access))
+            .await
+    }
+
+    async fn delete_item_plan_json(
+        &self,
+        input: appfw_runtime::RuntimeProviderPlanInput<'_, Self::MutationPlan>,
+    ) -> Result<i64, Self::Error> {
+        let (plan, user, access) = input.into_parts();
+        self.client
+            .delete_item_plan_json(RuntimeProviderPlanInput::new(plan, user, access))
+            .await
+    }
+
+    async fn get_items_plan_json(
+        &self,
+        input: appfw_runtime::RuntimeProviderPlanInput<'_, Self::QueryPlan>,
+    ) -> Result<Vec<appfw_runtime::RuntimeJsonObj>, Self::Error> {
+        let (plan, user, access) = input.into_parts();
+        self.client
+            .get_items_plan_json(RuntimeProviderPlanInput::new(plan, user, access))
+            .await
+    }
+
+    async fn query_items_plan_json(
+        &self,
+        input: appfw_runtime::RuntimeProviderPlanInput<'_, Self::QueryPlan>,
+    ) -> Result<JsonQueryResult, Self::Error> {
+        let (plan, user, access) = input.into_parts();
+        self.client
+            .query_items_plan_json(RuntimeProviderPlanInput::new(plan, user, access))
+            .await
+    }
+
+    async fn batch_get_items_plan_json(
+        &self,
+        input: appfw_runtime::RuntimeProviderPlanInput<'_, Self::QueryPlan>,
+    ) -> Result<Vec<appfw_runtime::RuntimeJsonObj>, Self::Error> {
+        let (plan, user, access) = input.into_parts();
+        self.client
+            .batch_get_items_plan_json(RuntimeProviderPlanInput::new(plan, user, access))
+            .await
+    }
+
+    async fn aggregate_items_plan_json(
+        &self,
+        input: appfw_runtime::RuntimeProviderPlanInput<'_, Self::AggregatePlan>,
+    ) -> Result<JsonAggregateResult, Self::Error> {
+        let (plan, user, access) = input.into_parts();
+        self.client
+            .aggregate_items_plan_json(RuntimeProviderPlanInput::new(plan, user, access))
+            .await
+    }
+
+    async fn explain_query_plan(
+        &self,
+        input: appfw_runtime::RuntimeProviderPlanInput<'_, &Self::QueryPlan>,
+    ) -> Result<Value, Self::Error> {
+        let (plan, user, access) = input.into_parts();
+        self.client
+            .explain_query_plan(RuntimeProviderPlanInput::new(plan, user, access))
+            .await
+    }
+
+    async fn append_audit_event(&self, event: appfw_runtime::RuntimeAuditEvent) -> Result<(), Self::Error> {
+        self.client.append_audit_event(event.into()).await
+    }
+
+    async fn query_audit_events(
+        &self,
+        query: appfw_runtime::RuntimeAuditQuery,
+    ) -> Result<Vec<Value>, Self::Error> {
+        self.client.query_audit_events(query.into()).await
+    }
+
+    async fn create_item_json(
+        &self,
+        entity_type: Self::Entity,
+        selections: Value,
+        input: appfw_runtime::RuntimeJsonObj,
+        user: &UserAuth,
+        access: &PolicyAccess,
+    ) -> Result<appfw_runtime::RuntimeJsonObj, Self::Error> {
+        self.client
+            .create_item_json(entity_type, selections, input, user, access)
+            .await
+    }
+
+    async fn update_item_json(
+        &self,
+        entity_type: Self::Entity,
+        selections: Value,
+        input: appfw_runtime::RuntimeJsonObj,
+        user: &UserAuth,
+        access: &PolicyAccess,
+        read_version: Option<Value>,
+    ) -> Result<appfw_runtime::RuntimeJsonObj, Self::Error> {
+        self.client
+            .update_item_json(entity_type, selections, input, user, access, read_version)
+            .await
+    }
+
+    async fn delete_item_json(
+        &self,
+        entity_type: Self::Entity,
+        input: appfw_runtime::RuntimeJsonObj,
+        user: &UserAuth,
+        access: &PolicyAccess,
+        read_version: Option<Value>,
+    ) -> Result<i64, Self::Error> {
+        self.client
+            .delete_item_json(entity_type, input, user, access, read_version)
+            .await
+    }
+
+    async fn find_item_json(
+        &self,
+        entity_type: Self::Entity,
+        selections: Value,
+        id: String,
+        user: &UserAuth,
+        access: &PolicyAccess,
+    ) -> Result<Option<appfw_runtime::RuntimeJsonObj>, Self::Error> {
+        self.client
+            .find_item_json(entity_type, selections, id, user, access)
+            .await
+    }
+
+    async fn get_items_json(
+        &self,
+        entity_type: Self::Entity,
+        selections: Value,
+        filter: Option<Value>,
+        user: &UserAuth,
+        access: &PolicyAccess,
+    ) -> Result<Vec<appfw_runtime::RuntimeJsonObj>, Self::Error> {
+        self.client
+            .get_items_json(entity_type, selections, filter, user, access)
+            .await
+    }
+
+    async fn query_items_json(
+        &self,
+        entity_type: Self::Entity,
+        selections: Value,
+        filter: Option<Value>,
+        sort: Option<Value>,
+        skip: i32,
+        limit: i32,
+        user: &UserAuth,
+        access: &PolicyAccess,
+    ) -> Result<JsonQueryResult, Self::Error> {
+        self.client
+            .query_items_json(
+                entity_type,
+                selections,
+                filter,
+                sort,
+                skip,
+                limit,
+                user,
+                access,
+            )
+            .await
+    }
+}
+
 #[async_trait]
 pub trait DatabaseClient: ProviderClient {
     async fn health_check(&self) -> Result<(), AppError>;
