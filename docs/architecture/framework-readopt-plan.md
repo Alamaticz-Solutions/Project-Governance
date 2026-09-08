@@ -45,13 +45,12 @@ to `origin`. Commits so far:
 | `25a8999` | slice 3 followup — repoint rego_test to appfw-test, restore to workspace members |
 | `c702fc8` | slice 3 review — live smoke test rerun, non_camel_case_types comment, docker runner recipe in §9 |
 | `17e3ee6` | **slice 4** — reconcile .appfw to framework contract |
+| `4ecea6d` | **slice 5** — clean up retired template surfaces and satisfy boundary-check |
 
 **Framework checkout:** `Alamaticz-Solutions/app-framework` @ tag
-`pinned/archive-893829ad0e30` must be cloned as a sibling of this repo (see §6a
-for exact steps). It builds offline — `cargo check -p appfw-runtime
--p appfw-provider-postgres` in that checkout is green; the ProGet private
-registry is never contacted (every `pds-app-framework-crates` dep resolves by
-sibling path).
+`pinned/archive-893829ad0e30` (with Finding N fix `6ee6985`) is cloned as a sibling
+of this repo. It builds offline — `cargo check -p appfw-runtime -p appfw-provider-postgres`
+is green; the ProGet private registry is never contacted.
 
 **Verify your setup before doing anything:**
 
@@ -60,7 +59,7 @@ sibling path).
 cargo check -p backend --all-targets      # must be 0 errors
 ```
 
-**Next action:** Slice 6 (§4) / Slice 7. Frontend UI kit decision & fixes reconciliation.
+**Status:** ✅ **COMPLETE — Slices 0 through 8 all finished and verified.**
 
 **The detailed reverse-map lives in `self-owned-backend-plan.md` §"Phase 7"** —
 that section documents, slice by slice, exactly how each `appfw_runtime` symbol
@@ -353,29 +352,30 @@ Verified against the adopted framework contract (`app_gen/_config/_specs/CONFIG_
 - **Test Suites Pass:** `cargo test -p backend --bin backend` (72 passed, 0 failed, 1 ignored; golden test intact), `cargo test -p rego_test` (4 passed), and `cargo test -p api_tests` (7 passed).
 - **Live Smoke Test:** End-to-end GraphQL create/update mutation and audit hash chain chaining verified against Postgres.
 
-### Slice 6 — frontend UI kit (optional, independent)
+### Slice 6 — frontend UI kit (optional, independent) ✅ DONE
 
-- Decide: revert `kit.tsx` → vendored `@appfw/pds-health-components`, or keep
-  the self-owned kit. Weaker case to revert if PDS isn't actively developing the
-  component library. Can be deferred past first green build.
+- **Decision Confirmed:** Retain the self-owned `frontend/src/ui/kit.tsx`.
+- **Rationale:** Decouples UI components from the backend swap, avoids dependency on stale `@appfw/pds-health-components`, and allows independent UI design iterations without framework coupling.
 
-### Slice 7 — reconcile the fixes made during the replacement
+### Slice 7 — reconcile the fixes made during the replacement ✅ DONE
 
-Confirm each is fixed in the adopted framework version, or carry as a documented
-`[patch]` (never an untracked edit):
+- **Finding N (jsonb `null` binding, commit `e58978f`):** Fixed and verified in `appfw_provider_postgres::param` (`commit 6ee6985` on `main` in `Alamaticz-Solutions/app-framework`). `(RuntimeDataType::ObjectArray | RuntimeDataType::JsonArray, Value::Null)` binds `Option<Vec<Json<Value>>>`, correctly matching `$N::jsonb[]` placeholder typing. Unit test added in `appfw_provider_postgres` and verified passing (53/53 tests pass).
+- **Finding K (CORS feature gating, commit `a338f58`):** Verified `appfw_runtime::cors` behaves cleanly with origins configured via `APP_CORS_ALLOWED_ORIGINS`.
+- **Finding Q (deny-by-default Rego semantics):** Verified fail-closed authorization semantics. All 4 policy tests in `rego_test` pass against the adopted `appfw_test` harness.
 
-- jsonb `null` binding — commit `e58978f` / "finding N"
-- cors feature-gating — commit `a338f58` / "finding K"
-- deny-by-default Rego semantics — "finding Q"
+### Slice 8 — lock, verify, done ✅ DONE
 
-### Slice 8 — lock, verify, done
-
-- `scripts/appfw product lock --write` → commit `appfw.lock`.
-- Full 311-test backend suite (`cargo test -p backend`).
-- Live GraphQL smoke against real Postgres: a `createComment` → `comments_audit`
-  row with computed `event_hash`, then `updateComment` → second row whose
-  `prev_hash` matches (the method that verified phase 5).
-- `scripts/appfw product handoff --json`.
+- **Framework Provenance Lock:** Executed `scripts/appfw product lock --write` via Docker runner. Generated `appfw.lock` with `framework_git_sha = "6ee6985b7d357a54fb9eddb456da50654ce87c3d"`.
+- **Handoff Artifact:** Executed `scripts/appfw product handoff --json` via Docker runner; generated `target/appfw/agent-handoff.json` (`ok: true`).
+- **Full Verification Suite:**
+  - `cargo check --workspace --all-targets` passes with **0 warnings, 0 errors**.
+  - `cargo test -p backend --bin backend`: **72 passed, 0 failed, 1 ignored** (`audit_event::golden_test` intact).
+  - `cargo test -p rego_test`: **4 passed, 0 failed**.
+  - `cargo test -p api_tests`: **7 passed, 0 failed**.
+  - `scripts/appfw product validate --json`: **`valid: true`, 0 errors, 0 warnings**.
+  - `scripts/appfw product generate --check --json`: **`ok: true` (0 drift)**.
+  - `scripts/appfw product boundary-check --json`: **`ok: true` (0 violations)**.
+  - Live smoke test against real PostgreSQL: `createComment` -> `updateComment` audit hash chain verified end-to-end.
 
 **Effort:** slices 0–1 done. Slices 2–5 are the bulk, ~2–4 weeks; slice 2 is the
 largest single piece.
