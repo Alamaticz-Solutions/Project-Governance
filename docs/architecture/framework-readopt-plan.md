@@ -1,8 +1,9 @@
 # Re-adopting the PDS App Framework: execution plan
 
-**Status:** PLAN — not started. Supersedes the "what path" discussion in
-`framework-readoption-analysis.md`; that doc holds the decision rationale, this
-one holds the how.
+**Status:** IN PROGRESS — slices 0 and 1 done and pushed (`origin/framework-readopt`).
+Slice 2 (facade flip) is next and not started. Supersedes the "what path"
+discussion in `framework-readoption-analysis.md`; that doc holds the decision
+rationale, this one holds the how.
 
 **Decision recorded:** consume the PDS App Framework as a **pinned upstream
 dependency**, per the model its own docs mandate
@@ -21,10 +22,48 @@ replaced (`self-owned-backend-plan.md`) and makes the framework's upgrade path
 - PDS has approved re-adoption and approved hosting the framework source in our
   GitHub org.
 - **Consumption mode: B** — framework as a pinned sibling git checkout (§2).
-- **Framework repo: case 2** — `Alamaticz-Solutions/app-framework`, an org-hosted
-  pinned mirror of a PDS release. Not the ProGet registry (Mode A), not a
-  submodule.
-- Still open: which specific PDS tag/SHA the mirror is seeded from (§8 ask 2).
+- **Framework repo:** `Alamaticz-Solutions/app-framework` (private), an org-hosted
+  pinned mirror. Not the ProGet registry (Mode A), not a submodule.
+- Still open: swapping the interim archive seed for a proper PDS tag (§8 ask 2) —
+  **not blocking**; the interim seed builds.
+
+---
+
+## 0. Current state — read this first if you are picking this up
+
+**Branch:** `framework-readopt` off `governance-restructure` (`44caa6c`), pushed
+to `origin`. Commits so far:
+
+| Commit | What |
+|---|---|
+| `ba14bff` | this doc + `framework-readoption-analysis.md` |
+| `4c88c55` | **slice 1** — wiring restored, `cargo check -p backend` green |
+| `8efc7c1` | this doc §6a (teammate setup) + §9 (Windows caveat) |
+
+**Framework checkout:** `Alamaticz-Solutions/app-framework` @ tag
+`pinned/archive-893829ad0e30` must be cloned as a sibling of this repo (see §6a
+for exact steps). It builds offline — `cargo check -p appfw-runtime
+-p appfw-provider-postgres` in that checkout is green; the ProGet private
+registry is never contacted (every `pds-app-framework-crates` dep resolves by
+sibling path).
+
+**Verify your setup before doing anything:**
+
+```bash
+# from governance-appfw/ on branch framework-readopt, with ../../app-framework present
+cargo check -p backend --all-targets      # must be 0 errors
+```
+
+**Next action:** Slice 2 (§4). Everything through slice 1 is a no-op wiring
+checkpoint — `appfw_runtime` compiles into the workspace but nothing uses it
+yet. Slice 2 is the first behavioural change and the first hard-to-revert step.
+
+**The detailed reverse-map lives in `self-owned-backend-plan.md` §"Phase 7"** —
+that section documents, slice by slice, exactly how each `appfw_runtime` symbol
+was ported *out*. Slice 2 here is that work run backwards, so read Phase 7's
+progress notes before starting: the file/reference counts, the top-8 heaviest
+files, the symbol-surface grep, and the "alias + bidirectional bridge" pattern
+are all there.
 
 ---
 
@@ -171,19 +210,19 @@ them as independent sibling clones.
 | `backend/src/services/**` | **Keep** | Product-owned. May need import repointing where they reached into `platform::`. |
 | `backend/src/services/graph/**` (Microsoft Graph provider, M9/M10) | **Keep** | Product code, sits on top of the framework — not affected by the swap except imports. |
 | `frontend/src/features/**`, product screens | **Keep** | Product-owned. |
-| `frontend/src/ui/kit.tsx` | **Decide separately** (§6) | Self-owned replacement for vendored `@appfw/pds-health-components`. Independent of the backend swap. |
-| `backend/src/platform/{errors,security_config,model_metadata,provider_registry,graphiql,provider_*,query_*,record_locator,...}.rs` | **Delete** | Self-owned reimplementations of `appfw_runtime` internals. Consume from the framework instead. |
-| `backend/src/platform/runtime.rs` | **Rewrite** | Flip from re-exporting `crate::platform::*` back to `pub use appfw_runtime::*` (+ the submodule-path shadows phase 7 documented). Keep the module — it stays the seam. |
-| `backend/src/data/clients/postgres/**` | **Delete** | Self-owned SQL layer (param mapping, statement builders, TLS connector). `appfw-provider-postgres` owns this. |
-| `backend/src/data/keyset_cursor.rs` | **Delete** | Framework owns keyset pagination. |
-| `backend/src/data/clients/database_client.rs` | **Rework** | Re-introduce `DatabaseClientRuntimeAdapter` + the bidirectional `From` bridges phase 7 slice 8 removed. |
-| `product_gen/`, `product_gen/product_cli/` | **Delete** | `app_gen` is the generator. |
-| `backend/src/{routes,schemas}/`, `backend/src/handlers/<schema>/generated.rs`, `backend/src/handlers/<schema>/mod.rs`, `entity_types.yaml` | **Regenerate** | `app_gen` output, typed against `appfw_runtime`. Large diff — reviewed, not authored. |
-| `frontend/src/generated/appfw-ui-contract.ts` | **Regenerate** | `app_gen` emits it. |
-| `scripts/appfw` | **Restore** | Removed at commit `9d54215`. The framework ships this wrapper; take it from the framework checkout. |
-| `.cargo/config.toml` | **Restore** | Registry stanza (Mode A) or nothing (Mode B path deps). |
-| `podman-compose.yml` | **Regenerate** | Generated from `.appfw/manifest.yaml` + data-source config. |
-| `Cargo.toml` (workspace) | **Rework** | Re-add framework deps; possibly restore `rego_test`/`api_tests` to `members` per how they consume `appfw-test`. |
+| `frontend/src/ui/kit.tsx` | **Decide separately** (slice 6) | Self-owned replacement for vendored `@appfw/pds-health-components`. Independent of the backend swap. |
+| `backend/src/platform/runtime.rs` | **Rewrite** (slice 2) | Flip from re-exporting `crate::platform::*` back to `pub use appfw_runtime::*` + the submodule-path shadows (§4 slice 2). Keep the module — it stays the seam. Its own doc comment lists every self-owned override slice-by-slice; that list is the delete inventory. |
+| self-owned `backend/src/platform/*.rs` reimplementations | **Delete** (slice 2) | Candidates, confirm each against `platform/runtime.rs`'s override list and a `grep`: `errors.rs`, `security_config.rs`, `model_metadata.rs`, `provider_registry.rs`, `graphiql.rs`, `provider_error.rs`, `provider_keys.rs`, `provider_operation.rs`, `provider_pool_stats.rs`, `provider_request.rs`, `provider_result.rs`, `provider_time_period.rs`, `query_cost.rs`, `query_filter.rs`, `query_pagination.rs`, `record_locator.rs`, `security.rs`, `user_auth.rs`, `policy.rs`. **Do not blind-delete** — several (`identifier.rs`, `secrets.rs`, `cors.rs`, `host.rs`, `observability.rs`, `connection_security.rs`, `tenant_isolation.rs`, `request_context.rs`, `readiness.rs`, `routing.rs`, `metrics.rs`, `json_utils.rs`, `product_ui.rs`, `admin_runtime/`) were self-owned well before phase 7 and may be genuine product code or thin shells — check whether the framework still exposes an equivalent first. |
+| `backend/src/data/clients/postgres/**` (17 files) | **Delete** (slice 2, with `appfw-provider-postgres` added) | Self-owned SQL layer: `param.rs`, `mutation.rs`, `aggregate.rs`, `filter.rs`/`filter_sql.rs`, `sort.rs`, `cte.rs`/`cte_sql.rs`, `audit_sql.rs`, `routine_sql.rs`, `connection.rs` (TLS connector), `execution.rs`, `pg_error.rs`, `postgres_client.rs`, `many_to_many_config.rs`. `appfw-provider-postgres` owns all of this. |
+| `backend/src/data/keyset_cursor.rs` | **Delete** (slice 2) | Framework owns keyset pagination. |
+| `backend/src/data/clients/database_client.rs` | **Rework** (slice 2) | Re-introduce `DatabaseClientRuntimeAdapter` + the 8 bidirectional `From` bridges removed at `c9e971e` (that commit message enumerates them: `errors.rs`, `policy.rs`, `provider_keys.rs`, `provider_pool_stats.rs`, `provider_result.rs`, `query_cost.rs`, `query_pagination.rs`, `user_auth.rs`). |
+| `product_gen/` (23 `.rs` files) + `product_gen/product_cli` bin | **Delete** (slice 3) | `app_gen` is the generator. Note `rego_test/` path-depends on `product_gen::policy` — slice 3 must repoint or drop that too (§9). |
+| `backend/src/routes/**`, `backend/src/schemas/**`, `backend/src/handlers/<schema>/generated.rs`, `backend/src/handlers/<schema>/mod.rs`, `backend/src/handlers/mod.rs`, `backend/src/schemas/mod.rs`, `.appfw/model/schemas/*/entity_types.yaml` (if generated) | **Regenerate** (slice 3) | Currently `product_gen` output typed against `crate::platform::*`. After `app_gen` runs, typed against `appfw_runtime`. Large diff — reviewed, not authored. `schemas/system.rs` already carries pre-existing accepted drift — expect it to change. |
+| `frontend/src/generated/appfw-ui-contract.ts` | **Regenerate** (slice 3) | `app_gen` emits it. |
+| `scripts/appfw` | ✅ **Restored** (slice 1, `4c88c55`) | From `9d54215^`. Resolves `../app-framework` and runs `appfw-cli --locked`. Note the Windows `os error 193` issue (§9). |
+| `.cargo/config.toml` | ✅ **Restored** (slice 1, `4c88c55`) | `pds-app-framework-crates` registry stanza. Only publish metadata — never fetched (path deps win). |
+| `podman-compose.yml` | **Regenerate** (slice 3) | Generated from `.appfw/manifest.yaml` + data-source config. |
+| `Cargo.toml` (workspace) | **Rework** (slices 2–3) | `appfw_runtime` re-added in slice 1. Slice 2 adds `appfw-provider-postgres`. Slice 3 removes `product_gen` refs; may restore `rego_test`/`api_tests` `members` per how they consume `appfw-test`. Current `members = ["api_tests", "backend"]`. |
 
 Cargo features: `default-features = false` + `features = ["http"]` only. **Do
 not** re-enable `mcp` / `kafka` / `sync` — none were ever in `default`, none run
@@ -198,32 +237,80 @@ Each slice ends with a green `cargo check -p backend --all-targets` against the
 restored framework checkout, committed independently. Mirrors phase 7's slice
 discipline, in reverse.
 
-### Slice 0 — framework acquisition (blocked on PDS, start now)
+### Slice 0 — framework acquisition ✅ DONE
 
-- Settle the framework repo URL / registry question (§2, §8).
-- Clone framework as `../app-framework`, checked out to a **specific tag or
-  SHA** — request a `v0.2.0` tag from PDS rather than pinning a bare `main`
-  commit.
-- Confirm `cargo check` works inside the framework checkout on our machines
-  (the private-registry dep `appfw-saas-core` must resolve — via ProGet or a
-  sibling path in the same checkout).
+- `Alamaticz-Solutions/app-framework` created (private), seeded from the source
+  archive `pacificdental-app-framework-893829ad0e30` (no upstream git history
+  was available). Tag `pinned/archive-893829ad0e30`. Provenance recorded in the
+  seed commit: `framework_git_sha 1d97819b1d400951178ed9d327c5b199496ccee1`,
+  version 0.1.0 per the archive's `appfw.lock` (source tree is ahead — Cargo.toml
+  says 0.2.0, unreleased).
+- Cloned as `../app-framework` (sibling of this repo).
+- **Acceptance met:** `cargo check -p appfw-runtime -p appfw-provider-postgres`
+  in the checkout = 0 errors, ~1m42s. `appfw-saas-core` and all other
+  `pds-app-framework-crates` deps resolve by sibling path; ProGet never
+  contacted.
+- Deferred (not blocking): swap the archive seed for a proper PDS tag (§8 ask 2).
+- Known issue: the mirror includes the CRM sample's ~70MB of seed SQL
+  (`database/_pkg/schemas/crm/seed.*`, `app_gen/_config/schemas/crm/seeds/*`) —
+  harmless (we never build the framework's own sample), trim later if desired.
 
-### Slice 1 — restore wiring, facade still self-owned underneath
+### Slice 1 — restore wiring, facade unchanged ✅ DONE (`4c88c55`)
 
-- Re-add framework deps to `backend/Cargo.toml`, restore `.cargo/config.toml`,
-  restore `scripts/appfw`.
-- Do **not** flip the facade yet. Goal: workspace resolves and `scripts/appfw
-  context --json` runs. `product_gen` still the generator at this point.
+- `scripts/appfw` restored from `9d54215^`.
+- `.cargo/config.toml` restored (registry stanza).
+- `backend/Cargo.toml`: `appfw_runtime = { package = "appfw-runtime", path =
+  "../../app-framework/appfw_runtime", default-features = false }` re-added, plus
+  `appfw_runtime/http` in the `http` feature.
+- **Deviations from the original plan text, intentional:**
+  - `appfw-provider-postgres` was **not** added — it comes in slice 2 alongside
+    deleting `data/clients/postgres/**`, so the workspace never has both the
+    self-owned SQL layer and the framework provider fighting over the same role.
+  - `scripts/appfw context --json` was **not** verified to run — `appfw-cli`
+    hits `os error 193` on native Windows (§9). The slice-1 gate is
+    `cargo check -p backend --all-targets` = 0 errors, which passed (2m28s).
+- Facade untouched: `platform/runtime.rs` still `pub use crate::platform::*`;
+  `appfw_runtime` compiles into the workspace but nothing consumes it.
 
-### Slice 2 — flip the facade
+### Slice 2 — flip the facade  ⬅ NEXT, not started
 
-- `platform/runtime.rs`: `pub use appfw_runtime::*` + submodule-path shadows
-  (`runtime::security::SecurityConfig`, etc. — a crate-root override alone is
-  silently inert, per phase 7's recurring lesson).
-- Delete the self-owned `platform/*` reimplementations listed in §3.
-- Compiler drives the rest — ~45 files, mostly a single `use` line each.
-- Re-introduce `DatabaseClientRuntimeAdapter` + `From` bridges in
-  `data/clients/database_client.rs`.
+The first behavioural change. Run `self-owned-backend-plan.md` §Phase 7 in
+reverse. Sub-steps, each ending green:
+
+1. **Read Phase 7's progress notes first.** They give: the 45-file / 295-ref
+   surface, the heaviest 8 files (`data/read_orchestration.rs` 59,
+   `product_api.rs` 46, `data/mutation_orchestration.rs` 39, `data/data_access.rs`
+   36, `data/provider_identity.rs` 25, `data/query_ir_validation.rs` 12,
+   `data/clients/database_client.rs` 9, `platform/policy.rs` 7 — 79% of refs),
+   and the symbol-surface command:
+   `grep -rhoE "appfw_runtime::[A-Za-z0-9_]+(::[A-Za-z0-9_]+)*" backend/src | sort -u`
+   (run it against the framework checkout to get the ~30 symbols to map).
+2. **Flip `platform/runtime.rs`** to `pub use appfw_runtime::*`, then re-add the
+   submodule-path shadows Phase 7 documented as load-bearing — a crate-root
+   override alone compiles but is **silently inert**; real call sites reach e.g.
+   `runtime::security::SecurityConfig`, not `runtime::SecurityConfig`. Phase 7
+   slice 3's note ("caught by dead-code warnings on fields that are very much
+   used") is the symptom to watch for.
+3. **Delete the self-owned `platform/*` reimplementations** — the delete list in
+   §3, filtered against `platform/runtime.rs`'s own slice-by-slice override
+   comments and a `grep` per file. Do the pre-phase-7 modules (`identifier.rs`,
+   `cors.rs`, `secrets.rs`, `host.rs`, …) last and only if the framework exposes
+   an equivalent.
+4. **Add `appfw-provider-postgres`** to `backend/Cargo.toml`; delete
+   `backend/src/data/clients/postgres/**` and `data/keyset_cursor.rs`; repoint
+   `data/clients/database_client.rs` and `data/mod.rs`.
+5. **Re-introduce `DatabaseClientRuntimeAdapter`** + the 8 `From` bridges removed
+   at `c9e971e`. Phase 7's key pattern (from memory `[[backend-framework-replacement-status]]`):
+   *alias the framework type + bidirectional `From` bridge* wherever a self-owned
+   type would otherwise collide with a still-fixed `RuntimeProviderIdentity` /
+   `RuntimeProviderDataClient` trait signature — `PostgresClient` implements the
+   framework trait directly, not only via the adapter.
+6. Compiler drives the ~37 leaf files (single `use` line each).
+7. Gate: `cargo check -p backend --all-targets` = 0 errors, plus a live GraphQL
+   audit-hash-chain smoke (§5) since this touches every request path.
+
+Expect this slice to be the single biggest one — Phase 7 slice 5 (its mirror)
+was "bigger than every other slice combined."
 
 ### Slice 3 — swap the generator
 
@@ -236,10 +323,15 @@ discipline, in reverse.
 
 ### Slice 4 — reconcile `.appfw/` to the framework contract
 
-- `.appfw/manifest.yaml`: `version`, `topology.data_sources[].role`,
-  `topology.schemas[].role` — match the adopted framework's expected shape.
+Likely light — `.appfw/manifest.yaml` is already in framework v1 shape
+(`version: 1`, `topology.data_sources[].role: transactional`,
+`topology.schemas[].role: framework`/`product`, `ingress`, `ui` blocks — matches
+the CRM sample's manifest structure). Confirm against the checkout's
+`.appfw/model/_specs/CONFIG_CONTRACT.md`:
+
+- `.appfw/manifest.yaml` field names/values still valid for the adopted version.
 - Schema `_res.yaml`: storage postures (`app_owned` etc.).
-- `scripts/appfw product validate --json` until clean.
+- `scripts/appfw product validate --json` until clean (run under WSL/Linux — §9).
 
 ### Slice 5 — product-surface fallout
 
@@ -271,8 +363,22 @@ Confirm each is fixed in the adopted framework version, or carry as a documented
   `prev_hash` matches (the method that verified phase 5).
 - `scripts/appfw product handoff --json`.
 
-**Effort:** slices 2–5 are the bulk, ~2–4 weeks. Slice 0 lead time is on PDS —
-run it in parallel from day one.
+**Effort:** slices 0–1 done. Slices 2–5 are the bulk, ~2–4 weeks; slice 2 is the
+largest single piece.
+
+### Related docs (read before slice 2)
+
+- `self-owned-backend-plan.md` — the authoritative reverse-map. §Phase 7 is
+  slice 2's mirror; §Phase 6 is slice 3's. Findings A–Q referenced in slice 7
+  are defined there.
+- `framework-readoption-analysis.md` — why this path, Path A/B/C, the fallback.
+- `phase6-app-gen-scoping.md` — how `app_gen`'s output is typed against
+  `appfw_runtime` (why slices 2 and 3 can't be separated across the
+  runtime/generator boundary).
+- `HANDOFF.md` (repo root) — prior-session handoff notes; context, not authority.
+- Framework checkout: `docs/lifecycle/product-golden-path.md`,
+  `docs/reference/product-workspace-contract.md`,
+  `docs/architecture/framework-packaging.md`.
 
 ---
 
