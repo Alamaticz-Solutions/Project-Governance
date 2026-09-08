@@ -214,7 +214,7 @@ export function MeetingDetailScreen() {
                           type="text"
                           value={attendees}
                           onChange={(e) => setAttendees(e.target.value)}
-                          placeholder="alice@company.com, bob@company.com"
+                          placeholder="alice@example.com, bob@example.com"
                           style={{
                             width: '100%',
                             background: '#0f172a',
