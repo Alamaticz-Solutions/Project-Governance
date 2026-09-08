@@ -55,7 +55,7 @@ option for dev. Both the bucket/container name **and** credential resolution com
 `aws_config::load_defaults` ambient credentials are findings against the current repo). `config.rs`
 and `.env.example` have no S3/AWS keys today; the rebuild adds them and fails closed if unset.
 
-SharePoint (see `docs/SHAREPOINT_DOCUMENT_STORAGE_RESEARCH.md`) is a Microsoft Graph **write** and is
+SharePoint is a Microsoft Graph **write** and is
 therefore G1-gated per file 04 §4.4 — cross-ref `003-msgraph-saas-provider.md` (D1); defer. Decision
 for the human architect: S3-backed `document_storage` now vs SharePoint later.
 

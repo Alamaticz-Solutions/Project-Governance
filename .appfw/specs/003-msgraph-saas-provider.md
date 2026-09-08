@@ -130,7 +130,7 @@ Graph-backed data (meetings, transcripts, directory users) is **not** modeled as
 
 ### D1 — SharePoint document storage (cross-reference spec 004)
 
-Moving document storage from S3 to SharePoint routes every upload through Graph, making each upload a Graph **write** → therefore `write_gated` / G1-gated. **This spec's position:** if SharePoint is chosen, it is a named mutation behind the full 8-item G1 stack, not shipped initially. `docs/SHAREPOINT_DOCUMENT_STORAGE_RESEARCH.md` D1–D7 remain spec 004's to resolve; the read-side `/drives`+`/sites` GETs could later be added to this provider's registry as named reads, but no work is in this spec's scope.
+Moving document storage from S3 to SharePoint routes every upload through Graph, making each upload a Graph **write** → therefore `write_gated` / G1-gated. **This spec's position:** if SharePoint is chosen, it is a named mutation behind the full 8-item G1 stack, not shipped initially. The SharePoint design questions remain spec 004's to resolve; the read-side `/drives`+`/sites` GETs could later be added to this provider's registry as named reads, but no work is in this spec's scope.
 
 ### D2 — Transcript ingestion continuity
 
