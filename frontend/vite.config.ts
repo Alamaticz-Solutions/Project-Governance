@@ -16,12 +16,18 @@ export default defineConfig({
   optimizeDeps: {
     esbuildOptions: { target: 'esnext' }
   },
-  // '@ui-kit' is the product's own UI component library (src/ui/kit.tsx) --
-  // no vendor/client-owned frontend package is used.
+  // The product ships its own UI component library at src/ui/kit.tsx, exposed
+  // both as '@ui-kit' (product code) and under the framework generator's
+  // '@appfw/pds-health-components' name (generated code — app_gen always emits
+  // that import; the kit re-exports the same component surface). To switch to
+  // the real PDS component package instead: `npm install
+  // @appfw/pds-health-components` and remove the two aliases below.
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: {
-      '@ui-kit': fileURLToPath(new URL('./src/ui/kit.tsx', import.meta.url))
+      '@ui-kit': fileURLToPath(new URL('./src/ui/kit.tsx', import.meta.url)),
+      '@appfw/pds-health-components/styles.css': fileURLToPath(new URL('./src/ui/kit.css', import.meta.url)),
+      '@appfw/pds-health-components': fileURLToPath(new URL('./src/ui/kit.tsx', import.meta.url))
     }
   },
   server: {

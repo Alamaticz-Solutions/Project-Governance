@@ -178,11 +178,31 @@ const pdsChecks = [
     pattern: '@ui-kit'
   },
   {
-    id: 'no-client-owned-design-system',
-    path: '.appfw-ui/scaffold-manifest.json',
-    pattern: 'self-owned'
+    // app_gen always emits `@appfw/pds-health-components` in generated frontend
+    // files. The product resolves that name to its own kit via a vite/tsconfig
+    // alias rather than installing the package, so no client-owned design-system
+    // dependency ships. These two checks assert the shim is in place.
+    id: 'pds-name-shimmed-to-kit-vite',
+    path: 'vite.config.ts',
+    pattern: "'@appfw/pds-health-components':"
+  },
+  {
+    id: 'pds-name-shimmed-to-kit-tsconfig',
+    path: 'tsconfig.json',
+    pattern: '"@appfw/pds-health-components":'
   }
 ];
+if (fs.existsSync(scaffoldUrl('package.json'))) {
+  const pkg = JSON.parse(fs.readFileSync(scaffoldUrl('package.json'), 'utf8'));
+  const allDeps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+  if (Object.keys(allDeps).some((name) => name.startsWith('@appfw/'))) {
+    pdsChecks.push({
+      id: 'no-client-owned-design-system-dependency',
+      path: 'package.json',
+      pattern: '__must-not-contain-@appfw/-dependency__'
+    });
+  }
+}
 const missingPdsChecks = pdsChecks.filter((check) => {
   const url = scaffoldUrl(check.path);
   return !fs.existsSync(url) || !fs.readFileSync(url, 'utf8').includes(check.pattern);
