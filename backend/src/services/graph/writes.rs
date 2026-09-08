@@ -93,7 +93,30 @@ pub enum WriteOperation {
     /// userId in request URL is not a valid GUID."` (found live,
     /// 2026-09-07, against the lventur.com tenant). The response carries
     /// `joinWebUrl`, which `schedule_via_graph` persists as `join_url`.
+    ///
+    /// **Not the wired path.** `schedule_via_graph` uses
+    /// `ScheduleCalendarEvent` instead (calendar entry + attendee invites +
+    /// Graph-reachable transcripts). Kept as a registered operation for a
+    /// caller that deliberately wants a bare, calendar-less meeting link.
+    #[allow(dead_code)]
     ScheduleTeamsMeeting {
+        organizer: String,
+        subject: String,
+        start_iso: String,
+        end_iso: String,
+        attendees: Vec<String>,
+    },
+    /// `POST /users/{organizer}/events` -- a calendar-backed Teams meeting.
+    /// Unlike `ScheduleTeamsMeeting`, this puts an event on the organizer's
+    /// Outlook/Teams calendar and Graph **emails invitations** to
+    /// `attendees`. `isOnlineMeeting: true` + `onlineMeetingProvider:
+    /// "teamsForBusiness"` makes Graph provision the Teams meeting; the
+    /// response carries `id` (persisted as `graph_event_id`) and
+    /// `onlineMeeting.joinUrl`. Cancelling this via `CancelCalendarEvent`
+    /// sends cancellation notices to the attendees. This is the path
+    /// `schedule_via_graph` uses. `start_iso`/`end_iso` are RFC3339; the
+    /// body splits them into Graph's `{ dateTime, timeZone: "UTC" }` shape.
+    ScheduleCalendarEvent {
         organizer: String,
         subject: String,
         start_iso: String,
@@ -151,6 +174,7 @@ impl WriteOperation {
     pub fn name(&self) -> &'static str {
         match self {
             Self::ScheduleTeamsMeeting { .. } => "schedule_teams_meeting",
+            Self::ScheduleCalendarEvent { .. } => "schedule_calendar_event",
             Self::CancelOnlineMeeting { .. } => "cancel_online_meeting",
             Self::CancelCalendarEvent { .. } => "cancel_calendar_event",
             Self::CreateSubscription { .. } => "create_subscription",
@@ -163,7 +187,9 @@ impl WriteOperation {
     /// The G1.7 policy action this operation is gated behind.
     fn policy_action(&self) -> &'static str {
         match self {
-            Self::ScheduleTeamsMeeting { .. } => "schedule_teams_meeting",
+            Self::ScheduleTeamsMeeting { .. } | Self::ScheduleCalendarEvent { .. } => {
+                "schedule_teams_meeting"
+            }
             // Same gate as CancelCalendarEvent -- both are "cancel the
             // meeting I scheduled", just against the right Graph resource.
             Self::CancelOnlineMeeting { .. } | Self::CancelCalendarEvent { .. } => {
@@ -183,6 +209,10 @@ impl WriteOperation {
         match self {
             Self::ScheduleTeamsMeeting { organizer, .. } => Some(RequestPlan::post(format!(
                 "/users/{}/onlineMeetings",
+                path_segment(organizer)
+            ))),
+            Self::ScheduleCalendarEvent { organizer, .. } => Some(RequestPlan::post(format!(
+                "/users/{}/events",
                 path_segment(organizer)
             ))),
             Self::CancelOnlineMeeting {
@@ -267,6 +297,41 @@ impl WriteOperation {
                 }
                 Some(body)
             }
+            Self::ScheduleCalendarEvent {
+                subject,
+                start_iso,
+                end_iso,
+                attendees,
+                ..
+            } => {
+                // Graph `/events` wants `{ dateTime, timeZone }`, not an
+                // RFC3339 string. Normalize to naive UTC + explicit "UTC".
+                let dt = |iso: &str| {
+                    chrono::DateTime::parse_from_rfc3339(iso)
+                        .map(|d| {
+                            d.with_timezone(&chrono::Utc)
+                                .format("%Y-%m-%dT%H:%M:%S")
+                                .to_string()
+                        })
+                        .unwrap_or_else(|_| iso.to_string())
+                };
+                Some(serde_json::json!({
+                    "subject": subject,
+                    "body": {
+                        "contentType": "HTML",
+                        "content": "Scheduled via the Governance Portal."
+                    },
+                    "start": { "dateTime": dt(start_iso), "timeZone": "UTC" },
+                    "end":   { "dateTime": dt(end_iso),   "timeZone": "UTC" },
+                    "attendees": attendees.iter().map(|a| serde_json::json!({
+                        "emailAddress": { "address": a },
+                        "type": "required",
+                    })).collect::<Vec<_>>(),
+                    "isOnlineMeeting": true,
+                    "onlineMeetingProvider": "teamsForBusiness",
+                    "allowNewTimeProposals": false,
+                }))
+            }
             Self::CreateSubscription {
                 resource,
                 notification_url,
@@ -294,6 +359,13 @@ impl WriteOperation {
     fn fingerprint_fields(&self) -> Vec<(&'static str, String)> {
         match self {
             Self::ScheduleTeamsMeeting {
+                organizer,
+                subject,
+                start_iso,
+                end_iso,
+                attendees,
+            }
+            | Self::ScheduleCalendarEvent {
                 organizer,
                 subject,
                 start_iso,
@@ -519,6 +591,7 @@ fn resource_id_from_response(
 ) -> Option<String> {
     match op {
         WriteOperation::ScheduleTeamsMeeting { .. }
+        | WriteOperation::ScheduleCalendarEvent { .. }
         | WriteOperation::CreateSubscription { .. }
         | WriteOperation::RenewSubscription { .. } => response
             .get("id")

@@ -158,30 +158,64 @@ pub async fn schedule_via_graph(
     let idempotency_key = payload.get("idempotency_key").and_then(|v| v.as_str());
 
     let ctx = WriteContext::from_user(&actor);
-    let op = WriteOperation::ScheduleTeamsMeeting {
-        organizer,
+    // Calendar-backed: POST /users/{organizer}/events with isOnlineMeeting.
+    // This puts the meeting on the organizer's calendar AND emails invites to
+    // attendees -- POST /onlineMeetings does neither.
+    let op = WriteOperation::ScheduleCalendarEvent {
+        organizer: organizer.clone(),
         subject,
-        start_iso,
-        end_iso,
-        attendees,
+        start_iso: start_iso.clone(),
+        end_iso: end_iso.clone(),
+        attendees: attendees.clone(),
     };
 
     let outcome = writes::execute(data_access, &ctx, op, Some(&meeting_id), idempotency_key)
         .await
         .map_err(|e| anyhow::anyhow!(e.to_string()))?;
 
+    // The /events response carries `onlineMeeting.joinUrl` (and `id`, the
+    // calendar event id, already in `graph_resource_id`).
     let join_url = outcome
         .graph_response
         .as_ref()
-        .and_then(|r| r.get("joinWebUrl"))
+        .and_then(|r| {
+            r.get("onlineMeeting")
+                .and_then(|m| m.get("joinUrl"))
+                .or_else(|| r.get("joinWebUrl"))
+        })
         .and_then(|v| v.as_str())
         .map(str::to_string)
         .or_else(|| meeting.join_url.clone());
 
+    let event_id = outcome.graph_resource_id.clone();
+
+    // Resolve the onlineMeeting id from the join URL -- needed later to fetch
+    // the transcript. Best-effort: the transcript webhook has a fallback.
+    let online_meeting_id = match join_url.as_deref() {
+        Some(url) => resolve_online_meeting_id(&organizer, url).await,
+        None => None,
+    };
+
+    let attendees_json: Vec<serde_json::Value> = attendees
+        .iter()
+        .map(|a| json!({ "email": a }))
+        .collect();
+
     let mut input = meeting_input(&meeting);
-    input.graph_online_meeting_id = outcome.graph_resource_id.clone();
+    input.graph_event_id = event_id.clone();
+    input.graph_online_meeting_id = online_meeting_id.clone();
+    input.graph_organizer_user_id = Some(organizer.clone());
     input.join_url = join_url;
     input.status = "graph_scheduled".to_string();
+    if let Ok(t) = chrono::DateTime::parse_from_rfc3339(&start_iso) {
+        input.start_time = Some(t.with_timezone(&chrono::Utc));
+    }
+    if let Ok(t) = chrono::DateTime::parse_from_rfc3339(&end_iso) {
+        input.end_time = Some(t.with_timezone(&chrono::Utc));
+    }
+    if !attendees_json.is_empty() {
+        input.attendees = Some(attendees_json);
+    }
 
     let saved = data_access
         .update_item::<InputMeeting, MeetingProjection>(
@@ -200,12 +234,39 @@ pub async fn schedule_via_graph(
         "ok": true,
         "meeting_id": meeting_id,
         "operation": outcome.operation,
-        "graph_online_meeting_id": outcome.graph_resource_id,
+        "graph_event_id": event_id,
+        "graph_online_meeting_id": online_meeting_id,
         "join_url": saved.join_url,
         "status": saved.status,
         "version": saved.version,
         "idempotent_replay": outcome.idempotent_replay,
     }))
+}
+
+/// `GET /users/{organizer}/onlineMeetings?$filter=JoinWebUrl eq '{join_url}'`
+/// through the governed read registry. Best-effort -- returns `None` on any
+/// failure (Graph unconfigured, filter miss, parse error); the transcript
+/// webhook can backfill the id from the notification later.
+async fn resolve_online_meeting_id(organizer: &str, join_url: &str) -> Option<String> {
+    use crate::services::graph::{GraphClient, ReadOperation};
+    let http = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .ok()?;
+    let client = GraphClient::from_env(http)?;
+    let body = client
+        .read(ReadOperation::GetOnlineMeetingByJoinUrl {
+            organizer: organizer.to_string(),
+            join_url: join_url.to_string(),
+        })
+        .await
+        .ok()?;
+    body.get("value")
+        .and_then(|v| v.as_array())
+        .and_then(|a| a.first())
+        .and_then(|m| m.get("id"))
+        .and_then(|v| v.as_str())
+        .map(str::to_string)
 }
 
 /// `Meeting.cancel_via_graph(meeting_id, payload)`. Cancels whatever Graph
