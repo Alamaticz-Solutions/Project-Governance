@@ -341,6 +341,60 @@ with a commitment to upstream it. Never patch framework source in-place.
 
 ---
 
+## 6a. Teammate setup — testing slices 0–1 (or any `framework-readopt` state)
+
+Mode B means **two repos, cloned as siblings under one parent directory**. The
+framework is not in this repo.
+
+```bash
+# pick any parent dir; both repos must sit side by side in it
+mkdir -p ~/work/governance && cd ~/work/governance
+
+# 1. the framework mirror, pinned
+git clone git@github.com:Alamaticz-Solutions/app-framework.git
+cd app-framework
+git checkout pinned/archive-893829ad0e30      # the tag in appfw.lock provenance
+cd ..
+
+# 2. the product, on the re-adoption branch
+git clone git@github.com:Alamaticz-Solutions/Project-Governance.git governance-appfw
+cd governance-appfw
+git checkout framework-readopt
+
+# 3. verify — this is the slice-1 acceptance gate
+cargo check -p backend --all-targets           # expect: 0 errors (~2-3 min first run)
+```
+
+Resulting layout (the `../../app-framework` path in `backend/Cargo.toml` and the
+`../app-framework` fallback in `scripts/appfw` both depend on it):
+
+```text
+~/work/governance/
+|-- app-framework/        <- Alamaticz-Solutions/app-framework @ pinned/archive-893829ad0e30
+`-- governance-appfw/     <- Project-Governance @ framework-readopt
+```
+
+Notes:
+- **Access:** the mirror is a private repo in the `Alamaticz-Solutions` org. A
+  teammate needs org membership + read access before the clone works — an
+  org-admin grant, done once.
+- **Slice 0–1 is a wiring checkpoint, not a behavior change.** `appfw_runtime`
+  is present in the build but not yet consumed (the `platform::runtime` facade
+  still points at self-owned code). The product behaves exactly as it does on
+  `governance-restructure`. The only observable difference is `cargo` now
+  compiles `appfw-runtime` and its deps.
+- **`scripts/appfw` on native Windows:** the bundled `appfw-cli` shells out to a
+  bash compatibility wrapper and fails with `os error 193` on native Windows.
+  Run it under WSL, macOS, or Linux — or use `cargo run --locked
+  --manifest-path ../app-framework/Cargo.toml -p appfw-cli -- --app-root .
+  --framework-root ../app-framework <cmd>` directly. This does **not** affect
+  the `cargo check` gate above, which is the real slice-1 acceptance and works
+  on every platform. Tracked as an open item for slice 3 (generator swap) — see
+  §9.
+- **No `APPFW_FRAMEWORK_ROOT` needed** if the sibling layout is exact. Set it in
+  `governance-appfw/.appfw/local.env` (gitignored) only if the framework lives
+  elsewhere.
+
 ## 7. Product README additions
 
 Add a "Framework dependency" section:
@@ -376,6 +430,12 @@ Add a "Framework dependency" section:
 
 ## 9. Open decisions
 
+- **`scripts/appfw` on native Windows** (found during slice 1): `appfw-cli`
+  fails with `os error 193` invoking its bash compatibility wrapper. The
+  self-owned `product_cli` was a pure Rust binary with no such issue. Options
+  for slice 3: run the framework CLI only under WSL/CI (Linux), invoke
+  `appfw-cli` directly without the wrapper, or ask PDS whether a
+  wrapper-free entrypoint exists. Does not block slices 1–2.
 - **Frontend kit (slice 6):** revert to vendored PDS components, or keep the
   self-owned `kit.tsx`? Decouple from the backend decision.
 - **`rego_test` / `api_tests` workspace membership:** they were restructured
