@@ -95,12 +95,13 @@ impl DataAccess {
                 { "name": pk_name, "selection_set": [] }
             ]
         });
-        let query = runtime_audit::audit_query(
+        let query: crate::data::audit_event::AuditQuery = runtime_audit::audit_query(
             &runtime_entity_metadata(&entity_type),
             &user.tenant_id,
             record_id,
             limit,
-        );
+        )
+        .into();
 
         if query.tenant_id.trim().is_empty() || query.tenant_id != user.tenant_id {
             return Err(AppError::DataAccess(

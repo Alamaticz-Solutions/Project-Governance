@@ -1,4 +1,4 @@
-pub(crate) mod audit;
+pub use appfw_runtime::record_audit as audit;
 
 pub(crate) mod audit_event;
 

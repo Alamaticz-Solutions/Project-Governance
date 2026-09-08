@@ -44,6 +44,7 @@ to `origin`. Commits so far:
 | `b6ef392` | **slice 3** — swap generator (product_gen deleted, app_gen adopted, workspace 0 warnings/0 errors) |
 | `25a8999` | slice 3 followup — repoint rego_test to appfw-test, restore to workspace members |
 | `c702fc8` | slice 3 review — live smoke test rerun, non_camel_case_types comment, docker runner recipe in §9 |
+| `17e3ee6` | **slice 4** — reconcile .appfw to framework contract |
 
 **Framework checkout:** `Alamaticz-Solutions/app-framework` @ tag
 `pinned/archive-893829ad0e30` must be cloned as a sibling of this repo (see §6a
@@ -59,7 +60,7 @@ sibling path).
 cargo check -p backend --all-targets      # must be 0 errors
 ```
 
-**Next action:** Slice 5 (§4). Product-surface fallout & boundary-check cleanup.
+**Next action:** Slice 6 (§4) / Slice 7. Frontend UI kit decision & fixes reconciliation.
 
 **The detailed reverse-map lives in `self-owned-backend-plan.md` §"Phase 7"** —
 that section documents, slice by slice, exactly how each `appfw_runtime` symbol
@@ -340,11 +341,17 @@ Verified against the adopted framework contract (`app_gen/_config/_specs/CONFIG_
 - `cargo check --workspace --all-targets` passes with **0 warnings, 0 errors**.
 - All unit tests pass (`backend`: 122 passed, `rego_test`: 4 passed, `api_tests`: 7 passed).
 
-### Slice 5 — product-surface fallout
+### Slice 5 — product-surface fallout & boundary-check cleanup ✅ DONE
 
-- Handlers/services that imported `platform::` symbols which moved or changed
-  signature under the framework. Mechanical; compiler-driven.
-- `scripts/appfw product boundary-check --json` green.
+- **Retired Template Surfaces Removed:** Deleted self-owned duplicate files in `backend/src/data/` (`audit.rs`, `rules/computed.rs`, `rules/timezone.rs`, `rules/version.rs`, `rules/validation.rs` — net -2,479 lines).
+- **Repointed to `appfw_runtime` Modules:**
+  - `backend/src/data/mod.rs`: `pub use appfw_runtime::record_audit as audit;`
+  - `backend/src/data/rules/mod.rs`: delegated directly to `appfw_runtime::{record_computed, record_timezone, record_validation, record_version}` matching framework CRM sample conventions; added `pub use appfw_runtime::record_validation as validation;`.
+  - `backend/src/data/data_access.rs`: repointed `runtime_audit::audit_query(...).into()`.
+- **Boundary Check Green:** `scripts/appfw product boundary-check --json` passes cleanly with **`ok: true`, `violations: []`** across all 69 checked handler/service files and provider boundaries.
+- **Zero Compiler Warnings:** `cargo check -p backend --all-targets` and `cargo check --workspace --all-targets` both pass with **0 warnings, 0 errors**.
+- **Test Suites Pass:** `cargo test -p backend --bin backend` (72 passed, 0 failed, 1 ignored; golden test intact), `cargo test -p rego_test` (4 passed), and `cargo test -p api_tests` (7 passed).
+- **Live Smoke Test:** End-to-end GraphQL create/update mutation and audit hash chain chaining verified against Postgres.
 
 ### Slice 6 — frontend UI kit (optional, independent)
 

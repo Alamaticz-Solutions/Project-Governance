@@ -1,18 +1,14 @@
-pub(crate) mod computed;
-pub(crate) mod timezone;
-pub(crate) mod validation;
-pub(crate) mod version;
-
+use appfw_runtime::{
+    extension::UserAuth,
+    record_computed::{self as runtime_computed, RuntimeComputedKind},
+    record_timezone as runtime_timezone, record_validation as runtime_validation,
+    record_version as runtime_version, AccessAction,
+};
 use serde_json::{Map, Value};
 use std::sync::Arc;
 
-use computed::{self as runtime_computed, RuntimeComputedKind};
-use timezone as runtime_timezone;
-use validation as runtime_validation;
-use version as runtime_version;
+pub use appfw_runtime::record_validation as validation;
 
-use crate::platform::policy::AccessAction;
-use crate::platform::user_auth::UserAuth;
 use crate::product_api::{
     runtime_entity_metadata, runtime_property_metadata, RuntimePropertyMetadata,
 };
