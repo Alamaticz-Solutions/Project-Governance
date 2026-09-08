@@ -12,10 +12,12 @@
 //!   workspace               project workspace payload assembly
 //!   meeting_scheduling      M10 / G1 governed Graph writes (schedule/cancel a Teams meeting)
 //!   ai_extraction           spec 004 AI-egress boundary: PHI gate -> OpenAI document extraction
+//!   directory               live Microsoft Graph org-directory search (Meeting Center attendees)
 
 pub mod ai_extraction;
 pub mod approval_state_machine;
 pub mod audit;
+pub mod directory;
 pub mod gate_eligibility;
 pub mod gate_review;
 pub mod graph;

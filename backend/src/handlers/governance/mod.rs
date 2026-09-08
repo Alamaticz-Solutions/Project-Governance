@@ -4470,6 +4470,27 @@ impl GovernanceQuery {
         }
     }
 
+    async fn search_directory(
+        &self,
+        ctx: &Context<'_>,
+        query: String,
+    ) -> FieldResult<serde_json::Value> {
+        // Custom-method context: do NOT parse selections against the calling entity's props,
+        // because the return type is `serde_json::Value` whose fields generally do not
+        // exist on `User`. Resolver receives Null selections.
+        let handler_context = from_context_without_selections(ctx, "governance", "User")?;
+        let (user, data_access, entity_type, selections) = handler_context.into_handler_parts();
+        let user = user.map(crate::product_api::UserAuth::from);
+
+        let res =
+            user::search_directory_impl(user, &data_access, &entity_type, selections, query).await;
+
+        match res {
+            Ok(res) => Ok(res),
+            Err(e) => Err(e.into()),
+        }
+    }
+
     async fn find_user_audit(
         &self,
         ctx: &Context<'_>,

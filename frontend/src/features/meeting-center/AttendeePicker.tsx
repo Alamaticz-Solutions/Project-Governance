@@ -1,30 +1,30 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Icon } from '@ui-kit';
 import { useApp } from '../../app/providers';
-import { entityByType } from '../../lib/entities';
 
-const userEntity = entityByType('User');
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type DirectoryUser = { id: string; name: string; email: string };
+type SearchDirectoryResult = { configured: boolean; users: DirectoryUser[] };
 
 /**
  * Attendee entry: chips + a typeahead. Ported from origin/Dev's
- * `AttendeePicker.tsx` (org directory via Graph `User.Read.All`), swapped
- * to this branch's seeded `User` entity over GraphQL — `services/graph/
- * identity.rs` was trimmed to just `GRAPH_BASE` in the warnings-cleanup
- * pass, so there is no live directory search here. Any other address can
- * still be free-added as an external attendee by typing it and pressing
- * Enter/comma.
+ * `AttendeePicker.tsx` (org directory via Graph `User.Read.All`) — searches
+ * the real Microsoft 365 directory live via `User.searchDirectory`
+ * (`services::directory`, `ReadOperation::SearchDirectoryUsers`), not this
+ * app's own seeded `User` table, so results match the org's actual people
+ * rather than whichever accounts happen to be seeded locally. Any other
+ * address can still be free-added as an external attendee by typing it and
+ * pressing Enter/comma.
  */
 export function AttendeePicker({ value, onChange }: { value: string[]; onChange: (emails: string[]) => void }) {
   const { client } = useApp();
   const [query, setQuery] = useState('');
-  const [users, setUsers] = useState<DirectoryUser[]>([]);
+  const [results, setResults] = useState<DirectoryUser[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [configured, setConfigured] = useState(true);
   const boxRef = useRef<HTMLDivElement>(null);
-  const loadedRef = useRef(false);
 
   const has = (email: string) => value.some((v) => v.toLowerCase() === email.trim().toLowerCase());
 
@@ -33,31 +33,34 @@ export function AttendeePicker({ value, onChange }: { value: string[]; onChange:
     if (!e || has(e)) return;
     onChange([...value, e]);
     setQuery('');
+    setResults([]);
     setOpen(false);
   };
   const remove = (email: string) => onChange(value.filter((v) => v !== email));
 
-  async function ensureLoaded() {
-    if (loadedRef.current) return;
-    loadedRef.current = true;
-    setLoading(true);
-    try {
-      const res = await client.queryList(userEntity, {
-        limit: 200,
-        sort: { full_name: 'asc' },
-        selection: ['id', 'full_name', 'email']
-      });
-      setUsers(
-        res.rows
-          .filter((r) => typeof r.email === 'string' && r.email)
-          .map((r) => ({ id: String(r.id), name: String(r.full_name ?? r.email), email: String(r.email) }))
-      );
-    } catch {
-      setUsers([]);
-    } finally {
-      setLoading(false);
+  // debounced live directory search
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setResults([]);
+      return;
     }
-  }
+    const t = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await client.invoke<SearchDirectoryResult>('searchDirectory', { query: q }, 'query');
+        setConfigured(res.configured);
+        setResults(res.users.filter((u) => !has(u.email)));
+        setOpen(true);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -66,13 +69,6 @@ export function AttendeePicker({ value, onChange }: { value: string[]; onChange:
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
-
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (q.length < 1) return [];
-    return users.filter((u) => !has(u.email) && (u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))).slice(0, 8);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, users, value]);
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if ((e.key === 'Enter' || e.key === ',') && query.trim()) {
@@ -130,10 +126,7 @@ export function AttendeePicker({ value, onChange }: { value: string[]; onChange:
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
-          onFocus={() => {
-            void ensureLoaded();
-            setOpen(true);
-          }}
+          onFocus={() => results.length && setOpen(true)}
           placeholder={value.length ? '' : 'Type a name to search, or an email address'}
           style={{ flex: 1, minWidth: '12ch', background: 'transparent', border: 'none', color: 'white', fontSize: 13, outline: 'none' }}
         />
@@ -154,6 +147,11 @@ export function AttendeePicker({ value, onChange }: { value: string[]; onChange:
           }}
         >
           {loading && <div style={{ padding: '8px 12px', fontSize: 12, color: '#64748B' }}>Searching…</div>}
+          {!loading && !configured && (
+            <div style={{ padding: '8px 12px', fontSize: 11, color: '#94A3B8' }}>
+              Directory search isn't configured — add an email address directly instead.
+            </div>
+          )}
           {results.map((u) => (
             <button
               key={u.id}

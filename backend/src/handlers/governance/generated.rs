@@ -5394,6 +5394,18 @@ pub(crate) mod user {
             .await?;
         Ok(res)
     }
+    #[allow(unused)]
+    pub(crate) async fn search_directory_impl(
+        user: Option<UserAuth>,
+        data_access: &Arc<DataAccess>,
+        entity_type: &Arc<EntityType>,
+        selections: JsonValue,
+        query: String,
+    ) -> HandlerResult<serde_json::Value> {
+        Err(anyhow::anyhow!(
+            "custom method `search_directory` is not implemented yet"
+        ))
+    }
 }
 pub(crate) mod user_audit {
     #[allow(unused_imports)]

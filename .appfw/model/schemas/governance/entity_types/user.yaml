@@ -15,6 +15,22 @@
   - username
   execution:
     prepared_statements: true
+
+  # Live Microsoft Graph directory search (M9 read registry,
+  # ReadOperation::SearchDirectoryUsers) -- registered and live-verified by
+  # graph::client's own connection test since spec 003, but no handler ever
+  # called it. Backs the Meeting Center attendee picker. No provider_routine
+  # -> generator emits a search_directory_impl stub in
+  # handlers/governance/user.rs.
+  custom_methods:
+  - name: search_directory
+    kind: Query
+    mcp_enabled: false
+    args:
+    - name: query
+      arg_type: String
+    return_type: serde_json::Value
+
   props:
 
   - name: id

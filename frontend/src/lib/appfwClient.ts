@@ -255,21 +255,26 @@ export function createAppfwClient(context: AppfwClientContext = {}) {
   }
 
   /**
-   * Invoke a generated custom-method mutation that returns the JSON scalar
+   * Invoke a generated custom-method operation that returns the JSON scalar
    * (cancel / submitDecision / decide / saveStage / start / submit / skip /
-   * processTranscript). `args` maps GraphQL arg name -> value; string values are
-   * declared `String!`, everything else `JSON`.
+   * processTranscript / scheduleViaGraph / searchDirectory / ...). `args` maps
+   * GraphQL arg name -> value; string values are declared `String!`,
+   * everything else `JSON`. Most custom methods are mutations (the default);
+   * pass `kind: 'query'` for one declared `kind: Query` in the model (e.g.
+   * `searchDirectory`) -- issuing a query-kind field as a `mutation` document
+   * fails GraphQL validation ("unknown field on Mutation type").
    */
   async function invoke<T = unknown>(
     field: string,
-    args: Record<string, unknown>
+    args: Record<string, unknown>,
+    kind: 'query' | 'mutation' = 'mutation'
   ): Promise<T> {
     const names = Object.keys(args).filter((name) => GRAPHQL_NAME.test(name));
     const decls = names
       .map((name) => `$${name}: ${typeof args[name] === 'string' ? 'String!' : 'JSON'}`)
       .join(', ');
     const pass = names.map((name) => `${name}: $${name}`).join(', ');
-    const query = `mutation ${field}(${decls}) {\n  ${field}(${pass})\n}`;
+    const query = `${kind} ${field}(${decls}) {\n  ${field}(${pass})\n}`;
     const { data } = await graphql<Record<string, T>>(
       query,
       Object.fromEntries(names.map((name) => [name, args[name]]))

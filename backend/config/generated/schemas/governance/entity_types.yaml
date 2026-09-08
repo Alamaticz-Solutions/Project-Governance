@@ -11142,7 +11142,15 @@
   - Create
   - Update
   - Delete
-  custom_methods: null
+  custom_methods:
+  - name: search_directory
+    kind: Query
+    args:
+    - name: query
+      arg_type: String
+    return_type: serde_json::Value
+    mcp_enabled: false
+    provider_routine: null
   props:
   - id: 64a8ae949db0ca54
     name: id

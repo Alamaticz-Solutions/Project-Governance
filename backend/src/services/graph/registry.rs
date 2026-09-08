@@ -27,9 +27,9 @@ pub enum ReadOperation {
         transcript_id: String,
     },
     /// `GET /users?$search="{term}"&$select=id,displayName,mail,userPrincipalName&$top=10`.
-    /// No production handler builds one yet; live-verified 2026-09-07 by the
+    /// Used by `services::directory::search_directory` (`User.searchDirectory`,
+    /// the Meeting Center attendee picker); live-verified 2026-09-07 by the
     /// `client::live` connection test (`#[ignore]`d by default).
-    #[allow(dead_code)]
     SearchDirectoryUsers { term: String },
     /// `POST /users/{organizer}/calendar/getSchedule` — vendor-side read (no mutation).
     /// Registered but no handler builds one yet.
