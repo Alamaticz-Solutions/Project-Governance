@@ -161,11 +161,9 @@ impl AppConfig {
                 })?
                 .to_owned();
 
-            // println!("test_entity_type_access input: {:?}", input);
             engine.set_input(regorus::Value::from(input.clone()));
 
             let rule_path = format!("data.{}.access", policy_key);
-            // println!("\nrule_path = {}\n", rule_path);
 
             let res = engine
                 .eval_rule(rule_path)
@@ -349,7 +347,6 @@ impl AppConfig {
         entity_type: Arc<EntityType>,
         input_name: &String,
     ) -> Option<Arc<PropertyType>> {
-        // println!("\n > app_config try_get_prop: entity_type {:?} input_name {:?}", entity_type.pascal_1, input_name);
         let prop_name = to_snake_case(input_name);
         match entity_type.props.iter().find(|p| p.name.eq(&prop_name)) {
             Some(prop) => Some(Arc::new(prop.to_owned())),

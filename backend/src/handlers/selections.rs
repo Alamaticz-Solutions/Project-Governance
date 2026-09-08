@@ -16,7 +16,6 @@ pub fn get_query_selections(
     entity_type: Arc<EntityType>,
     parent: async_graphql::SelectionField,
 ) -> Result<Value, AppError> {
-    // println!("\n > get_query_selections parent {:?}", parent);
     let parent = match parent.selection_set().find(|p| p.name().eq("items")) {
         Some(items) => items,
         None => parent,
@@ -30,11 +29,9 @@ pub fn get_entity_selections(
     entity_type: Arc<EntityType>,
     parent: async_graphql::SelectionField,
 ) -> Result<Value, AppError> {
-    // println!("\n > get_entity_selections entity_type {:?} parent {:?}", entity_type_name, parent);
     let mut selections: Vec<Value> = Vec::new();
 
     for child in parent.selection_set() {
-        // println!("\n > db get_entity_selections child :: {:?}", &child.name().to_string());
         let prop = AppConfig::get_prop(entity_type.clone(), &child.name().to_string())?;
 
         match prop.data_type {

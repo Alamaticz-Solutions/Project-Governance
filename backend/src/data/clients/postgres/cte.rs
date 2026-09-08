@@ -191,7 +191,6 @@ impl CTE {
             })?;
 
         for selection in selection_set {
-            // println!("\n > create_cte: selection {:?}", selection);
             let sel_name = selection
                 .get("name")
                 .and_then(|name| name.as_str())
@@ -371,14 +370,12 @@ impl CTE {
             access,
             params,
         )?;
-        // println!("\n >    filter_str: {:?}", filter_str);
 
         let sort_str = provider_order_by(
             alias,
             &pk_name,
             &postgres_sort_fields(entity_type.clone(), sort)?,
         );
-        // println!("\n >    sort: {:?}", sort);
 
         debug!(sort_clause = %sort_str, "compiled CTE sort clause");
 

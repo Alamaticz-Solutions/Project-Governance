@@ -75,12 +75,9 @@ fn create_filter(
         let attr_name = &v.0;
         let attr_value = &v.1;
 
-        // println!("\n > create_filter: attr_name {:?}", attr_name);
-        // println!("\n > create_filter: attr_value {:?}", attr_value);
 
         match attr_name.as_str() {
             conjunction::AND | conjunction::OR => {
-                // println!("\n > create_filter: conjunction {:?} {:?}", attr_name, attr_value);
                 let conj = attr_name[1..].to_string();
                 if let Some(conj_criteria) = create_conjunction(
                     app_config.clone(),
@@ -95,7 +92,6 @@ fn create_filter(
             }
             _ => {
                 let prop_name = to_snake_case(attr_name);
-                // println!("\n > create_filter: prop_name {:?}", prop_name);
                 let prop = AppConfig::get_prop(entity_type.clone(), &prop_name).map_err(|_| {
                     AppError::Validation(format!(
                         "invalid filter field '{}': property not found on {}",
@@ -126,7 +122,6 @@ fn create_filter(
                     )));
                 }
 
-                // println!("\n > create_filter: attr_value {:?}", attr_value);
 
                 let (op, value) = match attr_value {
                     Value::Null => {
@@ -167,7 +162,6 @@ fn create_filter(
 
     let result = criteria.join(" and ");
 
-    // println!("\n > create_filter: result {:?}", result);
 
     Ok(result)
 }
@@ -202,7 +196,6 @@ fn create_conjunction(
     alias: &String,
     params: &mut Vec<SqlParam>,
 ) -> Result<Option<String>, AppError> {
-    // println!("\n > create_conjunction: {:?} {:?}", conj, attr_value);
     let mut conj_criteria: Vec<String> = vec![];
     match attr_value {
         Value::Array(array_val) => {
@@ -252,7 +245,6 @@ fn get_nav_criterion(
     alias: &String,
     params: &mut Vec<SqlParam>,
 ) -> Result<Option<String>, AppError> {
-    // println!("\n > get_nav_criterion: prop {:?}", prop.name);
     match value {
         Value::Object(val_obj) => {
             let nav = prop.nav_by_fk_property.clone().ok_or_else(|| {

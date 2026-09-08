@@ -39,11 +39,9 @@ pub async fn read_config() -> Result<
 
     let schemas_dir = config_dir.join("schemas");
     for dir_entry in fs::read_dir(&schemas_dir).map_err(|e| io_error(&schemas_dir, e))? {
-        // println!("    read_config dir_entry -> {:?}", &dir_entry);
         let schema_dir = dir_entry.map_err(|e| io_error(&schemas_dir, e))?.path();
         if schema_dir.is_dir() {
             let schema = get_schema(&schema_dir)?;
-            // println!("    schema -> {:?}", &schema);
             schemas.push(schema);
 
             let schema_entity_types = get_entity_types(&schema_dir)?;
@@ -329,7 +327,6 @@ fn load_policy(schema_dir: &PathBuf, policy_name: String) -> Result<regorus::Eng
                 message: e.to_string(),
             })?;
 
-    // println!("package name {}", _package);
 
     Ok(engine)
 }

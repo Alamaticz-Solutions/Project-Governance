@@ -46,22 +46,16 @@ async-graphql-axum = { version = "6", optional = true }
 async-trait = "0.1"
 axum = { version = "0.6", features = ["macros"], optional = true }
 base64 = "0.22"
-bson = "2.0"
 # AI intake/gate-form document extraction (services::ai_extraction): pure-Rust
 # PDF text extraction, no system deps. .txt is decoded directly; .docx is not
 # supported yet (documented limitation, see ai_extraction::text_extract).
 pdf-extract = "0.7"
 bytes = "1.7"
 chrono = { version = "0.4", features = ["clock", "serde"] }
-chrono-tz = "0.10"
-deadpool = "0.12"
 deadpool-postgres = "0.12"
-derivative = "2.2"
 dotenv = "0.15"
 futures = "0.3"
 futures-util = "0.3.27"
-governor = "0.10"
-hmac = "0.12"
 hyper = { version = "1.0", optional = true }
 http = { version = "=1.1.0", optional = true }
 Inflector = "*"
@@ -74,18 +68,10 @@ regorus = "0.2"
 regex = "1"
 # Outbound HTTP for the governed Microsoft Graph provider (backend/src/services/graph).
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
-rustls = { version = "0.23", default-features = false, features = ["ring", "std", "logging", "tls12"] }
-rustls-native-certs = "0.8"
-rustls-pki-types = "1"
-tokio-postgres-rustls = "0.13"
-webpki-roots = "1"
-okta-jwt-verifier = "0.9.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
 sha2 = "0.10"
-slab = "0.4.7"
-strfmt = "0.2.2"
 thiserror = "2.0.12"
 time = { version = "0.3", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
@@ -96,10 +82,3 @@ tracing = "0.1"
 tracing-opentelemetry = "0.33"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-
-[dev-dependencies]
-# Signs test tokens for backend/tests/jwt_verification_harness.rs and
-# platform::auth's own tests; okta-jwt-verifier itself (used to verify, not
-# mint, tokens) is a real dependency above since platform::auth uses it.
-jsonwebtoken = "9.3.1"
-mockito = "1.6"

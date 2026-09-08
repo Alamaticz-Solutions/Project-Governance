@@ -428,7 +428,6 @@ impl PostgresClient {
             })?;
 
         for selection in selection_set {
-            // println!("\n > get_item_res: selection {:?}", selection);
             let sel_name = selection
                 .get("name")
                 .and_then(|v| v.as_str())
@@ -1345,8 +1344,6 @@ impl DatabaseClient for PostgresClient {
                     access,
                 )
                 .await?;
-            // println!("\n PostgresClient: query_items res:: {:?}", res);
-            // println!("\n\n");
             Ok(res.items)
         } else {
             debug!("PostgreSQL get-items denied by access policy");

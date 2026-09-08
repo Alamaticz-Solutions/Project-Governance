@@ -21,7 +21,6 @@ pub fn evaluate(
     action: AccessAction,
     user: &UserAuth,
 ) -> Result<Map<String, Value>, AppError> {
-    // println!("\n rules::evaluate: record {:?}", record);
 
     for p in &entity_type.props {
         let prop = Arc::new(p.to_owned());
@@ -30,16 +29,13 @@ pub fn evaluate(
             if prop.computed != Computed::None {
                 // If a compute configuration is defined, this will evaluate it and apply to the result record.
                 if let Some(computed_value) = try_compute_property(prop.clone(), &record)? {
-                    // println!("\n compute_properties: prop:: {:?} {:?}", &prop.name, res);
                     record.insert(prop.name.to_string(), computed_value);
                 }
             }
 
-            // println!("\n compute_properties: prop:: {:?} {:?}", &prop.name, res);
             if prop.is_concurrency_control {
                 // If a record version (concurrency control) property is defined, this will apply a new value to the result record.
                 if let Some(new_version) = new_record_version(prop.clone(), &record)? {
-                    // println!("\n compute_properties: prop:: {:?} {:?}", &prop.name, res);
                     record.insert(prop.name.to_string(), new_version);
                 }
             }
@@ -48,7 +44,6 @@ pub fn evaluate(
         if action != AccessAction::Delete {
             // If a DateTime property is defined, this will adjust timezone and apply to the result record.
             if let Some(adjusted_dt) = try_adjust_timezone(prop.clone(), &record, action, user)? {
-                // println!("\n compute_properties: prop:: {:?} {:?}", &prop.name, res);
                 record.insert(prop.name.to_string(), adjusted_dt);
             }
         }
