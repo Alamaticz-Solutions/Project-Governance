@@ -1,5 +1,5 @@
 //! `Meeting.schedule_via_graph` / `Meeting.cancel_via_graph` orchestration
-//! (M10 / G1 governed writes, spec 003 non-goal 1 lifted for these two
+//! (G1 governed writes, spec 003 non-goal 1 lifted for these two
 //! operations only). Every actual Graph call goes through
 //! `services::graph::writes::execute` -- this module's job is just to
 //! resolve the bound parameters from the `Meeting` row + the caller's

@@ -5,7 +5,7 @@
 //!   live_certified     — a retained live contract run exists. NONE here.
 //!   compiler_contracted — request-plan construction proven by unit contracts;
 //!                         executable, but no retained live run exists. As of
-//!                         M10 this also covers the two G1-gated writes
+//!                         this also covers the two G1-gated writes
 //!                         (`schedule_teams_meeting`, `cancel_calendar_event`):
 //!                         they execute behind the full 8-item G1 stack
 //!                         (`services::graph::writes`), but the live check
@@ -88,7 +88,7 @@ pub const CONTRACTS: &[OperationContract] = &[
         name: "schedule_teams_meeting",
         kind: "write",
         sensitivity: "pii",
-        // M10: executes behind the full G1 stack (services::graph::writes).
+        // Executes behind the full G1 stack (services::graph::writes).
         // See `assert_honest`'s G1_GATED_WRITES allow-list for the rule this
         // exception must satisfy.
         tier: Tier::CompilerContracted,
@@ -135,7 +135,7 @@ pub const CONTRACTS: &[OperationContract] = &[
     },
 ];
 
-/// M10 / G1: the only write operations allowed to claim a tier above
+/// G1: the only write operations allowed to claim a tier above
 /// `WriteGated`. Both are gated by every one of the 8 G1 components
 /// (`services::graph::writes::execute`) -- `CompilerContracted` here means
 /// "the gate is real and runs before any network call", the same meaning
@@ -152,7 +152,7 @@ const G1_GATED_WRITES: &[&str] = &[
 
 /// Invariant the tests/docs-check assert: nothing claims `live_certified`,
 /// and every `write` operation is `write_gated` UNLESS it's in
-/// `G1_GATED_WRITES` (M10), in which case it may be `compiler_contracted`.
+/// `G1_GATED_WRITES`, in which case it may be `compiler_contracted`.
 #[allow(dead_code)]
 pub fn assert_honest() -> Result<(), String> {
     for c in CONTRACTS {

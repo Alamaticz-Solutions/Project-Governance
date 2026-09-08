@@ -48,7 +48,7 @@ pub const ENV_DEFAULT_ORGANIZER_ID: &str = "GRAPH_DEFAULT_ORGANIZER_ID";
 #[allow(dead_code)] // read only by notification_client_state() below, not yet called -- webhook ingress isn't built
 pub const ENV_NOTIFICATION_CLIENT_STATE: &str = "GRAPH_NOTIFICATION_CLIENT_STATE";
 
-/// M10 / G1.3 TokenStoreIsolation: a write-capable app registration distinct
+/// G1.3 TokenStoreIsolation: a write-capable app registration distinct
 /// from the read one (`ENV_TENANT_ID` still applies -- single tenant, ADR
 /// 0018 -- only the client/secret differ). Optional: `writes::write_auth_config`
 /// falls back to the read credential set (with a loud warning) when these are

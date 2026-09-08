@@ -1,5 +1,5 @@
 //! `User.search_directory` -- live Microsoft Graph org-directory search
-//! (M9 read registry, `ReadOperation::SearchDirectoryUsers`). That
+//! (read registry, `ReadOperation::SearchDirectoryUsers`). That
 //! operation was registered and live-verified by
 //! `graph::client::live::token_acquisition_and_one_directory_read` since
 //! spec 003, but no handler ever called it -- the Meeting Center attendee

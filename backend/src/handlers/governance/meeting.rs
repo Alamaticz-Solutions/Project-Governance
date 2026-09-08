@@ -28,7 +28,7 @@ pub async fn process_transcript_impl(
         .await
 }
 
-/// M10 / G1 governed write -- see `services::meeting_scheduling::schedule_via_graph`
+/// Governed Graph write -- see `services::meeting_scheduling::schedule_via_graph`
 /// and `services::graph::writes` for the full 8-item gate this goes through.
 #[allow(unused)]
 pub async fn schedule_via_graph_impl(
@@ -43,7 +43,7 @@ pub async fn schedule_via_graph_impl(
         .await
 }
 
-/// M10 / G1 governed write -- see `services::meeting_scheduling::cancel_via_graph`.
+/// Governed Graph write -- see `services::meeting_scheduling::cancel_via_graph`.
 #[allow(unused)]
 pub async fn cancel_via_graph_impl(
     user: Option<UserAuth>,

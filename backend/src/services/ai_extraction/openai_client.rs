@@ -45,7 +45,7 @@ pub struct OpenAiConfig {
 }
 
 impl OpenAiConfig {
-    /// Returns `None` when the provider is not configured -- the M10-style
+    /// Returns `None` when the provider is not configured -- the governed-write-style
     /// fail-closed pattern: no key, no call, ever.
     pub fn from_env() -> Option<Self> {
         let api_key = std::env::var(ENV_API_KEY)

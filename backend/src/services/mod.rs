@@ -10,7 +10,7 @@
 //!   gate_eligibility        prerequisite evaluation over the seeded stage-definition DAG
 //!   approval_state_machine  submit_decision / fast_track_complete / cancel
 //!   workspace               project workspace payload assembly
-//!   meeting_scheduling      M10 / G1 governed Graph writes (schedule/cancel a Teams meeting)
+//!   meeting_scheduling      G1 governed Graph writes (schedule/cancel a Teams meeting)
 //!   ai_extraction           spec 004 AI-egress boundary: PHI gate -> OpenAI document extraction
 //!   directory               live Microsoft Graph org-directory search (Meeting Center attendees)
 

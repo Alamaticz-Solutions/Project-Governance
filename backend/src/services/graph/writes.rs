@@ -1,4 +1,4 @@
-//! M10 / G1 governed-write stack. Every Microsoft Graph WRITE passes through
+//! G1 governed-write stack. Every Microsoft Graph WRITE passes through
 //! [`execute`] -- the ONLY function in this crate that can issue a non-GET
 //! request to `graph.microsoft.com` (G1.1 `GovernedWriteEnforcement`;
 //! mirrors how `client::GraphClient::read` is the sole outbound READ path).
@@ -14,7 +14,7 @@
 //!   G1.7 WritePolicyAndScopeEnforcement  `policy_check`, role + tenant gate
 //!   G1.8 WriteAuditAndEvidence       `AuditEvent` + the ledger row, every outcome
 //!
-//! Design: `docs/architecture/governed-write-microsoft-graph.md`. Three
+//! Design: spec 003. Three
 //! operations are wired to a callable custom method today
 //! (`ScheduleTeamsMeeting`, plus `CancelOnlineMeeting`/`CancelCalendarEvent`
 //! -- `Meeting.cancel_via_graph` picks whichever matches what
@@ -43,7 +43,7 @@ use super::{
 };
 
 /// The 8 write-area contracts. Every one below is implemented by this module
-/// (not `Unsupported`) as of the M10 build; kept as a named list because
+/// (not `Unsupported`); kept as a named list because
 /// `vendor_contract.rs`'s docs-check transcribes from it.
 #[allow(dead_code)] // tested below (write_areas_list_stays_at_eight_items); no docs-check consumes it yet
 pub const G1_WRITE_AREAS: &[&str] = &[
@@ -453,7 +453,7 @@ fn write_auth_config() -> Option<GraphAuthConfig> {
     tracing::warn!(
         "GRAPH_WRITE_CLIENT_ID/GRAPH_WRITE_CLIENT_SECRET not set; falling back to the read \
          Graph app registration for writes (G1.3 token isolation degraded -- see \
-         docs/architecture/governed-write-microsoft-graph.md \u{a7}G1.3)"
+         spec 003 \u{a7}G1.3)"
     );
     GraphAuthConfig::from_env()
 }

@@ -10,7 +10,7 @@ use super::request::{odata_string_literal, path_segment, RequestPlan};
 #[derive(Debug, Clone)]
 pub enum ReadOperation {
     /// `GET /users/{organizer}/onlineMeetings?$filter=JoinWebUrl eq '{join_url}'`
-    /// Registered (M9 5-read registry) but no handler builds one yet.
+    /// Registered in the read registry but no handler builds one yet.
     #[allow(dead_code)]
     GetOnlineMeetingByJoinUrl { organizer: String, join_url: String },
     /// `GET /users/{organizer}/onlineMeetings/{online_meeting_id}`
