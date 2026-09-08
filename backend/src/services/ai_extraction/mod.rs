@@ -1,15 +1,20 @@
 //! AI document extraction (Dev's `AIPopulationDropzone` / intake auto-fill,
 //! spec 004). Was previously an honest inert stub -- `IntakeScreen.tsx`'s own
 //! doc comment said "the extraction egress boundary does not exist on this
-//! branch yet." This module is that boundary: [`extract_intake`] and
-//! [`extract_team_fields`] are the only two places in this crate that ever
-//! reach [`openai_client::extract_structured`], and both refuse to call it
-//! at all once [`phi_gate::scan`] finds anything.
+//! branch yet." This module is that boundary: [`extract_intake`],
+//! [`extract_team_fields`], and [`extract_meeting_insights`] are the only
+//! places in this crate that ever reach [`openai_client::extract_structured`],
+//! and all three refuse to call it at all once [`phi_gate::scan`] finds
+//! anything.
 //!
-//! Pipeline, every call: `text_extract::extract_text` (decode the upload) ->
-//! `phi_gate::scan` (refuse if PHI/PII indicators found) ->
+//! Pipeline: `phi_gate::scan` (refuse if PHI/PII indicators found) ->
 //! `openai_client::extract_structured` (the one OpenAI call site) ->
 //! `audit::record` (retained evidence either way -- allowed or blocked).
+//! [`extract_intake`]/[`extract_team_fields`] additionally run
+//! `text_extract::extract_text` first to decode an uploaded/pasted document
+//! into text; `extract_meeting_insights` skips that step because its caller
+//! (`services::meeting_agent::process_transcript`) already has plain text
+//! from the parsed VTT.
 
 pub mod openai_client;
 pub mod phi_gate;
@@ -103,6 +108,18 @@ fn team_fields(team: &str) -> Option<&'static str> {
     }
 }
 
+/// Meeting-transcript field set, for [`extract_meeting_insights`] -- the
+/// third call site of the AI-egress boundary. Unlike the flat-string
+/// intake/team-review forms, these mix string/array/boolean, so the shape
+/// is spelled out explicitly for the model.
+const MEETING_INSIGHT_FIELDS: &str = "\
+- summary: a string, a concise 2-4 sentence summary of what the meeting covered and what was decided
+- decisions: a JSON array of strings, each one a distinct decision that was made
+- action_items: a JSON array of strings, each one a specific action item (include an owner's name in the string if the transcript names one)
+- agenda_items: a JSON array of strings, each one a distinct topic or agenda item discussed
+- contains_process_flow: a boolean, true only if the meeting discussed a specific business process or workflow in enough step-by-step detail that it could be diagrammed
+- process_name: a string naming that process if contains_process_flow is true, otherwise an empty string";
+
 #[derive(Debug, thiserror::Error)]
 pub enum ExtractionError {
     #[error(transparent)]
@@ -130,9 +147,31 @@ async fn run_extraction(
     payload: &JsonValue,
 ) -> Result<JsonValue, ExtractionError> {
     let text = text_extract::extract_text(payload)?;
+    run_extraction_on_text(
+        data_access,
+        user,
+        audit_project_id,
+        audit_entity_id,
+        field_descriptions,
+        &text,
+    )
+    .await
+}
+
+/// The PHI-gate -> OpenAI -> audit core, shared by every call site once it
+/// already has plain text in hand (from `text_extract`, or from an
+/// already-parsed transcript).
+async fn run_extraction_on_text(
+    data_access: &Arc<DataAccess>,
+    user: &Option<UserAuth>,
+    audit_project_id: Option<String>,
+    audit_entity_id: &str,
+    field_descriptions: &str,
+    text: &str,
+) -> Result<JsonValue, ExtractionError> {
     let char_count = text.chars().count();
 
-    let findings = phi_gate::scan(&text);
+    let findings = phi_gate::scan(text);
     if !findings.is_empty() {
         let _ = audit::record(
             data_access,
@@ -165,7 +204,7 @@ async fn run_extraction(
     };
 
     let http = reqwest::Client::new();
-    match openai_client::extract_structured(&cfg, &http, &text, field_descriptions).await {
+    match openai_client::extract_structured(&cfg, &http, text, field_descriptions).await {
         Ok(data) => {
             let _ = audit::record(
                 data_access,
@@ -249,4 +288,23 @@ pub async fn extract_team_fields(
     )
     .await;
     Ok(outcome_json(result))
+}
+
+/// Called from `services::meeting_agent::process_transcript` once a
+/// transcript's VTT has been parsed to plain text -- summarizes it into
+/// `summary`/`decisions`/`action_items`/`agenda_items`/
+/// `contains_process_flow`/`process_name` for the `Meeting` row. Returns the
+/// raw `Result` (not wrapped in `outcome_json`, unlike the two GraphQL entry
+/// points above) so the caller can persist different `bpmn_status` values
+/// for the blocked-by-PHI and failed cases rather than just reporting them.
+/// The caller is expected to have already authenticated the user
+/// (`process_transcript` calls `require_user` itself), so this does not
+/// duplicate that check.
+pub async fn extract_meeting_insights(
+    data_access: &Arc<DataAccess>,
+    user: &Option<UserAuth>,
+    meeting_id: &str,
+    text: &str,
+) -> Result<JsonValue, ExtractionError> {
+    run_extraction_on_text(data_access, user, None, meeting_id, MEETING_INSIGHT_FIELDS, text).await
 }

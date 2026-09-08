@@ -2,8 +2,9 @@
 //! reaches `api.openai.com` goes through [`extract_structured`] -- mirrors
 //! how `services::graph::client`/`writes` are the sole Graph call sites.
 //! Never called directly by a handler; always through
-//! `super::extract_intake`/`extract_team_fields`, both of which run
-//! `phi_gate::scan` first and refuse to call this at all if it finds
+//! `super::run_extraction_on_text` (reached via `extract_intake`/
+//! `extract_team_fields`/`extract_meeting_insights`), which runs
+//! `phi_gate::scan` first and refuses to call this at all if it finds
 //! anything.
 
 use std::time::Duration;
@@ -99,10 +100,11 @@ pub async fn extract_structured(
 ) -> Result<serde_json::Value, OpenAiError> {
     let truncated: String = text.chars().take(MAX_INPUT_CHARS).collect();
     let system_prompt = format!(
-        "You extract structured project-governance intake data from a document. \
-         Return ONLY a JSON object (no prose, no markdown fences) with exactly \
-         these fields, using empty string for any field the document doesn't \
-         mention:\n{field_descriptions}"
+        "You extract structured project-governance data from a document or \
+         meeting transcript. Return ONLY a JSON object (no prose, no markdown \
+         fences) with exactly these fields, using the type stated for each \
+         one, and an empty value for that type (empty string, empty array, or \
+         false) for any field with no evidence in the source text:\n{field_descriptions}"
     );
 
     let body = serde_json::json!({

@@ -3,9 +3,12 @@
 //!   1. obtain the transcript — a governed Graph READ via the named-operation
 //!      registry, OR a manually pasted / uploaded VTT (no Graph call);
 //!   2. parse VTT -> plain text;
-//!   3. AI extraction — spec 004's single AI-egress boundary + pre-egress PHI
-//!      classification gate. That module is NOT built yet, so extraction is
-//!      recorded as `ai_status: pending` and no content is sent anywhere;
+//!   3. AI extraction — spec 004's AI-egress boundary
+//!      (`services::ai_extraction::extract_meeting_insights`): PHI/PII
+//!      pre-egress gate, then a single OpenAI call for summary/decisions/
+//!      action items/agenda/process-flow indicator. A PHI-blocked or failed
+//!      extraction still keeps the captured transcript -- only the AI step
+//!      is skipped, recorded via `bpmn_status`;
 //!   4. persist onto the Meeting row (generated Update, honoring the
 //!      concurrency facet).
 //!
@@ -21,6 +24,7 @@ use crate::{
     product_api::{DataAccess, HandlerResult, JsonValue, UserAuth},
     schemas::governance::{InputMeeting, MeetingProjection},
     services::{
+        ai_extraction::{self, ExtractionError},
         audit,
         graph::{GraphClient, ReadOperation},
         support::{entity, field, require_user, selection},
@@ -187,18 +191,54 @@ pub async fn process_transcript(
 
     let text = vtt_to_text(&vtt);
 
-    // --- 3. AI extraction — deferred to spec 004's egress boundary ---
-    // No content is sent anywhere. Store the raw material; mark extraction pending.
-    let ai_status =
-        "pending: spec 004 AI-egress boundary + pre-egress PHI classification gate not yet built";
+    // --- 3. AI extraction — spec 004 egress boundary (PHI gate -> OpenAI) ---
+    let insight_result = ai_extraction::extract_meeting_insights(data_access, user, &meeting_id, &text).await;
+
+    let str_array = |data: &JsonValue, key: &str| -> Option<Vec<serde_json::Value>> {
+        data.get(key).and_then(|v| v.as_array()).cloned()
+    };
+    let (bpmn_status, summary, decisions, action_items, agenda_items, contains_process_flow, process_name, ai_error) =
+        match &insight_result {
+            Ok(data) => (
+                "ai_complete",
+                data.get("summary").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(str::to_string),
+                str_array(data, "decisions"),
+                str_array(data, "action_items"),
+                str_array(data, "agenda_items"),
+                data.get("contains_process_flow").and_then(|v| v.as_bool()),
+                data.get("process_name").and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(str::to_string),
+                None,
+            ),
+            Err(ExtractionError::PhiBlocked) => (
+                "ai_blocked_phi",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(
+                    "Transcript appears to contain PHI/PII and was not sent for AI \
+                     summarization; the transcript itself is still saved."
+                        .to_string(),
+                ),
+            ),
+            Err(e) => ("ai_failed", None, None, None, None, None, None, Some(e.to_string())),
+        };
 
     // --- 4. persist ---
     let mut input = meeting_input(&meeting);
     input.transcript_vtt = Some(vtt);
     input.transcript_text = Some(text.clone());
     input.status = "transcript_captured".to_string();
-    input.summary = None;
-    input.bpmn_status = Some("ai_pending".to_string());
+    input.summary = summary;
+    input.decisions = decisions;
+    input.action_items = action_items;
+    input.agenda_items = agenda_items;
+    input.contains_process_flow = contains_process_flow;
+    input.process_name = process_name;
+    input.bpmn_status = Some(bpmn_status.to_string());
+    input.error_message = ai_error;
 
     let saved = data_access
         .update_item::<InputMeeting, MeetingProjection>(
@@ -217,7 +257,7 @@ pub async fn process_transcript(
         "Meeting",
         &meeting_id,
         "TRANSCRIPT_CAPTURED",
-        Some(json!({ "source": source, "chars": text.len() })),
+        Some(json!({ "source": source, "chars": text.len(), "bpmn_status": bpmn_status })),
     )
     .await?;
 
@@ -226,10 +266,9 @@ pub async fn process_transcript(
         "meeting_id": meeting_id,
         "transcript_source": source,
         "transcript_chars": text.len(),
+        "bpmn_status": bpmn_status,
         "status": saved.status,
         "version": saved.version,
-        "ai_status": ai_status,
-        "note": "transcript stored; summary/decisions/action-items pending the governed AI-egress boundary (spec 004)",
     }))
 }
 
