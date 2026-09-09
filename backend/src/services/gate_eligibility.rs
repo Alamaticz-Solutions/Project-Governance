@@ -67,9 +67,12 @@ pub async fn compute(
                 ],
             ),
             None,
-            Some(json!([{ "field": "sequence_order", "direction": "asc" }])),
+            // Framework query-IR sort shape is `{ "<column>": "asc"|"desc" }` (see docs/onboarding/13.3).
+            Some(json!({ "sequence_order": "asc" })),
             0,
-            500,
+            // Framework caps page size at 250 (APP_QUERY_MAX_PAGE_SIZE); the
+            // seeded lifecycle has 19 stage definitions.
+            250,
             None,
             user.clone(),
         )
@@ -92,7 +95,7 @@ pub async fn compute(
             Some(json!({ "project_id": { "_eq": project_id } })),
             None,
             0,
-            500,
+            250, // framework page-size cap (APP_QUERY_MAX_PAGE_SIZE)
             None,
             user.clone(),
         )

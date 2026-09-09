@@ -60,9 +60,13 @@ async fn load_approvals(
             approvals_type.clone(),
             approval_selection(),
             Some(json!({ "project_id": { "_eq": project_id } })),
-            Some(json!([{ "field": "sequence_order", "direction": "asc" }])),
+            // Framework query-IR expects sort as `{ "<column>": "asc"|"desc" }`,
+            // not the legacy `[{ field, direction }]` array (see docs/onboarding/13.3).
+            Some(json!({ "sequence_order": "asc" })),
             0,
-            500,
+            // Framework caps page size at APP_QUERY_MAX_PAGE_SIZE (default 250);
+            // an approval chain is only ever a handful of rows (see docs/onboarding/13.3).
+            250,
             None,
             user.clone(),
         )
